@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from typing import Any
 
 from .capabilities import bootstrap_native, CapabilityRegistry
@@ -87,6 +88,21 @@ def main(argv: list[str] | None = None) -> int:
     report.add_argument("--benchmark-n", type=int, default=500)
     report.add_argument("--sources", nargs="*", default=None)
     report.add_argument("--markdown", action="store_true")
+
+    optimize = sub.add_parser("optimize", help="benchmark equivalent implementations and keep the faster")
+    optimize.add_argument("--name", default=None)
+    optimize.add_argument("--all", action="store_true")
+    optimize.add_argument("--repeats", type=int, default=10)
+
+    loop = sub.add_parser("loop", help="run bounded continuous-evolution ticks")
+    loop.add_argument("--interval", type=float, default=30.0)
+    loop.add_argument("--ticks", type=int, default=0)
+    loop.add_argument("--sources", nargs="*", default=None)
+
+    ask = sub.add_parser("ask", help="route an Arabic or English request into a full cycle")
+    ask.add_argument("request")
+    ask.add_argument("--budget", type=float, default=10.0)
+    ask.add_argument("--sources", nargs="*", default=None)
 
     args = parser.parse_args(argv)
 
@@ -189,6 +205,59 @@ def main(argv: list[str] | None = None) -> int:
                 iterations=args.iterations,
             )
         )
+    elif args.command == "ask":
+        from .intent import parse_intent
+
+        intent = parse_intent(args.request)
+        cycle = engine.evolve(
+            intent["request"],
+            goal_type=intent["goal_type"],
+            text=intent["text"],
+            sources=args.sources,
+            budget_s=args.budget,
+            auto_extend=True,
+            max_attempts=2,
+        )
+        _print(
+            {
+                "intent": intent,
+                "ok": cycle.ok,
+                "plan": [step.capability for step in cycle.plan.steps],
+                "validation": {
+                    "passed": cycle.validation.passed,
+                    "scores": cycle.validation.scores,
+                    "failures": cycle.validation.failures,
+                },
+                "diagnosis": cycle.diagnosis,
+            }
+        )
+    elif args.command == "optimize":
+        from .optimizer import Optimizer
+
+        optimizer = Optimizer(engine.registry)
+        result = (
+            optimizer.optimize(args.name, repeats=args.repeats)
+            if args.name
+            else optimizer.optimize_all(repeats=args.repeats)
+        )
+        _print(result)
+    elif args.command == "loop":
+        from .loop import EvolutionLoop
+
+        evolution_loop = EvolutionLoop(
+            engine, interval_s=args.interval, sources=args.sources
+        )
+        if args.ticks:
+            for _ in range(args.ticks):
+                _print(evolution_loop.tick())
+        else:
+            evolution_loop.start()
+            print("loop running; press Ctrl+C to stop")
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                _print(evolution_loop.stop())
     elif args.command == "report":
         from .report import render_report, system_report
 

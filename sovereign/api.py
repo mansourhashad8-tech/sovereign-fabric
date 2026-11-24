@@ -11,6 +11,9 @@ from .absorption import absorb
 from .curriculum import Curriculum
 from .dashboard import DASHBOARD_HTML
 from .evolution import EvolutionEngine
+from .intent import parse_intent
+from .loop import EvolutionLoop
+from .optimizer import Optimizer
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
 from .models import Evidence, KnowledgeUnit
 from .redteam import audit
@@ -70,6 +73,13 @@ class AcquireRequest(BaseModel):
     rounds: int = 2
 
 
+class AskRequest(BaseModel):
+    request: str = Field(min_length=1)
+    budget_s: float = 10.0
+    sources: list[str] | None = None
+    auto_extend: bool = True
+
+
 class CurriculumRequest(BaseModel):
     iterations: int = 3
     sources: list[str] | None = None
@@ -112,6 +122,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     cache = HotCache()
     prefetcher = Prefetcher(cache)
     remote = RemoteExecutor()
+    optimizer = Optimizer(engine.registry)
+    loop = EvolutionLoop(engine, interval_s=60.0)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -123,6 +135,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.engine = engine
     app.state.execution = execution
     app.state.cache = cache
+    app.state.optimizer = optimizer
+    app.state.loop = loop
 
     @app.get("/")
     def root() -> dict[str, Any]:
@@ -148,6 +162,12 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /cache/stats",
                 "POST /cache/warm",
                 "GET /remote/status",
+                "POST /ask",
+                "POST /optimize",
+                "GET /loop/status",
+                "POST /loop/start",
+                "POST /loop/stop",
+                "POST /loop/tick",
                 "GET /report",
                 "GET /report.md",
                 "GET /cycles",
@@ -324,6 +344,54 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "capability": result.capability.name if result.capability else None,
             "attempts": result.attempts,
         }
+
+    @app.post("/ask")
+    def ask(body: AskRequest) -> dict[str, Any]:
+        intent = parse_intent(body.request)
+        cycle = engine.evolve(
+            intent["request"],
+            goal_type=intent["goal_type"],
+            text=intent["text"],
+            sources=body.sources,
+            budget_s=body.budget_s,
+            auto_extend=body.auto_extend,
+            max_attempts=2,
+        )
+        return {
+            "intent": intent,
+            "ok": cycle.ok,
+            "plan": [step.capability for step in cycle.plan.steps],
+            "result": cycle.execution.get("value"),
+            "validation": {
+                "passed": cycle.validation.passed,
+                "scores": cycle.validation.scores,
+                "failures": cycle.validation.failures,
+            },
+            "diagnosis": cycle.diagnosis,
+            "duration_s": round(cycle.duration_s, 4),
+        }
+
+    @app.post("/optimize")
+    def optimize(name: str | None = None, repeats: int = 10) -> dict[str, Any]:
+        if name:
+            return optimizer.optimize(name, repeats=repeats)
+        return {"results": optimizer.optimize_all(repeats=repeats)}
+
+    @app.post("/loop/start")
+    def loop_start() -> dict[str, Any]:
+        return loop.start()
+
+    @app.post("/loop/stop")
+    def loop_stop() -> dict[str, Any]:
+        return loop.stop()
+
+    @app.get("/loop/status")
+    def loop_status() -> dict[str, Any]:
+        return loop.status()
+
+    @app.post("/loop/tick")
+    def loop_tick() -> dict[str, Any]:
+        return loop.tick()
 
     @app.post("/curriculum")
     def curriculum(body: CurriculumRequest) -> dict[str, Any]:

@@ -115,6 +115,25 @@ DASHBOARD_HTML = """<!doctype html>
     </div>
   </div>
 
+  <div class="grid" style="margin-top:14px">
+    <div class="panel">
+      <h3>Continuous loop</h3>
+      <div class="limits" id="loopStats">not running</div>
+      <div class="actions" style="margin-top:12px">
+        <button onclick="loopStart()">Start</button>
+        <button onclick="loopStop()">Stop</button>
+        <button onclick="loopTick()">Tick once</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Self-optimization</h3>
+      <div class="limits" id="optStats">not run yet — benchmarks equivalent implementations and keeps the faster one</div>
+      <div class="actions" style="margin-top:12px">
+        <button onclick="optimizeNow()">Optimize hot paths</button>
+      </div>
+    </div>
+  </div>
+
   <div class="panel" style="margin-top:14px">
     <h3>Capabilities</h3>
     <div class="caps" id="caps"></div>
@@ -210,6 +229,50 @@ async function runReport() {
     button.textContent = 'Run full report';
   }
 }
+
+async function post(url) {
+  const response = await fetch(url, { method: 'POST' });
+  if (!response.ok) throw new Error(url + ' -> ' + response.status);
+  return response.json();
+}
+
+function renderLoop(status) {
+  const parts = [status.running ? 'running' : 'stopped', 'generation ' + status.generation];
+  if (status.last) parts.push('last: ' + status.last.topic + ' · ' + status.last.units + ' units');
+  const opt = status.last && status.last.optimization;
+  if (opt && opt.chosen) {
+    parts.push('optimized ' + opt.name + ' → ' + opt.chosen + ' (' + opt.speedup + 'x)');
+    $('optStats').textContent = opt.name + ': ' + opt.chosen + ' ' + opt.speedup + 'x (from loop)';
+  }
+  if (status.last_error) parts.push('error: ' + status.last_error);
+  $('loopStats').textContent = parts.join(' · ');
+}
+
+async function loopStart() { try { renderLoop(await post('/loop/start')); } catch (e) { $('loopStats').textContent = String(e); } }
+async function loopStop() { try { renderLoop(await post('/loop/stop')); } catch (e) { $('loopStats').textContent = String(e); } }
+async function loopTick() { try { renderLoop(await post('/loop/tick')); } catch (e) { $('loopStats').textContent = String(e); } }
+
+function renderOpt(result) {
+  if (result.results) {
+    $('optStats').textContent = result.results
+      .map(x => x.chosen ? x.name + ': ' + x.chosen + ' ' + x.speedup + 'x' : x.name + ': no gain')
+      .join(' · ');
+  } else {
+    $('optStats').textContent = result.chosen
+      ? result.name + ': ' + result.chosen + ' ' + result.speedup + 'x (v' + result.version + ')'
+      : result.name + ': ' + result.reason;
+  }
+}
+
+async function optimizeNow() {
+  $('optStats').textContent = 'benchmarking equivalent implementations…';
+  try { renderOpt(await post('/optimize?repeats=5')); } catch (e) { $('optStats').textContent = String(e); }
+}
+
+async function loadLoop() { try { renderLoop(await get('/loop/status')); } catch (e) {} }
+
+setInterval(loadLoop, 5000);
+loadLoop();
 
 async function loadBase() {
   try {

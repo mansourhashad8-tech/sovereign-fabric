@@ -49,3 +49,49 @@ NATIVE: dict[str, Any] = {
     "report.format": format_report,
     "text.summarize": extractive_summary,
 }
+
+
+# Equivalent implementations, used by the measured self-optimizer.
+import heapq as _heapq
+import re as _re
+from collections import Counter as _Counter
+
+_WHITESPACE = _re.compile(r"\S+")
+_SENTENCE_END = _re.compile(r"[.!?]")
+
+
+def tokenize_regex(payload: dict[str, Any]) -> dict[str, Any]:
+    return {"value": _WHITESPACE.findall(str(payload.get("value", "")))}
+
+
+def count_tokens_counter(payload: dict[str, Any]) -> dict[str, Any]:
+    tokens = payload.get("value") or []
+    return {"value": dict(_Counter(map(str, tokens)))}
+
+
+def summarize_counts_heap(payload: dict[str, Any]) -> dict[str, Any]:
+    counts = payload.get("value") or {}
+    top = _heapq.nsmallest(5, counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    return {"value": {"top": [list(pair) for pair in top], "distinct": len(counts)}}
+
+
+def format_report_generator(payload: dict[str, Any]) -> dict[str, Any]:
+    report = payload.get("value") or {}
+    lines = [f"- {key}: {value}" for key, value in report.get("top", [])]
+    return {"value": "\n".join(lines) if lines else "(empty)"}
+
+
+def extractive_summary_regex(payload: dict[str, Any]) -> dict[str, Any]:
+    sentences = [s.strip() for s in _SENTENCE_END.split(str(payload.get("value", ""))) if s.strip()]
+    return {"value": sentences[0] if sentences else ""}
+
+
+NATIVE.update(
+    {
+        "text.tokenize.regex": tokenize_regex,
+        "tokens.count.counter": count_tokens_counter,
+        "counts.summarize.heap": summarize_counts_heap,
+        "report.format.generator": format_report_generator,
+        "text.summarize.regex": extractive_summary_regex,
+    }
+)

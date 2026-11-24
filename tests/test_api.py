@@ -250,3 +250,25 @@ def test_dashboard_serves_a_single_self_contained_page():
     assert "Sovereign" in response.text
     assert "Run full report" in response.text
     assert "https://" not in response.text  # no external assets or CDNs
+
+
+def test_ask_endpoint_routes_an_arabic_request():
+    body = _client().post(
+        "/ask",
+        json={"request": "لخص: alpha beta", "sources": ["local"], "budget_s": 3},
+    ).json()
+    assert body["intent"]["goal_type"] == "summary"
+    assert body["intent"]["text"] == "alpha beta"
+    assert "plan" in body
+
+
+def test_dashboard_shows_loop_and_optimizer_panels():
+    text = _client().get("/dashboard").text
+    assert "Continuous loop" in text
+    assert "Self-optimization" in text
+
+
+def test_optimize_endpoint_measures_a_capability():
+    body = _client().post("/optimize?name=tokens.count&repeats=2").json()
+    assert body["name"] == "tokens.count"
+    assert any(item["verified"] for item in body["variants"])

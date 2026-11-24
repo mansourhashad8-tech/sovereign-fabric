@@ -99,6 +99,55 @@ program that fits them can still be wrong on unseen inputs. The gate makes the
 claim precise — "reproduces these examples" — and the examples remain the
 evidence.
 
+## Measuring itself and keeping the faster implementation
+
+`sovereign/optimizer.py` compares equivalent implementations of a capability.
+A candidate must produce byte-identical output on a corpus before it is timed;
+timing is the second gate. If nothing beats the current implementation by 5%,
+nothing changes. A win is registered as a new capability version and can be
+rolled back like any other.
+
+Live, measured on this machine:
+
+- `counts.summarize`: sorted list → `heapq.nsmallest` = **4.67x**
+- `tokens.count`: dict loop → `collections.Counter` = **1.44x**
+- `text.tokenize`, `report.format`, `text.summarize`: no verified gain, so
+  they were left alone
+
+```bash
+curl -X POST 'localhost:12000/optimize?name=counts.summarize'
+python -m sovereign optimize --all
+```
+
+## A bounded continuous loop
+
+`sovereign/loop.py` runs a repeating tick: consult one topic, absorb what it
+finds, optionally run one measured optimization, record the generation, sleep.
+It starts and stops on command, keeps a short history, and records errors. It
+is a scheduler with a stop button, not autonomy and not curiosity.
+
+```bash
+python -m sovereign loop --ticks 3 --sources local
+```
+
+Live first tick: 17 units absorbed, `tokens.count` optimized to `Counter` at
+1.44x.
+
+## Arabic requests
+
+`POST /ask` routes an Arabic or English request by its earliest keyword, then
+runs the normal cycle. `لخص:` (summarize), `عدد` (count), `قسّم`/`كلمات`
+(tokenize), `اكتب`/`تقرير` (report) map to the matching goal type.
+
+```bash
+curl -X POST localhost:12000/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"request":"لخص: retrieval augmented generation"}'
+```
+
+Live result: goal `summary`, plan `text.summarize`, all six criteria pass,
+output `retrieval augmented generation`.
+
 ## Self-directed practice
 
 `POST /curriculum` picks concepts the system has absorbed, forms small tasks,
@@ -173,6 +222,8 @@ source cannot hold the whole consultation.
 | "Quantum pathfinding" | The planner is classical A*. A quantum *simulator* gives no speedup over the algorithm it simulates; only real quantum hardware might, and none is used. |
 | "Never fails" | It retries, degrades gracefully and reports honestly. If it cannot meet a criterion, it says so and returns `ok: false`. |
 | "General program synthesis" | Enumerative synthesis over a whitelisted expression language; it fits the examples you give it, not arbitrary intent. |
+| "Continuous autonomy" | The loop is a bounded scheduler: consult, absorb, optimize, sleep. It has a stop button and no goals of its own. |
+| "A million-fold self-improvement" | The optimizer keeps only measured wins on this machine: 4.67x and 1.44x on two functions, no gain on three others. |
 | "Sub-millisecond execution for any task" | Only cache hits are microseconds; real work takes real time. |
 | "Quantum parallel processing" | A classical process pool on 4 cores; measured 2.36x on CPU-heavy work and slower on trivial work. |
 | "Borrowed supercomputers" | A remote hook exists; no endpoint is configured, so it refuses. |
@@ -183,9 +234,9 @@ source cannot hold the whole consultation.
 | --- | --- | --- |
 | 1. External guardianship | `sovereign/guardians/` — protocol, parallel registry, cache, rate limits, per-source status | A dead source degrades the result; it does not fail the run |
 | 2. Unified cognitive/executive fabric | `store.py` — knowledge, graph, capabilities, events in one DB | Lexical hashed embeddings, not a semantic model |
-| 3. Accelerated self-engineering | `synthesis.py` + `programs.py` + `capabilities.py` — enumerate, verify, admit, roll back | Narrow expression language; the examples are the spec |
+| 3. Accelerated self-engineering | `synthesis.py` + `programs.py` + `optimizer.py` + `capabilities.py` — enumerate, verify, benchmark, admit, roll back | Narrow expression language; the examples are the spec; only measured wins are kept |
 | 4. Constraint transcendence | `pathfinder.py` — retry alternate routes, reframe goals, prune dead ends | Constraints are engineering problems, not magic |
-| 5. Hyper-accelerated determinism | deterministic embeddings, deterministic search, memoised failures, retry loop, measured batch speedup | 2.36x on 4 cores for CPU-heavy work; no universal acceleration |
+| 5. Hyper-accelerated determinism | deterministic embeddings, deterministic search, memoised failures, retry loop, measured batch speedup, measured self-optimization | 2.36x on 4 cores for CPU-heavy work; 4.67x on one function; no universal acceleration |
 | 6. Holistic validation | `validator.py` — six scores + overclaim refusal | The validator can be wrong; it is auditable and tested |
 
 ## Architecture
@@ -268,6 +319,9 @@ curl -s localhost:12000/redteam
 | GET | `/report` | full loop, measured, judged, self-audited |
 | GET | `/report.md` | the same report as Markdown |
 | GET | `/dashboard` | one-page live dashboard |
+| POST | `/ask` | route an Arabic or English request into a cycle |
+| POST | `/optimize` | benchmark equivalent implementations, keep the faster |
+| GET/POST | `/loop/status`, `/loop/start`, `/loop/stop`, `/loop/tick` | bounded continuous loop |
 | GET | `/capabilities`, POST `/capabilities/rollback` | registry |
 | GET | `/cycles`, `/failures` | audit log and failure memo |
 
@@ -294,7 +348,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 123 tests
+python -m pytest        # 139 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -305,7 +359,10 @@ sandboxed invocation, secret stripping, the synthesis gate
 autonomous blueprint acquisition (single-step, multi-step bridge, unmet inputs,
 quarantine), external-expert acquisition (accept, reject, iterative repair,
 no-expert honesty), enumerative program synthesis (string and number shapes,
-gate verification, no-fit honesty), self-directed curriculum, red-team guardrail
+gate verification, no-fit honesty), measured self-optimization (verified
+equivalence, kept win, no-gain honesty, event log), the bounded continuous loop
+(tick, start/stop, optimization inside a tick), Arabic and English intent
+routing, self-directed curriculum, red-team guardrail
 coverage, batch execution across serial/threads/processes, measured-speedup
 honesty, hot-cache hits and expiry, verified prefetch, remote-executor refusal,
 consultation deadline and failure cooldown, the judged end-to-end report and the
