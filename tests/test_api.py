@@ -161,3 +161,53 @@ def test_curriculum_endpoint_local_only_reports_honest_failure():
 def test_experts_endpoint_lists_configuration():
     body = _client().get("/experts").json()
     assert isinstance(body["experts"], list)
+
+
+def test_execute_batch_endpoint():
+    body = _client().post(
+        "/execute/batch",
+        json={
+            "capability": "text.tokenize",
+            "payloads": [{"value": "a b"}, {"value": "c"}],
+            "mode": "serial",
+        },
+    ).json()
+    assert body["count"] == 2
+    assert body["sample"][0] == {"value": ["a", "b"]}
+
+
+def test_search_cache_and_remote_status():
+    client = _client()
+    client.post("/absorb", json={"query": "planning", "sources": ["local"]})
+    client.get("/knowledge/search", params={"q": "planning", "k": 3})
+    client.get("/knowledge/search", params={"q": "planning", "k": 3})
+    stats = client.get("/cache/stats").json()
+    assert stats["hits"] >= 1
+    assert stats["hit_latency_us"] >= 0
+    assert client.get("/remote/status").json()["available"] is False
+
+
+def test_execute_benchmark_endpoint_small():
+    body = _client().get(
+        "/execute/benchmark", params={"n": 20, "mode": "serial"}
+    ).json()
+    assert body["count"] == 20
+    assert body["duration_s"] > 0
+
+
+def test_prefetch_makes_a_later_search_a_verified_hit():
+    client = _client()
+    client.post(
+        "/evolve",
+        json={
+            "request": "markdown report planning",
+            "goal_type": "markdown",
+            "text": "a b",
+            "sources": ["local"],
+            "budget_s": 2,
+        },
+    )
+    body = client.get(
+        "/knowledge/search", params={"q": "markdown report planning", "k": 2}
+    ).json()
+    assert body["prefetch_hit"] is True

@@ -90,6 +90,32 @@ When the first plan's execution fails, the engine asks the planner for
 alternative routes (found by banning the last step of the previous plan) and
 tries them before reporting failure.
 
+## Execution: parallel, cached, speculative, remote-optional
+
+`sovereign/execution.py` is a real batch engine, not a metaphor.
+
+- **Parallelism**: serial, threads, and processes. `auto` uses processes for
+  batches of 64 or more. The engine runs the same workload serially first and
+  reports the measured ratio. On this 4-core box, 2000 CPU-heavy tasks took
+  3.0s serially and 1.25s across four processes: **2.36x**. The same tokenize
+  batch is *slower* in parallel (0.44x) because pickling costs more than the
+  work, and the engine says so instead of hiding it.
+- **Hot cache**: content-addressed in-process cache with TTL. Search results and
+  embeddings are cached; measured hit latency is about **4 microseconds**. This
+  is the only place where "sub-millisecond" is true.
+- **Speculative prefetch**: when a request arrives, the engine predicts likely
+  goals and warms embeddings for the request and its variants. A prediction is
+  used only on an exact key match; otherwise it is discarded. `/evolve` warms,
+  `/knowledge/search` verifies (see `prefetch_hit`).
+- **Remote compute hook**: `RemoteExecutor` posts batches to
+  `SOVEREIGN_REMOTE_EXECUTOR` when configured. With no endpoint it raises
+  `RemoteUnavailable`, and `/remote/status` reports `available: false`. No HPC
+  credentials exist here, so none is claimed.
+
+```bash
+python -m sovereign.cli bench --n 2000 --workload cpu --mode processes
+```
+
 ## What this is not
 
 | Claim | Reality |
@@ -99,6 +125,9 @@ tries them before reporting failure.
 | "Quantum pathfinding" | The planner is classical A*. A quantum *simulator* gives no speedup over the algorithm it simulates; only real quantum hardware might, and none is used. |
 | "Never fails" | It retries, degrades gracefully and reports honestly. If it cannot meet a criterion, it says so and returns `ok: false`. |
 | "General program synthesis" | Template synthesis over a small operation set. The *gate* is general; the generator is not. |
+| "Sub-millisecond execution for any task" | Only cache hits are microseconds; real work takes real time. |
+| "Quantum parallel processing" | A classical process pool on 4 cores; measured 2.36x on CPU-heavy work and slower on trivial work. |
+| "Borrowed supercomputers" | A remote hook exists; no endpoint is configured, so it refuses. |
 
 ## The six pillars, mapped
 
@@ -108,7 +137,7 @@ tries them before reporting failure.
 | 2. Unified cognitive/executive fabric | `store.py` — knowledge, graph, capabilities, events in one DB | Lexical hashed embeddings, not a semantic model |
 | 3. Accelerated self-engineering | `synthesis.py` + `capabilities.py` — generate, verify, admit, roll back | Narrow template generator; hard verification gate |
 | 4. Constraint transcendence | `pathfinder.py` — retry alternate routes, reframe goals, prune dead ends | Constraints are engineering problems, not magic |
-| 5. Hyper-accelerated determinism | deterministic embeddings, deterministic search, memoised failures, retry loop | "Hyper" is aspiration, not a measured property |
+| 5. Hyper-accelerated determinism | deterministic embeddings, deterministic search, memoised failures, retry loop, measured batch speedup | 2.36x on 4 cores for CPU-heavy work; no universal acceleration |
 | 6. Holistic validation | `validator.py` — six scores + overclaim refusal | The validator can be wrong; it is auditable and tested |
 
 ## Architecture
@@ -183,6 +212,11 @@ curl -s localhost:12000/redteam
 | POST | `/evolve` | full cycle (`auto_extend`, `max_attempts`) |
 | POST | `/curriculum` | self-directed practice |
 | GET | `/redteam` | guardrail coverage |
+| POST | `/execute/batch` | parallel batch execution (measured) |
+| GET | `/execute/benchmark` | serial vs parallel benchmark |
+| GET | `/cache/stats` | cache and prefetch statistics |
+| POST | `/cache/warm` | speculative embedding warm-up |
+| GET | `/remote/status` | whether a remote executor is configured |
 | GET | `/capabilities`, POST `/capabilities/rollback` | registry |
 | GET | `/cycles`, `/failures` | audit log and failure memo |
 
@@ -209,7 +243,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 94 tests
+python -m pytest        # 111 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -220,6 +254,8 @@ sandboxed invocation, secret stripping, the synthesis gate
 autonomous blueprint acquisition (single-step, multi-step bridge, unmet inputs,
 quarantine), external-expert acquisition (accept, reject, iterative repair,
 no-expert honesty), self-directed curriculum, red-team guardrail coverage,
+batch execution across serial/threads/processes, measured-speedup honesty,
+hot-cache hits and expiry, verified prefetch, remote-executor refusal,
 validator scoring and negation-aware overclaim detection, the full evolution
 cycle (success, local-only refusal, overclaim refusal, synthesis path,
 autonomous extension, multi-attempt repair, failure memo), and the HTTP API.

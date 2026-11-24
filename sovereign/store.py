@@ -129,8 +129,11 @@ class FabricStore:
             ).fetchone()
         return _row_to_unit(row) if row else None
 
-    def search_knowledge(self, query: str, k: int = 5) -> list[tuple[KnowledgeUnit, float]]:
-        qvec = embed(query)
+    def search_knowledge(
+        self, query: str, k: int = 5, qvec=None
+    ) -> list[tuple[KnowledgeUnit, float]]:
+        if qvec is None:
+            qvec = embed(query)
         with self._lock:
             rows = self._conn.execute("SELECT * FROM knowledge").fetchall()
         scored = []

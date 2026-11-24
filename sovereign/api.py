@@ -3,12 +3,13 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from .absorption import absorb
 from .curriculum import Curriculum
 from .evolution import EvolutionEngine
+from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
 from .models import Evidence, KnowledgeUnit
 from .redteam import audit
 from .store import FabricStore
@@ -73,6 +74,17 @@ class CurriculumRequest(BaseModel):
     auto_extend: bool = True
 
 
+class BatchRequest(BaseModel):
+    capability: str
+    payloads: list[Any]
+    mode: str = "auto"
+    workers: int | None = None
+
+
+class WarmRequest(BaseModel):
+    queries: list[str]
+
+
 def _unit_dict(unit: KnowledgeUnit) -> dict[str, Any]:
     return {
         "id": unit.id,
@@ -93,6 +105,10 @@ def _unit_dict(unit: KnowledgeUnit) -> dict[str, Any]:
 def create_app(store_path: str = ":memory:") -> FastAPI:
     store = FabricStore(store_path)
     engine = EvolutionEngine(store)
+    execution = ExecutionEngine()
+    cache = HotCache()
+    prefetcher = Prefetcher(cache)
+    remote = RemoteExecutor()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -102,6 +118,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app = FastAPI(title="Sovereign Fabric", version="0.1.0", lifespan=lifespan)
     app.state.store = store
     app.state.engine = engine
+    app.state.execution = execution
+    app.state.cache = cache
 
     @app.get("/")
     def root() -> dict[str, Any]:
@@ -118,6 +136,13 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /capabilities/rollback",
                 "POST /synthesize",
                 "POST /evolve",
+                "POST /curriculum",
+                "GET /redteam",
+                "POST /execute/batch",
+                "GET /execute/benchmark",
+                "GET /cache/stats",
+                "POST /cache/warm",
+                "GET /remote/status",
                 "GET /cycles",
                 "GET /failures",
                 "POST /validate",
@@ -154,9 +179,15 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
 
     @app.get("/knowledge/search")
     def search(q: str, k: int = 5) -> dict[str, Any]:
-        hits = store.search_knowledge(q, k)
+        cache_key = ("search", q, k)
+        hits = cache.get(cache_key)
+        qvec, prefetch_hit = prefetcher.embedding(q)
+        if hits is None:
+            hits = store.search_knowledge(q, k, qvec=qvec)
+            cache.put(cache_key, hits)
         return {
             "query": q,
+            "prefetch_hit": prefetch_hit,
             "hits": [
                 {"score": round(score, 4), **_unit_dict(unit)} for unit, score in hits
             ],
@@ -214,6 +245,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
 
     @app.post("/evolve")
     def evolve(body: EvolveRequest) -> dict[str, Any]:
+        prefetcher.prefetch(body.request)
         cycle = engine.evolve(
             body.request,
             goal_type=body.goal_type,
@@ -299,6 +331,50 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/redteam")
     def redteam() -> dict[str, Any]:
         return audit(engine.validator)
+
+    @app.post("/execute/batch")
+    def execute_batch(body: BatchRequest) -> dict[str, Any]:
+        if len(body.payloads) > 10000:
+            raise HTTPException(status_code=413, detail="batch limited to 10000 payloads")
+        result = execution.run_capability(
+            engine.registry,
+            body.capability,
+            body.payloads,
+            mode=body.mode,
+            workers=body.workers,
+        )
+        return result.to_dict()
+
+    @app.get("/execute/benchmark")
+    def execute_benchmark(
+        n: int = 100000,
+        capability: str = "text.tokenize",
+        mode: str = "processes",
+        workers: int | None = None,
+        workload: str = "tokenize",
+        iterations: int = 20000,
+    ) -> dict[str, Any]:
+        return benchmark(
+            n=n,
+            capability=capability,
+            mode=mode,
+            workers=workers,
+            workload=workload,
+            iterations=iterations,
+        )
+
+    @app.get("/cache/stats")
+    def cache_stats() -> dict[str, Any]:
+        return {**cache.stats_dict(), "prefetch": prefetcher.stats_dict()}
+
+    @app.post("/cache/warm")
+    def cache_warm(body: WarmRequest) -> dict[str, Any]:
+        warmed = sum(prefetcher.prefetch(query) for query in body.queries)
+        return {"warmed": warmed, **prefetcher.stats_dict()}
+
+    @app.get("/remote/status")
+    def remote_status() -> dict[str, Any]:
+        return {"available": remote.available, "configured": bool(remote.endpoint)}
 
     @app.get("/cycles")
     def cycles(limit: int = 20) -> dict[str, Any]:

@@ -70,6 +70,16 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("redteam", help="audit the overclaim guardrail")
 
+    bench = sub.add_parser("bench", help="measure batch execution throughput")
+    bench.add_argument("--n", type=int, default=100000)
+    bench.add_argument("--capability", default="text.tokenize")
+    bench.add_argument(
+        "--mode", default="processes", choices=["auto", "serial", "threads", "processes"]
+    )
+    bench.add_argument("--workers", type=int, default=None)
+    bench.add_argument("--workload", default="tokenize", choices=["tokenize", "cpu"])
+    bench.add_argument("--iterations", type=int, default=20000)
+
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -158,6 +168,19 @@ def main(argv: list[str] | None = None) -> int:
         from .redteam import audit
 
         _print(audit(engine.validator))
+    elif args.command == "bench":
+        from .execution import benchmark
+
+        _print(
+            benchmark(
+                args.n,
+                args.capability,
+                args.mode,
+                args.workers,
+                workload=args.workload,
+                iterations=args.iterations,
+            )
+        )
     return 0
 
 
