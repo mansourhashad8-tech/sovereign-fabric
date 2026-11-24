@@ -1,0 +1,367 @@
+{
+  "generated_at": "2026-11-24T15:46:51.278297+00:00",
+  "commit": "9e468e5e0864bf092bb39712a38ea793ee8e3aa4",
+  "root": "sovereign",
+  "duration_s": 0.35,
+  "license_file": "LICENSE",
+  "source_files": [
+    {
+      "path": "sovereign/__init__.py",
+      "sha256": "220815901492615ff59ee19ea65ecd02aae0b4e5cf7283bb6b347b9a5ca845c0",
+      "lines": 49
+    },
+    {
+      "path": "sovereign/__main__.py",
+      "sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+      "lines": 3
+    },
+    {
+      "path": "sovereign/absorption.py",
+      "sha256": "69a02e60d85d8a11a91dd89fffcc9076e94aca6775955f9e99cf29e6cfca641c",
+      "lines": 59
+    },
+    {
+      "path": "sovereign/acquire.py",
+      "sha256": "bfeb2aea09dbe717d3a3143f9f0a9ae0ff7584256aa49f392ade39de8ee8767f",
+      "lines": 146
+    },
+    {
+      "path": "sovereign/api.py",
+      "sha256": "eb65b18ed66311d95ef5ba7a081a544a6cfc44f7aa47869576090e2fc3fdb9e7",
+      "lines": 603
+    },
+    {
+      "path": "sovereign/blueprints.py",
+      "sha256": "a6f68ce2b5201f8d3769ab35e5b05944e8ef745a500ef0b557af75ff2a2d3219",
+      "lines": 213
+    },
+    {
+      "path": "sovereign/brief.py",
+      "sha256": "6f7c0d59d72d6dcd819cf6df8b8536b0e6d45a9d517b58ac9800303ad392eda8",
+      "lines": 165
+    },
+    {
+      "path": "sovereign/capabilities.py",
+      "sha256": "1e0e440bcce0dd741ba87a93d803132939a73c3a37ba54b6fb199c090e3e6c1d",
+      "lines": 178
+    },
+    {
+      "path": "sovereign/cli.py",
+      "sha256": "1b29e8ea6c7ff24b1c89f0ac7e69e5dbaec5480f7b412987db34558183debf20",
+      "lines": 369
+    },
+    {
+      "path": "sovereign/curriculum.py",
+      "sha256": "8d66f5cab577dfd87d137d74e8e9d8d32b168c1cdffd24db164775f0d3c05c56",
+      "lines": 72
+    },
+    {
+      "path": "sovereign/dashboard.py",
+      "sha256": "17c0d7d0a70bcec09dcc987bd6e3c11cbeb468800c5005b6f305945dbb3151a9",
+      "lines": 396
+    },
+    {
+      "path": "sovereign/evidence.py",
+      "sha256": "b7e093a38413bf86ea60fbd1f0150174657296cb34f48d522109182d080b19b0",
+      "lines": 76
+    },
+    {
+      "path": "sovereign/evolution.py",
+      "sha256": "bad6cfd2b92424bc1b69b390d2126c22f91110336a487cd1f68903fdf60213bd",
+      "lines": 373
+    },
+    {
+      "path": "sovereign/execution.py",
+      "sha256": "9c7974c291aca4258f2053f98eb86a468971bd4bd907e16ee9bc3b842f09de11",
+      "lines": 374
+    },
+    {
+      "path": "sovereign/expert.py",
+      "sha256": "cbca46161407eba28ba55b7412b8df531a168526f63d09b8acb31c3c745db701",
+      "lines": 160
+    },
+    {
+      "path": "sovereign/guardians/__init__.py",
+      "sha256": "68d289c3b43c66c2fb55c2a15a4231cf37d831d7fb4c7718f5dfef01a6e0cbd8",
+      "lines": 64
+    },
+    {
+      "path": "sovereign/guardians/base.py",
+      "sha256": "cba24f59272e50fac547c1b5547167af0896f1b0d2f6db840ffae8ddd7445ee2",
+      "lines": 229
+    },
+    {
+      "path": "sovereign/guardians/sources.py",
+      "sha256": "f5b0ebe9c95e3c162f6262c97e2bdbca0fac5881c2c6138aea498c9ac95c1ce0",
+      "lines": 581
+    },
+    {
+      "path": "sovereign/intent.py",
+      "sha256": "16e5a4cd88c9cadcdd099f765da162b49b28c0086fd2e495e9642a917f4c5dc1",
+      "lines": 45
+    },
+    {
+      "path": "sovereign/loop.py",
+      "sha256": "5ee272f7b8c5fb1f0d4547f978878d6c7acfcbe6655485c4c3a50c6e27cdd2f1",
+      "lines": 117
+    },
+    {
+      "path": "sovereign/mastery.py",
+      "sha256": "6c68b9efc3cf000458af98a0627f0c78700d90918b844a86f6913f995e03589b",
+      "lines": 75
+    },
+    {
+      "path": "sovereign/models.py",
+      "sha256": "9e32d45c584c9e63fd5808ae3b0dd1f2be985e6839473b5c175bc3fb64efb233",
+      "lines": 98
+    },
+    {
+      "path": "sovereign/native.py",
+      "sha256": "f742a5e1c156ba998680c1fbdff049e4754813389d3a2f531fa902d43dd001c3",
+      "lines": 97
+    },
+    {
+      "path": "sovereign/optimizer.py",
+      "sha256": "abab3e1347395a05286e5fd15e3bd23163379018c65049c19b54ffd3e70fbac8",
+      "lines": 216
+    },
+    {
+      "path": "sovereign/pathfinder.py",
+      "sha256": "be3d51f6fcd0f3cdda051b2efa604a16766053758e854481606443cf9f2ee2c0",
+      "lines": 175
+    },
+    {
+      "path": "sovereign/programs.py",
+      "sha256": "25e8ec542c78dae5df3c9b9e78d606c26d5d6eb4b0a94cf415b68284d5c10494",
+      "lines": 276
+    },
+    {
+      "path": "sovereign/properties.py",
+      "sha256": "9526f17812d835bbad43298db6c281aa1f93ca5f82f4a16f1c68d78a41cf01e9",
+      "lines": 117
+    },
+    {
+      "path": "sovereign/redteam.py",
+      "sha256": "542255aca5060eba3a8ee48cb2e75cf30e2d27f696b461eea90c3013c8c6fd55",
+      "lines": 52
+    },
+    {
+      "path": "sovereign/report.py",
+      "sha256": "2348029a70a70febb9f8216cec7c1703eb043900011c8dd39601ee1837809213",
+      "lines": 162
+    },
+    {
+      "path": "sovereign/security.py",
+      "sha256": "b84db912dd5073bc040e76ab04889bbab534dffd59e6e346bbbddeb12f961271",
+      "lines": 500
+    },
+    {
+      "path": "sovereign/selfmodel.py",
+      "sha256": "573b53613cdb05377ab3083b0075677c0ef28d023640c49d0994177cfac9cb3b",
+      "lines": 150
+    },
+    {
+      "path": "sovereign/stats.py",
+      "sha256": "ca3bf1163aeeb06b33d337c54dae6787e2c771cd2068866cf219020786909c12",
+      "lines": 54
+    },
+    {
+      "path": "sovereign/store.py",
+      "sha256": "86f2edbe5983efb9200a75d42f664b003507527ffe75b4bad414ca4f7493123f",
+      "lines": 403
+    },
+    {
+      "path": "sovereign/synthesis.py",
+      "sha256": "1d11d5556430420c86fc96a863d8ca5eb4f5f5033495d6b02e264128e4a1721c",
+      "lines": 178
+    },
+    {
+      "path": "sovereign/validator.py",
+      "sha256": "74d21aa4230b5a96e01b6b920f2862072b556651b344eb4c80950ef0461a3b82",
+      "lines": 189
+    },
+    {
+      "path": "sovereign/vectors.py",
+      "sha256": "0b360dfe36a3e0a9d54ff144a4f84196fbcf53403a372172e04f025337e1a818",
+      "lines": 39
+    }
+  ],
+  "findings": [],
+  "finding_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "dependencies": [
+    {
+      "name": "annotated-doc",
+      "version": "0.0.7",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "anyio",
+      "version": "4.16.0",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "certifi",
+      "version": "2026.11.20",
+      "license": "MPL-2.0",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "click",
+      "version": "8.5.1",
+      "license": "BSD-3-Clause",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "fastapi",
+      "version": "0.165.0",
+      "license": "MIT",
+      "open_source": true,
+      "direct": true
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "httpcore",
+      "version": "1.0.9",
+      "license": "BSD-3-Clause",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "httpx",
+      "version": "0.28.1",
+      "license": "BSD-3-Clause",
+      "open_source": true,
+      "direct": true
+    },
+    {
+      "name": "idna",
+      "version": "3.20",
+      "license": "BSD-3-Clause",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.1",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "opentelemetry-api",
+      "version": "1.45.2",
+      "license": "Apache-2.0",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "packaging",
+      "version": "26.4",
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "pluggy",
+      "version": "1.7.0",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "pydantic",
+      "version": "2.14.4",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.50.5",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "Pygments",
+      "version": "2.21.0",
+      "license": "BSD-2-Clause",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "pytest",
+      "version": "9.2.0",
+      "license": "MIT",
+      "open_source": true,
+      "direct": true
+    },
+    {
+      "name": "starlette",
+      "version": "1.10.0",
+      "license": "BSD-3-Clause",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "license": "PSF-2.0",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.5",
+      "license": "MIT",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "license": "PSF-2.0",
+      "open_source": true,
+      "direct": false
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.54.0",
+      "license": "BSD-3-Clause",
+      "open_source": true,
+      "direct": true
+    }
+  ],
+  "unknown_licenses": [],
+  "vulnerability_check": {
+    "ok": true,
+    "vulnerabilities": []
+  },
+  "openness_passed": true,
+  "security_passed": true,
+  "passed": true
+}
