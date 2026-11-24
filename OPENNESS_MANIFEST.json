@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-24T17:24:01.033046+00:00",
-  "commit": "bc037cf78e66856f8e8f926951e29220728e4dd7",
+  "generated_at": "2026-11-24T17:25:14.175382+00:00",
+  "commit": "e154973047245b2c669448f626a8823c7a6d2d3a",
   "root": "sovereign",
-  "duration_s": 0.315,
+  "duration_s": 0.317,
   "license_file": "LICENSE",
   "source_files": [
     {
