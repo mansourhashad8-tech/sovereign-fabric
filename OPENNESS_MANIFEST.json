@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-24T17:48:02.579083+00:00",
-  "commit": "99f4098f96b3efc97bce113319c578109e77edab",
+  "generated_at": "2026-11-24T17:50:14.830091+00:00",
+  "commit": "e112858347af4b942935cf80921ccb1c12f4baa9",
   "root": "sovereign",
-  "duration_s": 0.324,
+  "duration_s": 0.335,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "98aaafe2f5789bf7aa5b7ad68961ec661f912eeb69fa4a961cba5152b37d1230",
-      "lines": 767
+      "sha256": "f91055c26f7d2f6742196822bbe5de2d5035774d76db27876e5ef237895e8094",
+      "lines": 835
     },
     {
       "path": "sovereign/arabic.py",
