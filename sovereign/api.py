@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from .absorption import absorb
 from .curriculum import Curriculum
 from .dashboard import DASHBOARD_HTML
+from .evidence import verify_claim
 from .evolution import EvolutionEngine
 from .intent import parse_intent
 from .loop import EvolutionLoop
@@ -17,7 +18,9 @@ from .optimizer import Optimizer
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
 from .models import Evidence, KnowledgeUnit
 from .redteam import audit
+from .properties import check_capabilities
 from .report import render_report, system_report
+from .selfmodel import SelfModel
 from .store import FabricStore
 
 
@@ -71,6 +74,11 @@ class AcquireRequest(BaseModel):
     outputs: list[str] = Field(default_factory=lambda: ["out"])
     examples: list[Any]
     rounds: int = 2
+
+
+class ClaimRequest(BaseModel):
+    claim: str = Field(min_length=1)
+    k: int = 5
 
 
 class AskRequest(BaseModel):
@@ -162,6 +170,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /cache/stats",
                 "POST /cache/warm",
                 "GET /remote/status",
+                "GET /self",
+                "GET /properties",
+                "POST /verify_claim",
                 "POST /ask",
                 "POST /optimize",
                 "GET /loop/status",
@@ -344,6 +355,18 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "capability": result.capability.name if result.capability else None,
             "attempts": result.attempts,
         }
+
+    @app.post("/verify_claim")
+    def verify(body: ClaimRequest) -> dict[str, Any]:
+        return verify_claim(store, body.claim, k=body.k)
+
+    @app.get("/properties")
+    def properties(cases: int = 30) -> dict[str, Any]:
+        return check_capabilities(engine.registry, cases=cases)
+
+    @app.get("/self")
+    def self_model() -> dict[str, Any]:
+        return SelfModel(engine).assess()
 
     @app.post("/ask")
     def ask(body: AskRequest) -> dict[str, Any]:

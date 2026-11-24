@@ -272,3 +272,23 @@ def test_optimize_endpoint_measures_a_capability():
     body = _client().post("/optimize?name=tokens.count&repeats=2").json()
     assert body["name"] == "tokens.count"
     assert any(item["verified"] for item in body["variants"])
+
+
+def test_self_endpoint_returns_a_clean_precise_assessment():
+    body = _client().get("/self").json()
+    assert "Precise self-assessment" in body["verdict"]
+    assert body["overclaims"] == []
+    assert body["can"]["markdown"]["possible"] is True
+    assert body["limits"]
+
+
+def test_verify_claim_endpoint_refuses_an_unsupported_claim():
+    body = _client().post(
+        "/verify_claim", json={"claim": "the moon is made of cheese"}
+    ).json()
+    assert body["supported"] is False
+    assert body["entails"] is False
+
+
+def test_dashboard_shows_the_self_model():
+    assert "Self-model" in _client().get("/dashboard").text

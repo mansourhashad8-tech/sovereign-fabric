@@ -16,6 +16,9 @@ from .sources import (
     OpenAlexGuardian,
     PyPIGuardian,
     SemanticScholarGuardian,
+    StackExchangeGuardian,
+    WikipediaGuardian,
+    ZenodoGuardian,
 )
 
 __all__ = [
@@ -34,11 +37,14 @@ __all__ = [
     "OpenAlexGuardian",
     "PyPIGuardian",
     "SemanticScholarGuardian",
+    "StackExchangeGuardian",
+    "WikipediaGuardian",
+    "ZenodoGuardian",
 ]
 
 
 def default_registry(store=None) -> GuardianRegistry:
-    """Ten sources, including an offline corpus. A dead network still answers."""
+    """Thirteen sources, including an offline corpus. A dead network still answers."""
     return GuardianRegistry(
         [
             ArxivGuardian(store=store),
@@ -50,6 +56,9 @@ def default_registry(store=None) -> GuardianRegistry:
             HuggingFaceGuardian(store=store),
             PyPIGuardian(store=store),
             NpmGuardian(store=store),
+            WikipediaGuardian(store=store),
+            StackExchangeGuardian(store=store),
+            ZenodoGuardian(store=store),
             LocalGuardian(),
         ]
     )

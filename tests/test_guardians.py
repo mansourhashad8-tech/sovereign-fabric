@@ -5,6 +5,9 @@ from sovereign.guardians import (
     LocalGuardian,
     OpenAlexGuardian,
     PyPIGuardian,
+    StackExchangeGuardian,
+    WikipediaGuardian,
+    ZenodoGuardian,
 )
 from sovereign.guardians.base import GuardianRegistry
 from sovereign.store import FabricStore
@@ -226,12 +229,13 @@ def test_npm_parsing():
     assert "planning" in units[0].concepts
 
 
-def test_default_registry_has_ten_sources():
+def test_default_registry_has_thirteen_sources():
     from sovereign.guardians import default_registry
     names = default_registry().names()
-    assert len(names) == 10
+    assert len(names) == 13
     assert {"arxiv", "openalex", "semanticscholar", "crossref", "github",
-            "hackernews", "huggingface", "pypi", "npm", "local"} == set(names)
+            "hackernews", "huggingface", "pypi", "npm", "local",
+            "wikipedia", "stackexchange", "zenodo"} == set(names)
 
 
 def test_failed_source_is_skipped_during_cooldown():
@@ -281,3 +285,55 @@ def test_consult_deadline_marks_a_slow_source_timeout():
     assert result.sources["slow"] == "timeout"
     assert result.sources["fast"] == "ok"
     assert elapsed < 0.45
+
+
+
+WIKIPEDIA_JSON = """{
+  "query": {"search": [
+    {"title": "Retrieval-augmented generation", "pageid": 123,
+     "snippet": "RAG <span class=searchmatch>grounds</span> answers in documents."}
+  ]}
+}"""
+
+STACKEXCHANGE_JSON = """{
+  "items": [
+    {"title": "How does RAG work?", "link": "https://stackoverflow.com/q/1",
+     "body": "<p>It retrieves documents and <b>grounds</b> the answer.</p>",
+     "tags": ["python", "rag"], "score": 7}
+  ]
+}"""
+
+ZENODO_JSON = """{
+  "hits": {"hits": [
+    {"links": {"self_html": "https://zenodo.org/records/1"},
+     "metadata": {"title": "A dataset for planning",
+                  "description": "<p>State spaces and <i>traces</i>.</p>",
+                  "publication_date": "2026-04-01",
+                  "resource_type": {"title": "Dataset"},
+                  "license": {"id": "cc-by-4.0"}}}
+  ]}
+}"""
+
+
+def test_wikipedia_parsing_strips_markup():
+    units = WikipediaGuardian(fetch=lambda url: WIKIPEDIA_JSON).search("rag", 3)
+    assert len(units) == 1
+    assert units[0].title == "Retrieval-augmented generation"
+    assert "<span" not in units[0].summary
+    assert units[0].provenance.url.endswith("curid=123")
+
+
+def test_stackexchange_parsing_and_confidence():
+    units = StackExchangeGuardian(fetch=lambda url: STACKEXCHANGE_JSON).search("rag", 3)
+    assert len(units) == 1
+    assert "grounds" in units[0].summary
+    assert units[0].provenance.confidence > 0.5
+    assert "rag" in units[0].concepts
+
+
+def test_zenodo_parsing_keeps_license_and_date():
+    units = ZenodoGuardian(fetch=lambda url: ZENODO_JSON).search("planning", 3)
+    assert len(units) == 1
+    assert units[0].provenance.license == "cc-by-4.0"
+    assert units[0].provenance.retrieved_at == "2026-04-01"
+    assert "Dataset" in units[0].concepts

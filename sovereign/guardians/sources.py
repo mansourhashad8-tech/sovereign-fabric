@@ -5,6 +5,7 @@ against recorded fixtures without a network.
 
 from __future__ import annotations
 
+import html
 import json
 import math
 import re
@@ -15,6 +16,11 @@ from ..vectors import cosine, embed
 from .base import HttpGuardian, quote
 
 _ATOM = "{http://www.w3.org/2005/Atom}"
+_TAG = re.compile(r"<[^>]+>")
+
+
+def _plain(text: str) -> str:
+    return " ".join(html.unescape(_TAG.sub(" ", text or "")).split())
 
 
 class ArxivGuardian(HttpGuardian):
@@ -439,6 +445,103 @@ _CORPUS: tuple[dict, ...] = (
         "tags": ("honesty",),
     },
 )
+
+
+class WikipediaGuardian(HttpGuardian):
+    name = "wikipedia"
+    base_confidence = 0.6
+    min_interval = 0.1
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            "https://en.wikipedia.org/w/api.php?action=query&list=search"
+            f"&srsearch={quote(query)}&srlimit={limit}&format=json&utf8=1"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for item in data.get("query", {}).get("search", []):
+            title = item.get("title") or ""
+            if not title.strip():
+                continue
+            pageid = item.get("pageid")
+            link = (
+                f"https://en.wikipedia.org/?curid={pageid}"
+                if pageid
+                else "https://en.wikipedia.org/wiki/" + quote(title.replace(" ", "_"))
+            )
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=_plain(item.get("snippet") or ""),
+                    url=link,
+                    tags=("encyclopedia", "wikipedia"),
+                    license="CC BY-SA 4.0",
+                )
+            )
+        return units[:limit]
+
+
+class StackExchangeGuardian(HttpGuardian):
+    name = "stackexchange"
+    base_confidence = 0.55
+    min_interval = 0.2
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            "https://api.stackexchange.com/2.3/search/advanced"
+            f"?order=desc&sort=relevance&q={quote(query)}&site=stackoverflow"
+            f"&pagesize={limit}&filter=withbody"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for item in data.get("items", []):
+            title = item.get("title") or ""
+            if not title.strip():
+                continue
+            score = int(item.get("score") or 0)
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=_plain(item.get("body") or "")[:600],
+                    url=item.get("link") or "",
+                    concepts=tuple(item.get("tags") or ()),
+                    tags=("qa", "stackoverflow"),
+                    confidence=min(0.8, 0.5 + 0.03 * max(0, score)),
+                    license="CC BY-SA 4.0",
+                )
+            )
+        return units[:limit]
+
+
+class ZenodoGuardian(HttpGuardian):
+    name = "zenodo"
+    base_confidence = 0.6
+    min_interval = 0.2
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = f"https://zenodo.org/api/records?q={quote(query)}&size={limit}&sort=mostrecent"
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for hit in data.get("hits", {}).get("hits", []):
+            meta = hit.get("metadata", {})
+            title = meta.get("title") or ""
+            if not title.strip():
+                continue
+            links = hit.get("links", {}) or {}
+            resource = (meta.get("resource_type") or {}).get("title") or "record"
+            license_info = meta.get("license") or {}
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=_plain(meta.get("description") or "")[:800],
+                    url=links.get("self_html") or links.get("html") or "",
+                    concepts=(resource,),
+                    tags=("dataset", "zenodo"),
+                    license=license_info.get("id") or "Zenodo",
+                    retrieved_at=meta.get("publication_date"),
+                )
+            )
+        return units[:limit]
 
 
 class LocalGuardian:

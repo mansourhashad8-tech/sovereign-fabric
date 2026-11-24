@@ -99,6 +99,12 @@ def main(argv: list[str] | None = None) -> int:
     loop.add_argument("--ticks", type=int, default=0)
     loop.add_argument("--sources", nargs="*", default=None)
 
+    self_parser = sub.add_parser("self", help="precise self-assessment from evidence")
+    properties = sub.add_parser("properties", help="run property checks over native capabilities")
+    properties.add_argument("--cases", type=int, default=30)
+    verify = sub.add_parser("verify", help="check lexical support for a claim")
+    verify.add_argument("claim")
+
     ask = sub.add_parser("ask", help="route an Arabic or English request into a full cycle")
     ask.add_argument("request")
     ask.add_argument("--budget", type=float, default=10.0)
@@ -205,6 +211,18 @@ def main(argv: list[str] | None = None) -> int:
                 iterations=args.iterations,
             )
         )
+    elif args.command == "self":
+        from .selfmodel import SelfModel
+
+        _print(SelfModel(engine).assess())
+    elif args.command == "properties":
+        from .properties import check_capabilities
+
+        _print(check_capabilities(engine.registry, cases=args.cases))
+    elif args.command == "verify":
+        from .evidence import verify_claim
+
+        _print(verify_claim(engine.store, args.claim))
     elif args.command == "ask":
         from .intent import parse_intent
 

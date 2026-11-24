@@ -135,6 +135,14 @@ DASHBOARD_HTML = """<!doctype html>
   </div>
 
   <div class="panel" style="margin-top:14px">
+    <h3>Self-model <span id="selfStamp" style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400"></span></h3>
+    <p id="selfVerdict" style="margin:0 0 12px"></p>
+    <div class="caps" id="selfCan"></div>
+    <div class="limits" id="selfProps"></div>
+    <ul class="limits" id="selfLimits"></ul>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
     <h3>Capabilities</h3>
     <div class="caps" id="caps"></div>
   </div>
@@ -273,6 +281,24 @@ async function loadLoop() { try { renderLoop(await get('/loop/status')); } catch
 
 setInterval(loadLoop, 5000);
 loadLoop();
+
+async function loadSelf() {
+  try {
+    const model = await get('/self');
+    $('selfVerdict').textContent = model.verdict;
+    $('selfCan').innerHTML = Object.values(model.can).map(c =>
+      `<span class="cap ${c.possible ? 'admitted' : 'quarantined'}">${c.possible ? '✓' : '×'} ${esc(c.goal)}${c.plan.length ? ' · ' + esc(c.plan.join(' → ')) : ''}</span>`
+    ).join('');
+    $('selfProps').textContent = model.properties
+      ? `Property checks: ${model.properties.checks - model.properties.failed}/${model.properties.checks} passed.`
+      : '';
+    $('selfLimits').innerHTML = model.limits.map(x => `<li>${esc(x)}</li>`).join('');
+    $('selfStamp').textContent = '· ' + new Date(model.generated_at).toLocaleTimeString();
+  } catch (e) {}
+}
+
+setInterval(loadSelf, 15000);
+loadSelf();
 
 async function loadBase() {
   try {

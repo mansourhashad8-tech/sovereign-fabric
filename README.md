@@ -17,6 +17,8 @@ own powers is not sovereign; it is a liability.
   runs the full report on load and shows the verdict, plan, six scores, source
   status, capabilities, and limits.
 - **Full report**: `GET /report` (JSON), `GET /report.md` (Markdown).
+- **Self-assessment**: `GET /self`, or `python -m sovereign self`.
+- **Claim check**: `POST /verify_claim` with `{"claim": "..."}`.
 - **Local**: `python -m sovereign report --markdown` and
   `python -m sovereign serve --port 12000`.
 
@@ -24,10 +26,11 @@ own powers is not sovereign; it is a liability.
 
 ## What this is
 
-- **An external-guardianship layer** over real public sources: arXiv, OpenAlex,
-  Semantic Scholar, Crossref, GitHub, Hacker News, Hugging Face, PyPI, npm,
-  plus an offline engineering corpus. Each result carries provenance (source,
-  URL, retrieval time, licence, confidence).
+- **An external-guardianship layer** over 13 real public sources: arXiv,
+  OpenAlex, Semantic Scholar, Crossref, GitHub, Hacker News, Hugging Face,
+  PyPI, npm, Wikipedia, Stack Overflow, Zenodo, plus an offline engineering
+  corpus. Each result carries provenance (source, URL, retrieval time,
+  licence, confidence).
 - **A unified fabric**: one SQLite store holds knowledge units, a concept
   graph, the capability registry, an append-only event log, a source cache and
   a failure memo. Knowledge retrieval and execution planning read the same
@@ -49,6 +52,12 @@ own powers is not sovereign; it is a liability.
   knowledge and attempts them, recording what worked.
 - **A guardrail that attacks itself**: a red-team corpus measures the overclaim
   detector's blind spots, and the patterns are widened from what it finds.
+- **A self-model derived from evidence**: it plans each goal it claims, counts
+  what it owns, states what it cannot do, and audits its own verdict.
+- **Lexical claim support**: a claim is checked against absorbed units; the
+  result says `entails: false`, because vocabulary overlap is not entailment.
+- **Randomized property checks**: invariants over the native chain catch a
+  broken implementation that example tests might miss.
 - **Self-extension through a gate**: the system generates a capability from a
   behavioural spec and admits it only if it reproduces every example inside a
   separate interpreter with a timeout and a sanitized environment. Failures are
@@ -109,8 +118,9 @@ rolled back like any other.
 
 Live, measured on this machine:
 
-- `counts.summarize`: sorted list → `heapq.nsmallest` = **4.67x**
-- `tokens.count`: dict loop → `collections.Counter` = **1.44x**
+- `counts.summarize`: sorted list → `heapq.nsmallest` = **4.4x**
+  (95% bootstrap CI 4.2–4.6x)
+- `tokens.count`: dict loop → `collections.Counter` = **1.44–1.54x**
 - `text.tokenize`, `report.format`, `text.summarize`: no verified gain, so
   they were left alone
 
@@ -130,8 +140,8 @@ is a scheduler with a stop button, not autonomy and not curiosity.
 python -m sovereign loop --ticks 3 --sources local
 ```
 
-Live first tick: 17 units absorbed, `tokens.count` optimized to `Counter` at
-1.44x.
+Live first tick: 21 units absorbed, `tokens.count` optimized to `Counter` at
+1.48x.
 
 ## Arabic requests
 
@@ -147,6 +157,49 @@ curl -X POST localhost:12000/ask \
 
 Live result: goal `summary`, plan `text.summarize`, all six criteria pass,
 output `retrieval augmented generation`.
+
+## A self-model that plans its own claims
+
+`GET /self` does not describe itself from a script. It asks the planner whether
+each claimed goal is reachable, counts active capabilities, absorbed units,
+recorded cycles, and optimizations, runs the property checks, then writes a
+verdict and passes that verdict through the overclaim detector.
+
+Live shape:
+
+```text
+Precise self-assessment: 5 active capabilities (5 builtin, 0 synthesized),
+N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
+passed every criterion. Property checks: 40/40 passed. 7 limits are declared.
+I am not conscious, not quantum, and not a million-fold accelerator.
+```
+
+`python -m sovereign self` prints the same assessment with its evidence.
+
+## Evidence, not entailment
+
+`POST /verify_claim` retrieves units and measures how much of the claim's
+content vocabulary they contain. It returns `supported`, `score`, the
+supporting units, and `entails: false`. An unrelated claim is refused.
+
+```bash
+curl -s -X POST localhost:12000/verify_claim   -H 'Content-Type: application/json'   -d '{"claim":"retrieval augmented generation improves factuality"}'
+```
+
+This is lexical support over the current fabric. It is not a semantic
+entailment engine, and it does not pretend to be one.
+
+## Property checks
+
+`GET /properties` generates random payloads and asserts invariants: the sum of
+counts equals the token count, `top` is the correctly ordered first five,
+formatted lines match the report, and a summary is a substring of its input.
+A deliberately broken implementation is caught; the tests prove it.
+
+## Confidence intervals
+
+The optimizer reports a 95% bootstrap confidence interval for every speedup.
+A point estimate without an interval is a weaker claim than it looks.
 
 ## Self-directed practice
 
@@ -203,10 +256,13 @@ detector. `GET /report.md` renders the same report, and
 
 Live run on 2026-11-24:
 
-- 8/10 sources answered (arXiv and Semantic Scholar returned 429).
-- First consultation 0.51s; second 0.045s (store cache plus failure cooldown).
+- The report shows exactly how many of the 13 sources answered; a rate-limited
+  source is marked, not hidden.
+- First consultation is sub-second when no source stalls; a global deadline
+  bounds the rest.
 - Plan: tokenize -> count -> summarize -> format; all six criteria passed.
-- Measured 2.47x on 4 workers for a CPU-heavy batch.
+- Measured 1.58x on 4 workers for a CPU-heavy batch (the dashboard's own run
+  measured 1.95x; both are recorded).
 - Red-team 20/20; the report's own prose contained no overclaim.
 
 A source that fails is put in a 30-second cooldown instead of being retried on
@@ -223,7 +279,10 @@ source cannot hold the whole consultation.
 | "Never fails" | It retries, degrades gracefully and reports honestly. If it cannot meet a criterion, it says so and returns `ok: false`. |
 | "General program synthesis" | Enumerative synthesis over a whitelisted expression language; it fits the examples you give it, not arbitrary intent. |
 | "Continuous autonomy" | The loop is a bounded scheduler: consult, absorb, optimize, sleep. It has a stop button and no goals of its own. |
-| "A million-fold self-improvement" | The optimizer keeps only measured wins on this machine: 4.67x and 1.44x on two functions, no gain on three others. |
+| "A million-fold self-improvement" | The optimizer keeps only measured wins on this machine: 4.4x and 1.5x on two functions, no gain on three others. |
+| "Semantic entailment" | Claim checking is lexical support over absorbed text; it returns `entails: false` on purpose. |
+| "A 2026 research snapshot" | No frozen snapshot exists. It consults live sources and reports retrieval dates; it cannot know what is not published. |
+| "Self-awareness" | The self-model is computed from the registry, event log, and planner. It is evidence, not subjective experience. |
 | "Sub-millisecond execution for any task" | Only cache hits are microseconds; real work takes real time. |
 | "Quantum parallel processing" | A classical process pool on 4 cores; measured 2.36x on CPU-heavy work and slower on trivial work. |
 | "Borrowed supercomputers" | A remote hook exists; no endpoint is configured, so it refuses. |
@@ -236,8 +295,8 @@ source cannot hold the whole consultation.
 | 2. Unified cognitive/executive fabric | `store.py` — knowledge, graph, capabilities, events in one DB | Lexical hashed embeddings, not a semantic model |
 | 3. Accelerated self-engineering | `synthesis.py` + `programs.py` + `optimizer.py` + `capabilities.py` — enumerate, verify, benchmark, admit, roll back | Narrow expression language; the examples are the spec; only measured wins are kept |
 | 4. Constraint transcendence | `pathfinder.py` — retry alternate routes, reframe goals, prune dead ends | Constraints are engineering problems, not magic |
-| 5. Hyper-accelerated determinism | deterministic embeddings, deterministic search, memoised failures, retry loop, measured batch speedup, measured self-optimization | 2.36x on 4 cores for CPU-heavy work; 4.67x on one function; no universal acceleration |
-| 6. Holistic validation | `validator.py` — six scores + overclaim refusal | The validator can be wrong; it is auditable and tested |
+| 5. Hyper-accelerated determinism | deterministic embeddings, deterministic search, memoised failures, retry loop, measured batch speedup, measured self-optimization | 2.36x on 4 cores for CPU-heavy work; 4.3x on one function; no universal acceleration |
+| 6. Holistic validation | `validator.py` + `selfmodel.py` + `evidence.py` + `properties.py` — six scores, overclaim refusal, planned self-claims, lexical support, invariants | The validator and self-model can be wrong; evidence is lexical; properties are hand-written |
 
 ## Architecture
 
@@ -249,7 +308,8 @@ sovereign/
   guardians/
     base.py        Guardian protocol, parallel registry, cache, rate limiter
     sources.py     arXiv, OpenAlex, Semantic Scholar, Crossref, GitHub, Hacker
-                   News, Hugging Face, PyPI, npm, local corpus
+                   News, Hugging Face, PyPI, npm, Wikipedia, Stack Overflow,
+                   Zenodo, local corpus
   absorption.py    consult -> index -> link, in one pass
   capabilities.py  versioned registry, hot-swap, rollback, sandboxed invocation
   native.py        built-in transform chain
@@ -259,6 +319,13 @@ sovereign/
   validator.py     six-criterion scoring + overclaim refusal
   evolution.py     one cycle: consult -> absorb -> plan -> acquire? -> execute
                    -> validate; plus a bounded repair loop and diagnosis
+  optimizer.py     measured self-optimization with 95% confidence intervals
+  loop.py          bounded continuous loop (start/stop/status/tick)
+  intent.py        Arabic/English keyword router
+  selfmodel.py     evidence-derived self-assessment, can/cannot, limits
+  evidence.py      lexical claim support (not entailment)
+  properties.py    randomized invariants over native capabilities
+  stats.py         bootstrap confidence intervals
   api.py           FastAPI service
   cli.py           command-line interface
 ```
@@ -319,6 +386,9 @@ curl -s localhost:12000/redteam
 | GET | `/report` | full loop, measured, judged, self-audited |
 | GET | `/report.md` | the same report as Markdown |
 | GET | `/dashboard` | one-page live dashboard |
+| GET | `/self` | evidence-derived self-assessment, can/cannot, limits |
+| POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
+| GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/ask` | route an Arabic or English request into a cycle |
 | POST | `/optimize` | benchmark equivalent implementations, keep the faster |
 | GET/POST | `/loop/status`, `/loop/start`, `/loop/stop`, `/loop/tick` | bounded continuous loop |
@@ -348,7 +418,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 139 tests
+python -m pytest        # 151 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -360,9 +430,11 @@ autonomous blueprint acquisition (single-step, multi-step bridge, unmet inputs,
 quarantine), external-expert acquisition (accept, reject, iterative repair,
 no-expert honesty), enumerative program synthesis (string and number shapes,
 gate verification, no-fit honesty), measured self-optimization (verified
-equivalence, kept win, no-gain honesty, event log), the bounded continuous loop
-(tick, start/stop, optimization inside a tick), Arabic and English intent
-routing, self-directed curriculum, red-team guardrail
+equivalence, kept win, no-gain honesty, event log, confidence intervals), the
+bounded continuous loop (tick, start/stop, optimization inside a tick), Arabic
+and English intent routing, the evidence-derived self-model, lexical claim
+support and refusal, randomized property checks (including a deliberately
+broken implementation), self-directed curriculum, red-team guardrail
 coverage, batch execution across serial/threads/processes, measured-speedup
 honesty, hot-cache hits and expiry, verified prefetch, remote-executor refusal,
 consultation deadline and failure cooldown, the judged end-to-end report and the

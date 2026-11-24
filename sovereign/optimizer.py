@@ -11,10 +11,12 @@ from __future__ import annotations
 import importlib
 import time
 from dataclasses import dataclass
+from statistics import median
 from typing import Any, Callable
 
 from .capabilities import CapabilityRegistry
 from .models import Capability, Provenance
+from .stats import bootstrap_ci, bootstrap_ratio_ci
 
 
 @dataclass(frozen=True)
@@ -85,13 +87,14 @@ def _corpus(name: str) -> list[dict[str, Any]]:
     return []
 
 
-def _time(func: Callable[[dict[str, Any]], Any], payloads: list[dict[str, Any]], repeats: int) -> float:
-    started = time.perf_counter()
+def _samples(func: Callable[[dict[str, Any]], Any], payloads: list[dict[str, Any]], repeats: int) -> list[float]:
+    samples: list[float] = []
     for _ in range(repeats):
+        started = time.perf_counter()
         for payload in payloads:
             func(payload)
-    elapsed = time.perf_counter() - started
-    return elapsed / max(1, repeats * len(payloads))
+        samples.append((time.perf_counter() - started) / max(1, len(payloads)))
+    return samples
 
 
 class Optimizer:
@@ -109,7 +112,8 @@ class Optimizer:
         try:
             current_func = _resolve(current.entry)
             expected = [current_func(payload) for payload in payloads]
-            baseline = _time(current_func, payloads, repeats)
+            baseline_samples = _samples(current_func, payloads, repeats)
+            baseline = median(baseline_samples)
         except Exception as exc:
             return {"name": name, "chosen": None, "reason": f"current implementation failed: {exc}"}
 
@@ -132,14 +136,21 @@ class Optimizer:
                      "reason": "different output on the corpus"}
                 )
                 continue
-            elapsed = _time(func, payloads, repeats)
+            samples = _samples(func, payloads, repeats)
+            elapsed = median(samples)
+            ci = bootstrap_ci(samples)
+            ratio = bootstrap_ratio_ci(baseline_samples, samples)
             measured.append(
                 {
                     "name": variant.name,
                     "entry": variant.entry,
                     "verified": True,
                     "duration_s": round(elapsed, 9),
+                    "ci_low": round(ci["low"], 9),
+                    "ci_high": round(ci["high"], 9),
                     "speedup": round(baseline / elapsed, 3) if elapsed else 0.0,
+                    "speedup_low": round(ratio["low"], 3),
+                    "speedup_high": round(ratio["high"], 3),
                 }
             )
 
@@ -151,6 +162,8 @@ class Optimizer:
                 "entry": current.entry,
                 "version": current.version,
                 "duration_s": round(baseline, 9),
+                "ci_low": round(bootstrap_ci(baseline_samples)["low"], 9),
+                "ci_high": round(bootstrap_ci(baseline_samples)["high"], 9),
             },
             "chosen": None,
             "speedup": 1.0,
@@ -179,8 +192,10 @@ class Optimizer:
                 "chosen": best["name"],
                 "entry": best["entry"],
                 "speedup": speedup,
+                "speedup_low": best["speedup_low"],
+                "speedup_high": best["speedup_high"],
                 "version": registered.version,
-                "reason": f"verified identical output; {speedup}x faster",
+                "reason": f"verified identical output; {speedup}x faster (95% CI {best['speedup_low']}-{best['speedup_high']}x)",
             }
         )
         self.registry.store.record_event(
@@ -191,6 +206,8 @@ class Optimizer:
                 "to": best["entry"],
                 "version": registered.version,
                 "speedup": result["speedup"],
+                "speedup_low": best["speedup_low"],
+                "speedup_high": best["speedup_high"],
             },
         )
         return result
