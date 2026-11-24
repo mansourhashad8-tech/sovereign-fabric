@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-24T17:21:30.017826+00:00",
-  "commit": "239b988fea3fe3aa91812444eaea604eab471232",
+  "generated_at": "2026-11-24T17:24:01.033046+00:00",
+  "commit": "bc037cf78e66856f8e8f926951e29220728e4dd7",
   "root": "sovereign",
-  "duration_s": 0.297,
+  "duration_s": 0.315,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -87,8 +87,8 @@
     },
     {
       "path": "sovereign/extras.py",
-      "sha256": "200fb4e428c2c5549ee7ed70f91f1fe3f9555335ce7877c26f8e0e989613ee23",
-      "lines": 459
+      "sha256": "50fd3e69db9c0ea30ba2c9caef6dc4cc77f3085896c9b464c4d843ad30498409",
+      "lines": 654
     },
     {
       "path": "sovereign/guard.py",
