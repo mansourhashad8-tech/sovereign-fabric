@@ -191,11 +191,11 @@ from sovereign.arabic import tokenize_text
 tokenize_text("الذكاءُ الاصطناعي، والتعلّم!")  # ['الذكاء', 'الاصطناعي', 'والتعلم']
 ```
 
-## 52 executable capabilities
+## 54 executable capabilities
 
-The registry carries 52 admitted capabilities. Five are the original chain
+The registry carries 54 admitted capabilities. Five are the original chain
 (tokenize -> count -> summarize -> report, plus extractive summary). The other
-47 are in `sovereign/extras.py` and cover:
+49 are in `sovereign/extras.py` and cover:
 
 | Area | Capabilities |
 | --- | --- |
@@ -205,6 +205,7 @@ The registry carries 52 admitted capabilities. Five are the original chain
 | Markup | `html.text`, `html.links`, `markdown.headings` |
 | Exact work | `math.eval` (whitelisted AST arithmetic), `math.stats`, `date.diff`, `date.add`, `date.weekday`, `url.parse`, `url.query` |
 | Encoding and identity | `base64.encode`, `base64.decode`, `hash.sha256`, `uuid.generate`, `uuid.validate`, `template.render`, `regex.escape` |
+| Quantum simulation | `quantum.simulate` (exact statevector, <=8 qubits), `quantum.grover` (<=6 qubits) |
 
 Call any of them directly:
 
@@ -212,6 +213,19 @@ Call any of them directly:
 curl -s -X POST localhost:12000/invoke   -H 'Content-Type: application/json'   -d '{"capability":"math.eval","payload":{"value":"2*(3+4)"}}'
 # {"capability":"math.eval","result":{"value":14}}
 ```
+
+A Bell state is real gate arithmetic, not a metaphor:
+
+```bash
+curl -s -X POST localhost:12000/invoke \
+  -H 'Content-Type: application/json' \
+  -d '{"capability":"quantum.simulate","payload":{"qubits":2,"gates":[{"gate":"h","target":0},{"gate":"cx","control":0,"target":1}]}}'
+# probabilities [0.5, 0.0, 0.0, 0.5], unit_norm 1.0
+```
+
+The simulator is exact and bounded: 8 qubits (256 amplitudes), 64 gates, and
+no hardware or speedup claim. Grover is bounded to 6 qubits and 10 iterations;
+it demonstrates amplitude amplification, not a practical advantage.
 
 Compose them without writing a new module:
 
@@ -250,6 +264,23 @@ curl -s localhost:12000/feedback/summary
 This is a vote, not training. One rating is smoothed by a prior of five, and
 the score is visible in every search hit.
 
+## External expert consultation
+
+`POST /expert/ask` asks a configured OpenAI-compatible expert (Groq or OpenAI)
+for text. Configure it with `GROQ_API_KEY` or `OPENAI_API_KEY`; `GET /experts`
+lists what is available. The response is marked `verified: false` and is never
+executed, parsed as code, or treated as an action. The request contains only
+your question and optional system text; the fabric does not attach the store,
+knowledge units, or environment. If the provider rejects the key or is down,
+the endpoint returns `502` with the failure names; it does not fabricate an
+answer.
+
+```bash
+curl -s -X POST localhost:12000/expert/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"Compare A* and BFS in two sentences."}'
+```
+
 `POST /self/repair` is the self-healing path. It imports every active built-in
 entry, quarantines any entry that is missing or not callable, and re-admits a
 known native or extra name at the next version. An unknown broken name stays
@@ -283,7 +314,7 @@ verdict and passes that verdict through the overclaim detector.
 Live shape:
 
 ```text
-Precise self-assessment: 52 active capabilities (52 builtin, 0 synthesized),
+Precise self-assessment: 54 active capabilities (54 builtin, 0 synthesized),
 N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
 passed every criterion. Property checks: 40/40 passed. 11 limits are declared.
 I am not conscious, not quantum, and not a million-fold accelerator.
@@ -492,7 +523,7 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | "Self-awareness" | The self-model is computed from the registry, event log, and planner. It is evidence, not subjective experience. |
 | "A synthesis engine" | The brief quotes and cites absorbed units. It does not infer, translate, or verify truth. |
 | "A guaranteed learner" | Mastery practice records before/after rates; it can fail to improve, and the table says so. |
-| "A general-purpose agent" | 52 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
+| "A general-purpose agent" | 54 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
 | "Zero vulnerabilities" | The audit reports 0 findings from these rules and 0 OSV hits; that is not a proof of absence. |
 | "A security certification" | The scanner is public and conservative; it is not an external audit or a DAST suite. |
 | "A closed model" | No closed-source library is required. The optional expert endpoint is a service, disabled by default. |
@@ -529,7 +560,8 @@ sovereign/
   absorption.py    consult -> index -> link, in one pass
   capabilities.py  versioned registry, hot-swap, rollback, sandboxed invocation
   native.py        built-in transform chain
-  extras.py        47 bounded data/text/math/date/url/encoding capabilities
+  extras.py        49 bounded data/text/math/date/url/encoding/quantum capabilities
+  quantum.py       exact statevector simulator, <=8 qubits
   pipeline.py      bounded composition of any capabilities
   feedback.py      smoothed outcome votes that reorder capability search
   repair.py        quarantine broken built-ins and restore known names
@@ -642,6 +674,7 @@ curl -s localhost:12000/redteam
 | POST | `/feedback` | record `-1`, `0`, or `1` for a capability |
 | GET | `/feedback/summary` | counts and smoothed score per capability |
 | POST | `/self/repair` | quarantine broken built-ins and restore known ones |
+| POST | `/expert/ask` | text answer from a configured external expert (`verified: false`) |
 | GET | `/ready` | database, capabilities, guardians, and planner readiness |
 | GET | `/metrics` | Prometheus text counters and gauges |
 | GET | `/diagnostics` | read-only database, entry, planner, and security checks |

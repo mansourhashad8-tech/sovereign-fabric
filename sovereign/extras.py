@@ -33,6 +33,7 @@ from typing import Any
 from .arabic import normalize_arabic, split_sentences, stem_text, tokenize_text
 from .capabilities import CapabilityRegistry
 from .models import Capability, Provenance
+from .quantum import grover_search, simulate_circuit
 
 _EN_STOP = frozenset(
     "a an the and or but if then else for of to in on at by with from as is are "
@@ -540,6 +541,25 @@ def math_stats(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _quantum_body(payload: dict[str, Any]) -> dict[str, Any]:
+    value = payload.get("value")
+    return value if isinstance(value, dict) else payload
+
+
+def quantum_simulate(payload: dict[str, Any]) -> dict[str, Any]:
+    body = _quantum_body(payload)
+    return {"value": simulate_circuit(body.get("qubits"), body.get("gates", []))}
+
+
+def quantum_grover(payload: dict[str, Any]) -> dict[str, Any]:
+    body = _quantum_body(payload)
+    return {
+        "value": grover_search(
+            body.get("qubits"), body.get("marked", []), body.get("iterations")
+        )
+    }
+
+
 def date_add(payload: dict[str, Any]) -> dict[str, Any]:
     text = _text(payload).strip()
     days = int(payload.get("days", 0))
@@ -702,6 +722,8 @@ EXTRAS: dict[str, tuple[Any, str, tuple[str, ...], tuple[str, ...]]] = {
     "toml.parse": (toml_parse, "Parse TOML into JSON", ("toml_text",), ("json_text",)),
     "ini.parse": (ini_parse, "Parse INI sections into JSON", ("ini_text",), ("json_text",)),
     "markdown.headings": (markdown_headings, "Extract ATX Markdown headings", ("text",), ("headings",)),
+    "quantum.simulate": (quantum_simulate, "Exact statevector simulation for <=8 qubits (not hardware)", ("quantum_circuit",), ("probabilities",)),
+    "quantum.grover": (quantum_grover, "Exact Grover iteration for <=6 qubits (no speedup claim)", ("quantum_search",), ("probabilities",)),
 }
 
 

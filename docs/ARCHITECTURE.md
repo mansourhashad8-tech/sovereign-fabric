@@ -18,6 +18,7 @@ flowchart LR
   F --> M[Mastery]
   API --> GUARD[Key, rate limit, body cap, headers]
   API --> OPS[Metrics, readiness, diagnostics]
+  API --> EX[External expert, optional]
   API --> FB[Feedback + self-repair]
   FB --> F
   GUARD --> SEC[Security and openness audit]
@@ -30,18 +31,20 @@ flowchart LR
    GitHub, Hacker News, Hugging Face, PyPI, npm, Wikipedia, Stack Overflow,
    Zenodo, and a local corpus. A dead source degrades the result; it does not
    fail the run.
-2. **Fabric**: one SQLite store for knowledge units, the concept graph,
+2. **Expert guardianship**: optional OpenAI-compatible experts return unverified
+   text candidates; they are never executed and never receive the store.
+3. **Fabric**: one SQLite store for knowledge units, the concept graph,
    capability versions, an append-only event log, a source cache, and a failure
    memo.
-3. **Planning and synthesis**: reachability proof plus A* over capability types,
+4. **Planning and synthesis**: reachability proof plus A* over capability types,
    bounded capability pipelines, blueprint acquisition, enumerative program
    synthesis, and a subprocess gate.
-4. **Execution and validation**: serial/thread/process execution with measured
+5. **Execution and validation**: serial/thread/process execution with measured
    speedup; six scores and an overclaim detector.
-5. **Introspection**: a self-model that plans its own claims, lexical claim
+6. **Introspection**: a self-model that plans its own claims, lexical claim
    support, randomized property checks, confidence intervals, outcome feedback,
    and a self-repair path for broken built-in entries.
-6. **Openness and operations**: a static scanner, licence inventory, OSV lookup,
+7. **Openness and operations**: a static scanner, licence inventory, OSV lookup,
    CycloneDX SBOM, a public disclosure report, and a threat model. API guards add
    an optional key, a per-client rate limit, a body cap, and security headers;
    `/metrics`, `/ready`, and `/diagnostics` expose process health without secrets.

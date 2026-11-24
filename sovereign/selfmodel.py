@@ -99,6 +99,7 @@ class SelfModel:
             "The Arabic stemmer is a light prefix/suffix rule set, not morphology.",
             "Feedback is a smoothed vote that reorders search; it does not train a model.",
             "Self-repair restores known built-ins with broken import entries; it cannot invent missing code.",
+            "External expert answers are unverified text and are never executed.",
         ]
         if not self.engine.experts:
             limits.insert(

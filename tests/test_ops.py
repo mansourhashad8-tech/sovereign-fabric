@@ -17,7 +17,7 @@ def test_metrics_and_rate_limit_headers():
     text = client.get("/metrics").text
     assert "sovereign_requests_total" in text
     assert 'sovereign_requests_by_status{status="200"}' in text
-    assert "sovereign_capabilities 52" in text
+    assert "sovereign_capabilities 54" in text
     assert "sovereign_knowledge_units" in text
 
 
@@ -39,7 +39,7 @@ def test_diagnostics_passes_and_detects_a_missing_entry():
     engine = EvolutionEngine(FabricStore())
     clean = diagnose(engine, include_security=False)
     assert clean["ok"] is True
-    assert clean["capabilities"] >= 52
+    assert clean["capabilities"] >= 54
     assert clean["issues"] == []
 
     engine.registry.register(

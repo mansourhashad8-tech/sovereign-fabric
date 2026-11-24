@@ -24,6 +24,7 @@ from .models import (
 )
 from .pathfinder import Operator, PathFinder, operators_from
 from .pipeline import run_pipeline
+from .quantum import grover_search, simulate_circuit
 from .repair import repair
 from .store import FabricStore
 from .synthesis import SynthesisResult, Synthesizer
@@ -40,6 +41,8 @@ __all__ = [
     "diagnose",
     "Metrics",
     "run_pipeline",
+    "grover_search",
+    "simulate_circuit",
     "feedback_scores",
     "feedback_summary",
     "record_feedback",

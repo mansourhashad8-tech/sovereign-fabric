@@ -131,6 +131,14 @@ class FeedbackRequest(BaseModel):
     request_id: str | None = Field(default=None, max_length=64)
 
 
+class ExpertAskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=4000)
+    system: str = Field(
+        default="Answer concisely. Do not claim to have run code or checked sources.",
+        max_length=2000,
+    )
+
+
 class ClaimRequest(BaseModel):
     claim: str = Field(min_length=1, max_length=2000)
     k: int = 5
@@ -306,6 +314,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /feedback",
                 "GET /feedback/summary",
                 "POST /self/repair",
+                "POST /expert/ask",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -389,6 +398,32 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "results": results,
             "elapsed_s": round(time.perf_counter() - started, 6),
         }
+
+    @app.post("/expert/ask")
+    def expert_ask(body: ExpertAskRequest) -> dict[str, Any]:
+        if not engine.experts:
+            raise HTTPException(
+                status_code=503,
+                detail="no external expert is configured; set GROQ_API_KEY or OPENAI_API_KEY",
+            )
+        failures: list[str] = []
+        for expert in engine.experts:
+            try:
+                answer = expert.complete(body.system, body.question)
+            except Exception as exc:
+                failures.append(f"{expert.name}: {type(exc).__name__}")
+                continue
+            return {
+                "ok": True,
+                "expert": expert.name,
+                "answer": str(answer)[:8000],
+                "verified": False,
+                "note": "unverified external model output; it is text, not an executed action",
+            }
+        raise HTTPException(
+            status_code=502,
+            detail={"message": "every configured expert failed", "failures": failures},
+        )
 
     @app.post("/feedback")
     def feedback_endpoint(body: FeedbackRequest) -> dict[str, Any]:

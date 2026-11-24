@@ -14,7 +14,7 @@ def _engine():
 def test_extras_are_registered_and_idempotent():
     engine = _engine()
     names = {cap.name for cap in engine.registry.list_active()}
-    assert len(names) >= 52
+    assert len(names) >= 54
     assert {
         "json.validate",
         "csv.parse",
@@ -38,6 +38,8 @@ def test_extras_are_registered_and_idempotent():
         "toml.parse",
         "ini.parse",
         "markdown.headings",
+        "quantum.simulate",
+        "quantum.grover",
     } <= names
     before = len(names)
     from sovereign.extras import bootstrap_extras
