@@ -161,3 +161,50 @@ def test_ask_routes_markup_and_config_formats():
         {"level": 1, "text": "A"},
         {"level": 2, "text": "B"},
     ]
+
+
+def test_batch_invoke_returns_each_result_and_failure():
+    client = TestClient(create_app())
+    body = client.post(
+        "/invoke/batch",
+        json={
+            "calls": [
+                {"capability": "math.eval", "payload": {"value": "2+3"}},
+                {"capability": "text.redact", "payload": {"value": "a@b.com"}},
+            ]
+        },
+    ).json()
+    assert body["ok"] is True
+    assert body["results"][0]["result"]["value"] == 5
+    assert body["results"][1]["result"]["value"] == "[EMAIL]"
+
+    failed = client.post(
+        "/invoke/batch",
+        json={
+            "calls": [
+                {"capability": "math.eval", "payload": {"value": "2+"}},
+                {"capability": "math.eval", "payload": {"value": "4+4"}},
+            ]
+        },
+    ).json()
+    assert failed["ok"] is False
+    assert failed["results"][0]["ok"] is False
+    assert failed["results"][1]["result"]["value"] == 8
+
+
+def test_request_id_is_echoed_only_when_safe():
+    client = TestClient(create_app())
+    ok = client.get("/health", headers={"X-Request-ID": "abc.123"})
+    assert ok.headers["x-request-id"] == "abc.123"
+    unsafe = client.get("/health", headers={"X-Request-ID": "bad id"})
+    assert unsafe.headers["x-request-id"] != "bad id"
+    assert len(unsafe.headers["x-request-id"]) == 32
+
+
+def test_capability_detail_lists_versions():
+    client = TestClient(create_app())
+    body = client.get("/capabilities/math.eval").json()
+    assert body["name"] == "math.eval"
+    assert body["active"] == 1
+    assert body["versions"][0]["description"].startswith("Evaluate")
+    assert client.get("/capabilities/no.such").status_code == 404

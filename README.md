@@ -218,7 +218,15 @@ curl -s -X POST localhost:12000/pipeline \
 ```
 
 The previous step's `value` is passed to the next step; a failure returns the
-partial trace with `failed_at` and an error, not a fabricated result.
+partial trace with `failed_at` and an error, not a fabricated result. Batch
+calls use the same bounded envelope:
+
+```bash
+curl -s -X POST localhost:12000/invoke/batch \
+  -H 'Content-Type: application/json' \
+  -d '{"calls":[{"capability":"math.eval","payload":{"value":"2+3"}},{"capability":"text.redact","payload":{"value":"a@b.com"}}]}'
+# {"ok":true,"results":[...],"elapsed_s":...}
+```
 
 Or route an Arabic request into the planner:
 
@@ -597,7 +605,9 @@ curl -s localhost:12000/redteam
 | GET/POST | `/loop/status`, `/loop/start`, `/loop/stop`, `/loop/tick` | bounded continuous loop |
 | GET | `/capabilities`, POST `/capabilities/rollback` | registry |
 | GET | `/capabilities/search` | rank capabilities by a natural query |
+| GET | `/capabilities/{name}` | versions, status, inputs, and outputs |
 | POST | `/invoke` | invoke any active capability directly |
+| POST | `/invoke/batch` | run up to 20 calls, reporting each result or error |
 | POST | `/pipeline` | compose up to 20 capabilities, passing each `value` forward |
 | GET | `/ready` | database, capabilities, guardians, and planner readiness |
 | GET | `/metrics` | Prometheus text counters and gauges |

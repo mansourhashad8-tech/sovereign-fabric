@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import re
 import time
 from contextlib import asynccontextmanager
 from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
@@ -33,6 +35,8 @@ from .security import audit as security_audit, cyclonedx_sbom, disclosure_markdo
 from .selfmodel import SelfModel
 from .store import FabricStore
 from .vectors import cosine, embed
+
+_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 
 class ConsultRequest(BaseModel):
@@ -107,6 +111,15 @@ class PipelineStep(BaseModel):
 
 class PipelineRequest(BaseModel):
     steps: list[PipelineStep] = Field(min_length=1, max_length=20)
+
+
+class BatchInvokeCall(BaseModel):
+    capability: str = Field(min_length=1, max_length=100)
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class BatchInvokeRequest(BaseModel):
+    calls: list[BatchInvokeCall] = Field(min_length=1, max_length=20)
 
 
 class ClaimRequest(BaseModel):
@@ -185,6 +198,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.middleware("http")
     async def harden(request: Request, call_next):
         started = time.perf_counter()
+        request_id = request.headers.get("x-request-id", "")
+        if not _REQUEST_ID.match(request_id):
+            request_id = uuid4().hex
 
         def deny(status: int, detail: str, kind: str, extra: dict[str, str] | None = None):
             metrics.reject(kind)
@@ -192,7 +208,11 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             return JSONResponse(
                 {"detail": detail},
                 status_code=status,
-                headers={**security_headers(), **(extra or {})},
+                headers={
+                    **security_headers(),
+                    "X-Request-ID": request_id,
+                    **(extra or {}),
+                },
             )
 
         if request.method not in {"GET", "HEAD", "OPTIONS"} and not api_key.allows(
@@ -230,6 +250,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             response.headers.setdefault(name, value)
         response.headers["X-RateLimit-Limit"] = str(limiter.limit)
         response.headers["X-RateLimit-Remaining"] = str(decision.remaining)
+        response.headers["X-Request-ID"] = request_id
         return response
 
     @app.get("/")
@@ -271,6 +292,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /verify_claim",
                 "POST /ask",
                 "POST /invoke",
+                "POST /invoke/batch",
                 "POST /pipeline",
                 "POST /optimize",
                 "GET /loop/status",
@@ -332,6 +354,30 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {"capability": body.capability, "result": result}
 
+    @app.post("/invoke/batch")
+    def invoke_batch(body: BatchInvokeRequest) -> dict[str, Any]:
+        started = time.perf_counter()
+        results: list[dict[str, Any]] = []
+        for call in body.calls:
+            try:
+                result = engine.registry.invoke(call.capability, call.payload)
+                results.append(
+                    {"ok": True, "capability": call.capability, "result": result}
+                )
+            except Exception as exc:
+                results.append(
+                    {
+                        "ok": False,
+                        "capability": call.capability,
+                        "error": f"{type(exc).__name__}: {exc}",
+                    }
+                )
+        return {
+            "ok": all(item["ok"] for item in results),
+            "results": results,
+            "elapsed_s": round(time.perf_counter() - started, 6),
+        }
+
     @app.post("/pipeline")
     def pipeline(body: PipelineRequest) -> dict[str, Any]:
         try:
@@ -377,6 +423,28 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 }
                 for cap in store.list_capabilities()
             ]
+        }
+
+    @app.get("/capabilities/{name}")
+    def capability_detail(name: str) -> dict[str, Any]:
+        versions = [cap for cap in store.list_capabilities() if cap.name == name]
+        if not versions:
+            raise HTTPException(status_code=404, detail=f"unknown capability {name!r}")
+        active = engine.registry.active(name)
+        return {
+            "name": name,
+            "active": None if active is None else active.version,
+            "versions": [
+                {
+                    "version": cap.version,
+                    "status": cap.status,
+                    "kind": cap.kind,
+                    "inputs": list(cap.inputs),
+                    "outputs": list(cap.outputs),
+                    "description": cap.description,
+                }
+                for cap in versions
+            ],
         }
 
     @app.post("/capabilities/rollback")
