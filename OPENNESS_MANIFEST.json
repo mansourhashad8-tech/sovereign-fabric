@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-24T16:05:35.646173+00:00",
-  "commit": "f02cd434914e606e6288731ac7e2bf449561e54d",
+  "generated_at": "2026-11-24T17:21:30.017826+00:00",
+  "commit": "239b988fea3fe3aa91812444eaea604eab471232",
   "root": "sovereign",
-  "duration_s": 0.397,
+  "duration_s": 0.297,
   "license_file": "LICENSE",
   "source_files": [
     {
       "path": "sovereign/__init__.py",
-      "sha256": "220815901492615ff59ee19ea65ecd02aae0b4e5cf7283bb6b347b9a5ca845c0",
-      "lines": 49
+      "sha256": "909c7b9f21396b0d30b145ca871fe97e730ebd4f97f00106c82fe3a9e86d5cf7",
+      "lines": 51
     },
     {
       "path": "sovereign/__main__.py",
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "848607056b8db25412a43edeeeecc5bffbaff1ae09d870915a16517ff6bc7af0",
-      "lines": 650
+      "sha256": "fb8987c8c088348f10d3180a2cdce10fb9a3acfc871b9cac38d6f5e0ef8df4ff",
+      "lines": 666
     },
     {
       "path": "sovereign/arabic.py",
@@ -72,8 +72,8 @@
     },
     {
       "path": "sovereign/evolution.py",
-      "sha256": "bad6cfd2b92424bc1b69b390d2126c22f91110336a487cd1f68903fdf60213bd",
-      "lines": 373
+      "sha256": "eb5b8057880653f056eb510f7bce128cd3e4bd6ccd1d5b4ac471d6afca80d511",
+      "lines": 375
     },
     {
       "path": "sovereign/execution.py",
@@ -84,6 +84,11 @@
       "path": "sovereign/expert.py",
       "sha256": "cbca46161407eba28ba55b7412b8df531a168526f63d09b8acb31c3c745db701",
       "lines": 160
+    },
+    {
+      "path": "sovereign/extras.py",
+      "sha256": "200fb4e428c2c5549ee7ed70f91f1fe3f9555335ce7877c26f8e0e989613ee23",
+      "lines": 459
     },
     {
       "path": "sovereign/guard.py",
@@ -107,8 +112,8 @@
     },
     {
       "path": "sovereign/intent.py",
-      "sha256": "16e5a4cd88c9cadcdd099f765da162b49b28c0086fd2e495e9642a917f4c5dc1",
-      "lines": 45
+      "sha256": "e6612b5fc544fb220c1d78c6216245f5151282be0f1bd9418818575522a30078",
+      "lines": 81
     },
     {
       "path": "sovereign/loop.py",
@@ -137,8 +142,8 @@
     },
     {
       "path": "sovereign/pathfinder.py",
-      "sha256": "be3d51f6fcd0f3cdda051b2efa604a16766053758e854481606443cf9f2ee2c0",
-      "lines": 175
+      "sha256": "d7baaa2166f3caacc4390fc759ecdf9c99aeacd75053ecfb2349cbe48920f3cb",
+      "lines": 194
     },
     {
       "path": "sovereign/programs.py",
