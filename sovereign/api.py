@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from .absorption import absorb
 from .curriculum import Curriculum
+from .dashboard import DASHBOARD_HTML
 from .evolution import EvolutionEngine
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
 from .models import Evidence, KnowledgeUnit
@@ -128,8 +129,10 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         return {
             "name": "sovereign-fabric",
             "note": "honest self-evolving fabric; no claim is reported without evidence",
+            "dashboard": "/dashboard",
             "endpoints": [
                 "GET /health",
+                "GET /dashboard",
                 "GET /guardians",
                 "POST /consult",
                 "POST /absorb",
@@ -317,6 +320,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         return {
             "admitted": result.admitted,
             "reason": result.reason,
+            "source": result.source,
             "capability": result.capability.name if result.capability else None,
             "attempts": result.attempts,
         }
@@ -422,6 +426,10 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         return render_report(
             _report(query, goal_type, budget_s, benchmark_n, sources, benchmark_mode)
         )
+
+    @app.get("/dashboard", response_class=HTMLResponse)
+    def dashboard() -> str:
+        return DASHBOARD_HTML
 
     @app.get("/cycles")
     def cycles(limit: int = 20) -> dict[str, Any]:

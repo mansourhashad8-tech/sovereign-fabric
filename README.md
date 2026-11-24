@@ -11,6 +11,15 @@ holistic validator that refuses overclaims.
 This README is deliberately blunt about limits. A system that exaggerates its
 own powers is not sovereign; it is a liability.
 
+## Start here
+
+- **Dashboard**: `/dashboard` — one self-contained page (no build, no CDN) that
+  runs the full report on load and shows the verdict, plan, six scores, source
+  status, capabilities, and limits.
+- **Full report**: `GET /report` (JSON), `GET /report.md` (Markdown).
+- **Local**: `python -m sovereign report --markdown` and
+  `python -m sovereign serve --port 12000`.
+
 ---
 
 ## What this is
@@ -69,6 +78,26 @@ export GROQ_API_KEY=...        # and/or OPENAI_API_KEY / OPENAI_BASE_URL
 In this workspace the Groq key is present but the provider returns `401`, so
 the live attempt records the error and admits nothing. The pipeline is
 exercised end-to-end with injected experts in the tests.
+
+## Finding a program, not just a template
+
+`sovereign/programs.py` adds enumerative program synthesis. It searches a
+whitelisted expression language (string and number transforms, up to depth two),
+evaluates candidates in-process against the examples as a cheap filter, and
+sends the first fit through the isolated gate. Admitted capabilities record
+`source: "enumerative"` and the winning program label.
+
+Live, with no model key:
+
+- `Hello World -> hello-world` found `slug`
+- `hello world -> Hello World` found `title case`
+- `one two -> two one` found `words reversed`
+- `[1, 2, 3] -> 6` found `sum`
+
+This is not general synthesis: the examples are the whole specification, so a
+program that fits them can still be wrong on unseen inputs. The gate makes the
+claim precise — "reproduces these examples" — and the examples remain the
+evidence.
 
 ## Self-directed practice
 
@@ -143,7 +172,7 @@ source cannot hold the whole consultation.
 | "A million times faster" | No such speedup exists here. Speed is *measured* against a budget; unmeasured speed scores zero. |
 | "Quantum pathfinding" | The planner is classical A*. A quantum *simulator* gives no speedup over the algorithm it simulates; only real quantum hardware might, and none is used. |
 | "Never fails" | It retries, degrades gracefully and reports honestly. If it cannot meet a criterion, it says so and returns `ok: false`. |
-| "General program synthesis" | Template synthesis over a small operation set. The *gate* is general; the generator is not. |
+| "General program synthesis" | Enumerative synthesis over a whitelisted expression language; it fits the examples you give it, not arbitrary intent. |
 | "Sub-millisecond execution for any task" | Only cache hits are microseconds; real work takes real time. |
 | "Quantum parallel processing" | A classical process pool on 4 cores; measured 2.36x on CPU-heavy work and slower on trivial work. |
 | "Borrowed supercomputers" | A remote hook exists; no endpoint is configured, so it refuses. |
@@ -154,7 +183,7 @@ source cannot hold the whole consultation.
 | --- | --- | --- |
 | 1. External guardianship | `sovereign/guardians/` — protocol, parallel registry, cache, rate limits, per-source status | A dead source degrades the result; it does not fail the run |
 | 2. Unified cognitive/executive fabric | `store.py` — knowledge, graph, capabilities, events in one DB | Lexical hashed embeddings, not a semantic model |
-| 3. Accelerated self-engineering | `synthesis.py` + `capabilities.py` — generate, verify, admit, roll back | Narrow template generator; hard verification gate |
+| 3. Accelerated self-engineering | `synthesis.py` + `programs.py` + `capabilities.py` — enumerate, verify, admit, roll back | Narrow expression language; the examples are the spec |
 | 4. Constraint transcendence | `pathfinder.py` — retry alternate routes, reframe goals, prune dead ends | Constraints are engineering problems, not magic |
 | 5. Hyper-accelerated determinism | deterministic embeddings, deterministic search, memoised failures, retry loop, measured batch speedup | 2.36x on 4 cores for CPU-heavy work; no universal acceleration |
 | 6. Holistic validation | `validator.py` — six scores + overclaim refusal | The validator can be wrong; it is auditable and tested |
@@ -238,6 +267,7 @@ curl -s localhost:12000/redteam
 | GET | `/remote/status` | whether a remote executor is configured |
 | GET | `/report` | full loop, measured, judged, self-audited |
 | GET | `/report.md` | the same report as Markdown |
+| GET | `/dashboard` | one-page live dashboard |
 | GET | `/capabilities`, POST `/capabilities/rollback` | registry |
 | GET | `/cycles`, `/failures` | audit log and failure memo |
 
@@ -264,7 +294,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 118 tests
+python -m pytest        # 123 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -274,10 +304,11 @@ sandboxed invocation, secret stripping, the synthesis gate
 (accept/reject/quarantine), A* correctness, memoisation and alternative routes,
 autonomous blueprint acquisition (single-step, multi-step bridge, unmet inputs,
 quarantine), external-expert acquisition (accept, reject, iterative repair,
-no-expert honesty), self-directed curriculum, red-team guardrail coverage,
-batch execution across serial/threads/processes, measured-speedup honesty,
-hot-cache hits and expiry, verified prefetch, remote-executor refusal,
-consultation deadline and failure cooldown, the judged end-to-end report,
-validator scoring and negation-aware overclaim detection, the full evolution
+no-expert honesty), enumerative program synthesis (string and number shapes,
+gate verification, no-fit honesty), self-directed curriculum, red-team guardrail
+coverage, batch execution across serial/threads/processes, measured-speedup
+honesty, hot-cache hits and expiry, verified prefetch, remote-executor refusal,
+consultation deadline and failure cooldown, the judged end-to-end report and the
+dashboard, validator scoring and negation-aware overclaim detection, the full evolution
 cycle (success, local-only refusal, overclaim refusal, synthesis path,
 autonomous extension, multi-attempt repair, failure memo), and the HTTP API.

@@ -23,7 +23,7 @@ from ..store import FabricStore
 USER_AGENT = "sovereign-fabric/0.1 (research; contact: local)"
 
 
-def default_fetch(url: str, timeout: float = 12.0) -> str:
+def default_fetch(url: str, timeout: float = 6.0) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read().decode("utf-8", "replace")

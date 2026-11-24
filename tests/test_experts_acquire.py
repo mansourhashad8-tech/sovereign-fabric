@@ -96,7 +96,9 @@ def test_ensemble_falls_back_to_a_working_expert():
 
 def test_acquire_without_experts_is_honest():
     store, synth = _synth()
-    result = ExpertAcquirer(synth, []).acquire("text.slug", "slug", ("text",), ("slug",), EXAMPLES)
+    result = ExpertAcquirer(synth, []).acquire(
+        "text.slug", "slug", ("text",), ("slug",), EXAMPLES, use_program_search=False
+    )
     assert result.admitted is False
     assert "no external expert" in result.reason
     store.close()
@@ -105,7 +107,9 @@ def test_acquire_without_experts_is_honest():
 def test_acquire_admits_a_verified_candidate():
     store, synth = _synth()
     acquirer = ExpertAcquirer(synth, [FakeExpert([GOOD])])
-    result = acquirer.acquire("text.slug", "slugify text", ("text",), ("slug",), EXAMPLES)
+    result = acquirer.acquire(
+        "text.slug", "slugify text", ("text",), ("slug",), EXAMPLES, use_program_search=False
+    )
     assert result.admitted is True
     assert result.capability.status == "admitted"
     assert synth.registry.invoke("text.slug", {"value": "Hi There"}) == {"value": "hi-there"}
@@ -115,7 +119,13 @@ def test_acquire_admits_a_verified_candidate():
 def test_acquire_rejects_a_wrong_candidate():
     store, synth = _synth()
     result = ExpertAcquirer(synth, [FakeExpert([BAD])]).acquire(
-        "text.slug", "slugify text", ("text",), ("slug",), EXAMPLES, rounds=1
+        "text.slug",
+        "slugify text",
+        ("text",),
+        ("slug",),
+        EXAMPLES,
+        rounds=1,
+        use_program_search=False,
     )
     assert result.admitted is False
     assert result.attempts[0]["admitted"] is False
@@ -126,9 +136,27 @@ def test_acquire_repairs_after_a_failed_round():
     store, synth = _synth()
     expert = FakeExpert([BAD, GOOD])
     result = ExpertAcquirer(synth, [expert]).acquire(
-        "text.slug", "slugify text", ("text",), ("slug",), EXAMPLES, rounds=2
+        "text.slug",
+        "slugify text",
+        ("text",),
+        ("slug",),
+        EXAMPLES,
+        rounds=2,
+        use_program_search=False,
     )
     assert result.admitted is True
     assert expert.calls == 2
     assert [a["admitted"] for a in result.attempts] == [False, True]
+    store.close()
+
+
+def test_acquire_synthesizes_without_any_expert():
+    store, synth = _synth()
+    result = ExpertAcquirer(synth, []).acquire(
+        "text.slug", "slugify text", ("text",), ("slug",), EXAMPLES
+    )
+    assert result.admitted is True
+    assert result.source == "enumerative"
+    assert result.attempts[0]["program"] == "slug"
+    assert synth.registry.invoke("text.slug", {"value": "Hi There"}) == {"value": "hi-there"}
     store.close()

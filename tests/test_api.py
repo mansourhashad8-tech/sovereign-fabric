@@ -242,3 +242,11 @@ def test_report_markdown_endpoint_passes_its_own_audit():
     ).text
     assert text.startswith("# Sovereign system report")
     assert "Verdict" in text
+
+
+def test_dashboard_serves_a_single_self_contained_page():
+    response = _client().get("/dashboard")
+    assert response.status_code == 200
+    assert "Sovereign" in response.text
+    assert "Run full report" in response.text
+    assert "https://" not in response.text  # no external assets or CDNs
