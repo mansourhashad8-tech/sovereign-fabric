@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-24T16:03:39.567723+00:00",
-  "commit": "64a099150c3123e3832416719d20f374e8b737ab",
+  "generated_at": "2026-11-24T16:05:35.646173+00:00",
+  "commit": "f02cd434914e606e6288731ac7e2bf449561e54d",
   "root": "sovereign",
-  "duration_s": 0.305,
+  "duration_s": 0.397,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -97,8 +97,8 @@
     },
     {
       "path": "sovereign/guardians/base.py",
-      "sha256": "cba24f59272e50fac547c1b5547167af0896f1b0d2f6db840ffae8ddd7445ee2",
-      "lines": 229
+      "sha256": "02c98d091d4a579a2dc3c62597bfe12144a872ea1d252cea2dd058745fbe57fd",
+      "lines": 243
     },
     {
       "path": "sovereign/guardians/sources.py",
