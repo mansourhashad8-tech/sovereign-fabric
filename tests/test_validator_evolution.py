@@ -167,3 +167,32 @@ def test_cycle_records_failure_memo_for_unreachable_goal():
     assert cycle.ok is False
     assert store.memo_entries()
     store.close()
+
+
+def test_robust_evolve_records_every_attempt():
+    store = FabricStore()
+    engine = EvolutionEngine(store)
+    cycle = engine.evolve(
+        "planning search text", text="a b a", sources=["local"],
+        budget_s=5.0, max_attempts=3,
+    )
+    assert len(cycle.attempts) == 3
+    assert cycle.ok is False
+    assert cycle.diagnosis
+    assert any("external" in d for d in cycle.diagnosis)
+    store.close()
+
+
+def test_auto_extend_solves_a_goal_it_could_not_plan():
+    store = FabricStore()
+    engine = EvolutionEngine(store, guardians=_fake_registry())
+    cycle = engine.evolve(
+        "planning text", goal_type="doubled", initial=("text",), text="ab",
+        auto_extend=True, budget_s=5.0,
+    )
+    assert cycle.plan.solved is True
+    assert [s.capability for s in cycle.plan.steps] == ["text.double"]
+    assert cycle.execution["value"] == "abab"
+    assert cycle.extensions and cycle.extensions[0]["admitted"] is True
+    assert cycle.ok is True
+    store.close()

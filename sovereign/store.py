@@ -13,6 +13,7 @@ import os
 import sqlite3
 import threading
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 from .models import Capability, KnowledgeUnit, Provenance, utcnow
@@ -135,9 +136,31 @@ class FabricStore:
         scored = []
         for row in rows:
             unit = _row_to_unit(row)
-            scored.append((unit, cosine(qvec, unit.embedding)))
+            lexical = cosine(qvec, unit.embedding)
+            # Authority and recency break ties that pure lexical overlap cannot.
+            score = (
+                0.75 * lexical
+                + 0.15 * unit.provenance.confidence
+                + 0.10 * _recency_factor(unit.provenance.retrieved_at)
+            )
+            scored.append((unit, score))
         scored.sort(key=lambda pair: (-pair[1], pair[0].id))
         return scored[:k]
+
+    def graph(self, node: str, rel: str | None = None, depth: int = 1) -> dict[str, list]:
+        seen = {node}
+        edges: set[tuple[str, str, str]] = set()
+        frontier = {node}
+        for _ in range(max(1, depth)):
+            nxt: set[str] = set()
+            for current in frontier:
+                for src, relation, dst in self.neighbors(current, rel):
+                    edges.add((src, relation, dst))
+                    nxt.add(src)
+                    nxt.add(dst)
+            frontier = nxt - seen
+            seen |= nxt
+        return {"nodes": sorted(seen), "edges": [list(e) for e in sorted(edges)]}
 
     def count_knowledge(self) -> int:
         with self._lock:
@@ -307,6 +330,21 @@ class FabricStore:
                 "SELECT * FROM failure_memo ORDER BY last_ts DESC LIMIT ?", (limit,)
             ).fetchall()
         return [dict(r) for r in rows]
+
+
+def _recency_factor(timestamp: str) -> float:
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return 0.0
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    age_days = (datetime.now(timezone.utc) - parsed).days
+    if age_days <= 365:
+        return 1.0
+    if age_days <= 1095:
+        return 0.5
+    return 0.0
 
 
 def _prov_to_dict(prov: Provenance) -> dict[str, Any]:

@@ -105,3 +105,31 @@ def test_persistence_to_file(tmp_path):
 def test_utcnow_is_isoformat():
     stamp = utcnow()
     assert "T" in stamp
+
+
+def test_hybrid_search_prefers_recent_on_ties():
+    store = FabricStore()
+    old = KnowledgeUnit(
+        id="old", title="Same title", summary="same words here",
+        provenance=Provenance(source="s", url="u1", retrieved_at="2015-01-01T00:00:00+00:00"),
+    )
+    new = KnowledgeUnit(
+        id="new", title="Same title", summary="same words here",
+        provenance=Provenance(source="s", url="u2", retrieved_at=utcnow()),
+    )
+    store.upsert_knowledge(old)
+    store.upsert_knowledge(new)
+    hits = store.search_knowledge("same words here", k=2)
+    assert hits[0][0].id == "new"
+    store.close()
+
+
+def test_graph_traversal_depth_two():
+    store = FabricStore()
+    store.add_edge("a", "to", "b")
+    store.add_edge("b", "to", "c")
+    g = store.graph("a", depth=2)
+    assert {"a", "b", "c"} <= set(g["nodes"])
+    assert ["a", "to", "b"] in g["edges"]
+    assert ["b", "to", "c"] in g["edges"]
+    store.close()

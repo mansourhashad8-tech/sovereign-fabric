@@ -113,3 +113,32 @@ def test_cycles_endpoint_records_run():
     cycles = client.get("/cycles").json()["cycles"]
     assert cycles
     assert cycles[0]["kind"] == "cycle"
+
+
+def test_graph_endpoint_after_absorb():
+    client = _client()
+    client.post("/absorb", json={"query": "planning search", "sources": ["local"]})
+    graph = client.get("/knowledge/graph", params={"node": "planning"}).json()
+    assert "planning" in graph["nodes"]
+    assert graph["edges"]
+
+
+def test_evolve_auto_extend_endpoint():
+    client = _client()
+    body = client.post(
+        "/evolve",
+        json={
+            "request": "planning text",
+            "goal_type": "upper",
+            "initial": ["text"],
+            "text": "abc",
+            "sources": ["local"],
+            "auto_extend": True,
+            "budget_s": 5.0,
+        },
+    ).json()
+    assert body["plan_solved"] is True
+    assert body["plan"][0]["capability"] == "text.upper"
+    assert body["execution"]["value"] == "ABC"
+    assert body["extensions"]
+    assert body["ok"] is False  # local-only: guardianship still fails, honestly

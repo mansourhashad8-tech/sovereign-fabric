@@ -1,19 +1,23 @@
 """One evolution cycle, end to end.
 
 consult guardians -> absorb into the fabric -> plan over capabilities ->
-(optionally synthesize a missing capability and replan) -> execute -> validate
-holistically -> record the cycle. Nothing is reported as a success unless the
-plan ran and the validator passed it.
+(autonomously acquire a missing capability and re-plan, or synthesize a
+supplied one) -> execute -> validate holistically -> record the cycle.
+
+`evolve` can run a bounded set of repair attempts: if the first attempt does
+not pass every criterion, it retries with a broader query and keeps the best
+result. Every attempt is recorded; nothing is hidden.
 """
 
 from __future__ import annotations
 
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
 from .absorption import absorb, propose_capabilities
+from .blueprints import autonomous_extend
 from .capabilities import CapabilityError, CapabilityRegistry, bootstrap_native
 from .guardians import ConsultationResult, GuardianRegistry, default_registry
 from .models import Evidence, Plan, ValidationReport
@@ -42,6 +46,9 @@ class EvolutionCycle:
     validation: ValidationReport
     duration_s: float
     ok: bool
+    extensions: list[dict[str, Any]] = field(default_factory=list)
+    attempts: list[dict[str, Any]] = field(default_factory=list)
+    diagnosis: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -75,20 +82,97 @@ class EvolutionEngine:
         limit: int = 5,
         synthesize: dict[str, Any] | None = None,
         budget_s: float = 5.0,
+        auto_extend: bool = False,
+        max_attempts: int = 1,
+    ) -> EvolutionCycle:
+        queries = [request]
+        if max_attempts > 1:
+            queries.append(f"{request} recent survey")
+            queries.append(f"{request} {goal_type}")
+        queries = queries[: max(1, max_attempts)]
+
+        attempts: list[dict[str, Any]] = []
+        best: EvolutionCycle | None = None
+        for index, query in enumerate(queries):
+            cycle = self._attempt(
+                request,
+                query=query,
+                goal_type=goal_type,
+                initial=initial,
+                text=text,
+                sources=sources,
+                limit=limit,
+                synthesize=synthesize if index == 0 else None,
+                budget_s=budget_s,
+                auto_extend=auto_extend,
+            )
+            attempts.append(
+                {
+                    "query": query,
+                    "ok": cycle.ok,
+                    "plan_solved": cycle.plan.solved,
+                    "execution_ok": cycle.execution.get("ok", False),
+                    "passed": cycle.validation.passed,
+                    "scores": cycle.validation.scores,
+                    "failures": cycle.validation.failures,
+                }
+            )
+            if best is None or _rank(cycle) > _rank(best):
+                best = cycle
+            if cycle.ok:
+                break
+
+        assert best is not None
+        best.attempts = attempts
+        best.diagnosis = diagnose(best.validation)
+        self.store.record_event(
+            "evolution",
+            {
+                "request": request,
+                "ok": best.ok,
+                "attempts": len(attempts),
+                "diagnosis": best.diagnosis,
+            },
+        )
+        return best
+
+    def _attempt(
+        self,
+        request: str,
+        *,
+        query: str,
+        goal_type: str,
+        initial: tuple[str, ...],
+        text: str | None,
+        sources: list[str] | None,
+        limit: int,
+        synthesize: dict[str, Any] | None,
+        budget_s: float,
+        auto_extend: bool,
     ) -> EvolutionCycle:
         started = time.monotonic()
 
-        consultation = self.guardians.consult(request, limit=limit, sources=sources)
+        consultation = self.guardians.consult(query, limit=limit, sources=sources)
         absorbed = absorb(self.store, consultation.units)
         proposals = propose_capabilities(consultation.units)
 
-        plan = self.pathfinder.plan(initial, goal_type, operators_from(self.registry.list_active()))
         synthesis: SynthesisResult | None = None
+        extensions: list[dict[str, Any]] = []
+        plan = self.pathfinder.plan(
+            initial, goal_type, operators_from(self.registry.list_active())
+        )
         if not plan.solved and synthesize is not None:
             synthesis = self.synthesizer.synthesize(**synthesize)
             plan = self.pathfinder.plan(
                 initial, goal_type, operators_from(self.registry.list_active())
             )
+        if not plan.solved and auto_extend:
+            plan, added, ext_attempts = autonomous_extend(
+                self.registry, self.synthesizer, self.pathfinder, initial, goal_type
+            )
+            extensions = ext_attempts
+            if added:
+                self.store.record_event("self_extension", {"added": added})
 
         execution: dict[str, Any] = {"ok": False, "reason": "no plan"}
         if plan.solved:
@@ -112,11 +196,13 @@ class EvolutionEngine:
             validation=validation,
             duration_s=duration,
             ok=ok,
+            extensions=extensions,
         )
         self.store.record_event(
             "cycle",
             {
                 "request": request,
+                "query": query,
                 "goal_type": goal_type,
                 "ok": ok,
                 "steps": [step.capability for step in plan.steps],
@@ -183,7 +269,7 @@ class EvolutionEngine:
             evidence.append(
                 Evidence(
                     kind="synthesis",
-                    detail=f"{synthesis.reason}",
+                    detail=synthesis.reason,
                     ref="verification driver",
                 )
             )
@@ -191,14 +277,16 @@ class EvolutionEngine:
         external_ok = len([s for s in consultation.ok_sources if s != "local"])
         constraints_addressed = len(_DECLARED_CONSTRAINTS)
         if synthesis is not None and not synthesis.admitted:
-            constraints_addressed -= 1  # sandbox gate rejected the candidate
+            constraints_addressed -= 1
 
         context = {
             "sources_ok": len(consultation.ok_sources),
             "sources_total": len(consultation.sources),
             "external_sources_ok": external_ok,
             "units_total": len(consultation.units),
-            "fresh_units": sum(1 for u in consultation.units if _is_fresh(u.provenance.retrieved_at)),
+            "fresh_units": sum(
+                1 for u in consultation.units if _is_fresh(u.provenance.retrieved_at)
+            ),
             "deterministic": True,
             "duration_s": duration,
             "budget_s": budget_s,
@@ -206,6 +294,33 @@ class EvolutionEngine:
             "constraints_addressed": max(0, constraints_addressed),
         }
         return self.validator.validate(request, claims, evidence, context)
+
+
+def diagnose(report: ValidationReport) -> list[str]:
+    remedies: list[str] = []
+    scores = report.scores
+    if scores.get("guardianship", 1) == 0:
+        remedies.append("consult external sources (network or another guardian)")
+    if scores.get("comprehensiveness", 1) < 0.5:
+        remedies.append("consult more sources")
+    if scores.get("recency", 1) < 0.5:
+        remedies.append("retry with a broader or more recent query")
+    if scores.get("speed", 1) < 0.5:
+        remedies.append("raise the time budget or reduce the work")
+    if scores.get("constraint_transcendence", 1) < 0.5:
+        remedies.append("address the declared constraint that was skipped")
+    if report.overclaims:
+        remedies.append("remove absolute claims or supply evidence")
+    if not report.evidence:
+        remedies.append("attach evidence")
+    if not remedies:
+        remedies.append("no remedy needed: every criterion passed")
+    return remedies
+
+
+def _rank(cycle: EvolutionCycle) -> tuple[int, int, float]:
+    passed = sum(1 for value in cycle.validation.scores.values() if value >= 0.5)
+    return (1 if cycle.ok else 0, passed, sum(cycle.validation.scores.values()))
 
 
 def _is_fresh(timestamp: str, max_age_days: int = 730) -> bool:

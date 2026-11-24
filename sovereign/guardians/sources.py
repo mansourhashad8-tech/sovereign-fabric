@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import xml.etree.ElementTree as ET
 
 from ..models import KnowledgeUnit, Provenance, utcnow
@@ -195,6 +196,139 @@ class PyPIGuardian(HttpGuardian):
                 license=info.get("license") or "",
             )
         ]
+
+
+_TAG = re.compile(r"<[^>]+>")
+
+
+class SemanticScholarGuardian(HttpGuardian):
+    name = "semanticscholar"
+    base_confidence = 0.65
+    min_interval = 1.0
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            "https://api.semanticscholar.org/graph/v1/paper/search"
+            f"?query={quote(query)}&limit={limit}"
+            "&fields=title,abstract,url,year,venue,fieldsOfStudy"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for paper in data.get("data", []):
+            title = paper.get("title") or ""
+            if not title.strip():
+                continue
+            year = paper.get("year")
+            retrieved = f"{year}-01-01T00:00:00+00:00" if year else None
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=paper.get("abstract") or "",
+                    url=paper.get("url") or "",
+                    concepts=tuple(paper.get("fieldsOfStudy") or ()),
+                    tags=("paper", "semanticscholar"),
+                    retrieved_at=retrieved,
+                )
+            )
+        return units[:limit]
+
+
+class CrossrefGuardian(HttpGuardian):
+    name = "crossref"
+    base_confidence = 0.6
+    min_interval = 0.2
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            f"https://api.crossref.org/works?query={quote(query)}&rows={limit}"
+            "&select=title,URL,abstract,issued,container-title,license"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for item in data.get("message", {}).get("items", []):
+            titles = item.get("title") or [""]
+            title = titles[0] if titles else ""
+            if not title.strip():
+                continue
+            abstract = _TAG.sub(" ", item.get("abstract") or "")
+            parts = item.get("issued", {}).get("date-parts", [[None]])
+            year = parts[0][0] if parts and parts[0] else None
+            retrieved = f"{year}-01-01T00:00:00+00:00" if year else None
+            licenses = item.get("license") or [{}]
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=abstract,
+                    url=item.get("URL", ""),
+                    concepts=tuple(item.get("container-title") or ()),
+                    tags=("paper", "crossref"),
+                    license=licenses[0].get("URL", ""),
+                    retrieved_at=retrieved,
+                )
+            )
+        return units[:limit]
+
+
+class HuggingFaceGuardian(HttpGuardian):
+    name = "huggingface"
+    base_confidence = 0.5
+    min_interval = 0.2
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            f"https://huggingface.co/api/models?search={quote(query)}"
+            f"&limit={limit}&sort=downloads&direction=-1"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for model in data if isinstance(data, list) else []:
+            model_id = model.get("modelId") or model.get("id") or ""
+            if not model_id:
+                continue
+            downloads = int(model.get("downloads") or 0)
+            confidence = min(0.9, 0.45 + math.log10(downloads + 1) / 10)
+            units.append(
+                self._unit(
+                    title=model_id,
+                    summary=model.get("pipeline_tag") or "",
+                    url=f"https://huggingface.co/{model_id}",
+                    concepts=tuple(
+                        tag for tag in (model.get("tags") or [])[:5] if isinstance(tag, str)
+                    ),
+                    tags=("model", "huggingface"),
+                    confidence=confidence,
+                )
+            )
+        return units[:limit]
+
+
+class NpmGuardian(HttpGuardian):
+    name = "npm"
+    base_confidence = 0.5
+    min_interval = 0.2
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = f"https://registry.npmjs.org/-/v1/search?text={quote(query)}&size={limit}"
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for entry in data.get("objects", []):
+            package = entry.get("package", {})
+            name = package.get("name") or ""
+            if not name:
+                continue
+            score = float(entry.get("score", {}).get("final", 0) or 0)
+            links = package.get("links") or {}
+            units.append(
+                self._unit(
+                    title=name,
+                    summary=package.get("description") or "",
+                    url=links.get("npm") or f"https://www.npmjs.com/package/{name}",
+                    concepts=tuple(package.get("keywords") or ())[:6],
+                    tags=("package", "npm"),
+                    confidence=min(0.85, 0.4 + score * 0.5),
+                )
+            )
+        return units[:limit]
 
 
 _CORPUS: tuple[dict, ...] = (

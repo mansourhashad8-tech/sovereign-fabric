@@ -44,6 +44,8 @@ class EvolveRequest(BaseModel):
     limit: int = 5
     synthesize: dict[str, Any] | None = None
     budget_s: float = 5.0
+    auto_extend: bool = False
+    max_attempts: int = 1
 
 
 class ValidateRequest(BaseModel):
@@ -142,6 +144,10 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             ],
         }
 
+    @app.get("/knowledge/graph")
+    def knowledge_graph(node: str, rel: str | None = None, depth: int = 1) -> dict[str, Any]:
+        return store.graph(node, rel=rel, depth=depth)
+
     @app.get("/capabilities")
     def capabilities() -> dict[str, Any]:
         return {
@@ -199,6 +205,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             limit=body.limit,
             synthesize=body.synthesize,
             budget_s=body.budget_s,
+            auto_extend=body.auto_extend,
+            max_attempts=body.max_attempts,
         )
         return {
             "request": cycle.request,
@@ -227,6 +235,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "overclaims": cycle.validation.overclaims,
                 "notes": cycle.validation.notes,
             },
+            "extensions": cycle.extensions,
+            "attempts": cycle.attempts,
+            "diagnosis": cycle.diagnosis,
             "duration_s": round(cycle.duration_s, 4),
         }
 

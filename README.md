@@ -16,8 +16,9 @@ own powers is not sovereign; it is a liability.
 ## What this is
 
 - **An external-guardianship layer** over real public sources: arXiv, OpenAlex,
-  GitHub, Hacker News, PyPI, plus an offline engineering corpus. Each result
-  carries provenance (source, URL, retrieval time, licence, confidence).
+  Semantic Scholar, Crossref, GitHub, Hacker News, Hugging Face, PyPI, npm,
+  plus an offline engineering corpus. Each result carries provenance (source,
+  URL, retrieval time, licence, confidence).
 - **A unified fabric**: one SQLite store holds knowledge units, a concept
   graph, the capability registry, an append-only event log, a source cache and
   a failure memo. Knowledge retrieval and execution planning read the same
@@ -26,6 +27,13 @@ own powers is not sovereign; it is a liability.
   graph-linking happen in one pass, so a consulted fact is immediately
   searchable and traversable.
 - **A capability registry** with versioning, hot-swap, quarantine and rollback.
+- **Autonomous acquisition**: when planning is blocked, the system looks for a
+  blueprint whose inputs are already reachable and whose outputs add something
+  new, synthesises it through the gate, and re-plans. It can chain several such
+  acquisitions to build a multi-step bridge.
+- **A bounded repair loop**: a cycle that fails a criterion retries with a
+  broader query, keeps the best attempt, records every attempt, and returns an
+  actionable diagnosis.
 - **Self-extension through a gate**: the system generates a capability from a
   behavioural spec and admits it only if it reproduces every example inside a
   separate interpreter with a timeout and a sanitized environment. Failures are
@@ -66,14 +74,17 @@ sovereign/
   store.py         unified SQLite fabric (knowledge, graph, capabilities, events, cache, memo)
   guardians/
     base.py        Guardian protocol, parallel registry, cache, rate limiter
-    sources.py     arXiv, OpenAlex, GitHub, Hacker News, PyPI, local corpus
+    sources.py     arXiv, OpenAlex, Semantic Scholar, Crossref, GitHub, Hacker
+                   News, Hugging Face, PyPI, npm, local corpus
   absorption.py    consult -> index -> link, in one pass
   capabilities.py  versioned registry, hot-swap, rollback, sandboxed invocation
   native.py        built-in transform chain
+  blueprints.py    behavioural specs + autonomous acquisition when planning is blocked
   synthesis.py     spec -> generate -> verify in subprocess -> admit/quarantine
   pathfinder.py    A* over capability types, parallel multi-goal, failure memo
   validator.py     six-criterion scoring + overclaim refusal
-  evolution.py     one cycle: consult -> absorb -> plan -> synthesize? -> execute -> validate
+  evolution.py     one cycle: consult -> absorb -> plan -> acquire? -> execute
+                   -> validate; plus a bounded repair loop and diagnosis
   api.py           FastAPI service
   cli.py           command-line interface
 ```
@@ -97,6 +108,10 @@ curl -s -X POST localhost:12000/evolve -H 'Content-Type: application/json' \
 # self-extend: synthesize a missing capability, then replan and execute
 curl -s -X POST localhost:12000/evolve -H 'Content-Type: application/json' \
   -d '{"request":"retrieval augmented generation","goal_type":"upper","initial":["text"],"text":"hello world","synthesize":{"name":"text.upper","description":"uppercase","inputs":["text"],"outputs":["upper"],"spec":{"op":"upper"},"examples":[[{"value":"abc"},{"value":"ABC"}]]}}'
+
+# autonomous: supply no spec; the entity finds and verifies its own capability
+curl -s -X POST localhost:12000/evolve -H 'Content-Type: application/json' \
+  -d '{"request":"retrieval augmented generation","goal_type":"doubled","initial":["text"],"text":"ab","auto_extend":true,"max_attempts":2}'
 ```
 
 Offline (no network) it still works, but the validator correctly reports
@@ -122,13 +137,16 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 59 tests
+python -m pytest        # 76 tests
 ```
 
-Coverage includes: embedding determinism, store/graph/versioning, all guardian
-parsers against recorded fixtures, cache and graceful degradation, absorption
-and graph linking, built-in and sandboxed invocation, secret stripping, the
-synthesis gate (accept/reject/quarantine), A* correctness and memoisation
-(including the world-signature fix), validator scoring and negation-aware
-overclaim detection, the full evolution cycle (success, local-only refusal,
-overclaim refusal, synthesis path, failure memo), and the HTTP API.
+Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
+store/graph/versioning, all ten guardian parsers against recorded fixtures,
+cache and graceful degradation, absorption and graph linking, built-in and
+sandboxed invocation, secret stripping, the synthesis gate
+(accept/reject/quarantine), A* correctness and memoisation (including the
+world-signature fix), autonomous blueprint acquisition (single-step,
+multi-step bridge, unmet inputs, quarantine), validator scoring and
+negation-aware overclaim detection, the full evolution cycle (success,
+local-only refusal, overclaim refusal, synthesis path, autonomous extension,
+multi-attempt repair, failure memo), and the HTTP API.

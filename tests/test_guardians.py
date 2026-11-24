@@ -171,3 +171,64 @@ def test_registry_dedupes_by_url():
     registry = GuardianRegistry([Dup()])
     result = registry.consult("q")
     assert len(result.units) == 1
+
+
+S2_JSON = """{"data":[{"title":"Planner Paper","abstract":"We plan ahead.",
+ "url":"https://s2/1","year":2026,"venue":"ICML","fieldsOfStudy":["Computer Science"]}]}"""
+
+CROSSREF_JSON = """{"message":{"items":[{"title":["Crossref Paper"],"URL":"https://doi/1",
+ "abstract":"<jats:p>Abstract text.</jats:p>","issued":{"date-parts":[[2025,3,1]]},
+ "container-title":["Journal of Planning"],"license":[{"URL":"https://lic"}]}]}}"""
+
+HF_JSON = """[{"modelId":"org/model","downloads":1000,"pipeline_tag":"text-generation",
+ "tags":["nlp","transformer"]}]"""
+
+NPM_JSON = """{"objects":[{"package":{"name":"planner","description":"Plan things",
+ "links":{"npm":"https://npm/planner"},"keywords":["planning"]},"score":{"final":0.9}}]}"""
+
+
+def test_semantic_scholar_parsing():
+    from sovereign.guardians import SemanticScholarGuardian
+    g = SemanticScholarGuardian(fetch=_fixed(S2_JSON), min_interval=0)
+    units = g.search("planner", limit=5)
+    assert units[0].title == "Planner Paper"
+    assert units[0].provenance.source == "semanticscholar"
+    assert units[0].provenance.retrieved_at.startswith("2026")
+    assert "Computer Science" in units[0].concepts
+
+
+def test_crossref_parsing_strips_jats():
+    from sovereign.guardians import CrossrefGuardian
+    g = CrossrefGuardian(fetch=_fixed(CROSSREF_JSON), min_interval=0)
+    units = g.search("planner", limit=5)
+    assert units[0].title == "Crossref Paper"
+    assert units[0].summary == "Abstract text."
+    assert units[0].provenance.retrieved_at.startswith("2025")
+    assert units[0].provenance.license == "https://lic"
+
+
+def test_huggingface_parsing():
+    from sovereign.guardians import HuggingFaceGuardian
+    g = HuggingFaceGuardian(fetch=_fixed(HF_JSON), min_interval=0)
+    units = g.search("planner", limit=5)
+    assert units[0].title == "org/model"
+    assert units[0].summary == "text-generation"
+    assert units[0].provenance.url == "https://huggingface.co/org/model"
+    assert units[0].provenance.confidence > 0.5
+
+
+def test_npm_parsing():
+    from sovereign.guardians import NpmGuardian
+    g = NpmGuardian(fetch=_fixed(NPM_JSON), min_interval=0)
+    units = g.search("planner", limit=5)
+    assert units[0].title == "planner"
+    assert units[0].provenance.url == "https://npm/planner"
+    assert "planning" in units[0].concepts
+
+
+def test_default_registry_has_ten_sources():
+    from sovereign.guardians import default_registry
+    names = default_registry().names()
+    assert len(names) == 10
+    assert {"arxiv", "openalex", "semanticscholar", "crossref", "github",
+            "hackernews", "huggingface", "pypi", "npm", "local"} == set(names)

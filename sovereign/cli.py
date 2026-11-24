@@ -59,6 +59,8 @@ def main(argv: list[str] | None = None) -> int:
         help="synthesize a capability with this template op before replanning",
     )
     evolve.add_argument("--capability-name", default="text.upper")
+    evolve.add_argument("--auto-extend", action="store_true")
+    evolve.add_argument("--attempts", type=int, default=1)
 
     args = parser.parse_args(argv)
 
@@ -113,6 +115,8 @@ def main(argv: list[str] | None = None) -> int:
             text=args.text,
             synthesize=synthesize,
             budget_s=args.budget,
+            auto_extend=args.auto_extend,
+            max_attempts=args.attempts,
         )
         _print(
             {
@@ -121,6 +125,8 @@ def main(argv: list[str] | None = None) -> int:
                 "execution_ok": cycle.execution.get("ok"),
                 "result": cycle.execution.get("value"),
                 "sources": cycle.consultation.sources,
+                "extensions": cycle.extensions,
+                "diagnosis": cycle.diagnosis,
                 "validation": {
                     "passed": cycle.validation.passed,
                     "scores": {k: round(v, 2) for k, v in cycle.validation.scores.items()},
