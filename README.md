@@ -116,6 +116,25 @@ tries them before reporting failure.
 python -m sovereign.cli bench --n 2000 --workload cpu --mode processes
 ```
 
+## One command, one verdict
+
+`GET /report` runs the whole loop and judges it: consult, absorb, plan, execute,
+validate, benchmark, red-team, then pass its own prose through the overclaim
+detector. `GET /report.md` renders the same report, and
+`python -m sovereign.cli report --markdown` runs it locally.
+
+Live run on 2026-11-24:
+
+- 8/10 sources answered (arXiv and Semantic Scholar returned 429).
+- First consultation 0.51s; second 0.045s (store cache plus failure cooldown).
+- Plan: tokenize -> count -> summarize -> format; all six criteria passed.
+- Measured 2.47x on 4 workers for a CPU-heavy batch.
+- Red-team 20/20; the report's own prose contained no overclaim.
+
+A source that fails is put in a 30-second cooldown instead of being retried on
+every call, and a global deadline marks stragglers as `timeout` so one slow
+source cannot hold the whole consultation.
+
 ## What this is not
 
 | Claim | Reality |
@@ -217,6 +236,8 @@ curl -s localhost:12000/redteam
 | GET | `/cache/stats` | cache and prefetch statistics |
 | POST | `/cache/warm` | speculative embedding warm-up |
 | GET | `/remote/status` | whether a remote executor is configured |
+| GET | `/report` | full loop, measured, judged, self-audited |
+| GET | `/report.md` | the same report as Markdown |
 | GET | `/capabilities`, POST `/capabilities/rollback` | registry |
 | GET | `/cycles`, `/failures` | audit log and failure memo |
 
@@ -243,7 +264,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 111 tests
+python -m pytest        # 118 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -256,6 +277,7 @@ quarantine), external-expert acquisition (accept, reject, iterative repair,
 no-expert honesty), self-directed curriculum, red-team guardrail coverage,
 batch execution across serial/threads/processes, measured-speedup honesty,
 hot-cache hits and expiry, verified prefetch, remote-executor refusal,
+consultation deadline and failure cooldown, the judged end-to-end report,
 validator scoring and negation-aware overclaim detection, the full evolution
 cycle (success, local-only refusal, overclaim refusal, synthesis path,
 autonomous extension, multi-attempt repair, failure memo), and the HTTP API.

@@ -80,6 +80,14 @@ def main(argv: list[str] | None = None) -> int:
     bench.add_argument("--workload", default="tokenize", choices=["tokenize", "cpu"])
     bench.add_argument("--iterations", type=int, default=20000)
 
+    report = sub.add_parser("report", help="run the full loop and print a judged report")
+    report.add_argument("--query", default="retrieval augmented generation")
+    report.add_argument("--goal-type", default="markdown")
+    report.add_argument("--budget", type=float, default=15.0)
+    report.add_argument("--benchmark-n", type=int, default=500)
+    report.add_argument("--sources", nargs="*", default=None)
+    report.add_argument("--markdown", action="store_true")
+
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -181,6 +189,18 @@ def main(argv: list[str] | None = None) -> int:
                 iterations=args.iterations,
             )
         )
+    elif args.command == "report":
+        from .report import render_report, system_report
+
+        report = system_report(
+            engine,
+            query=args.query,
+            goal_type=args.goal_type,
+            sources=args.sources,
+            budget_s=args.budget,
+            benchmark_n=args.benchmark_n,
+        )
+        print(render_report(report) if args.markdown else json.dumps(report, indent=2, default=str))
     return 0
 
 

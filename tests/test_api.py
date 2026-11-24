@@ -211,3 +211,34 @@ def test_prefetch_makes_a_later_search_a_verified_hit():
         "/knowledge/search", params={"q": "markdown report planning", "k": 2}
     ).json()
     assert body["prefetch_hit"] is True
+
+
+def test_report_endpoint_is_honest_with_local_only():
+    body = _client().get(
+        "/report",
+        params={
+            "query": "planning",
+            "sources": "local",
+            "budget_s": 3,
+            "benchmark_n": 5,
+            "benchmark_mode": "serial",
+        },
+    ).json()
+    assert body["ok"] is False
+    assert body["guardians"]["ok_sources"] == 1
+    assert body["redteam"]["coverage"] == 1.0
+
+
+def test_report_markdown_endpoint_passes_its_own_audit():
+    text = _client().get(
+        "/report.md",
+        params={
+            "query": "planning",
+            "sources": "local",
+            "budget_s": 3,
+            "benchmark_n": 5,
+            "benchmark_mode": "serial",
+        },
+    ).text
+    assert text.startswith("# Sovereign system report")
+    assert "Verdict" in text

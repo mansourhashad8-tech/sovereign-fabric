@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from .absorption import absorb
@@ -12,6 +13,7 @@ from .evolution import EvolutionEngine
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
 from .models import Evidence, KnowledgeUnit
 from .redteam import audit
+from .report import render_report, system_report
 from .store import FabricStore
 
 
@@ -143,6 +145,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /cache/stats",
                 "POST /cache/warm",
                 "GET /remote/status",
+                "GET /report",
+                "GET /report.md",
                 "GET /cycles",
                 "GET /failures",
                 "POST /validate",
@@ -375,6 +379,49 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/remote/status")
     def remote_status() -> dict[str, Any]:
         return {"available": remote.available, "configured": bool(remote.endpoint)}
+
+    def _report(
+        query: str,
+        goal_type: str,
+        budget_s: float,
+        benchmark_n: int,
+        sources: str | None,
+        benchmark_mode: str,
+    ) -> dict[str, Any]:
+        selected = [s for s in sources.split(",") if s] if sources else None
+        return system_report(
+            engine,
+            query=query,
+            goal_type=goal_type,
+            sources=selected,
+            budget_s=budget_s,
+            benchmark_n=benchmark_n,
+            benchmark_mode=benchmark_mode,
+        )
+
+    @app.get("/report")
+    def report(
+        query: str = "retrieval augmented generation",
+        goal_type: str = "markdown",
+        budget_s: float = 15.0,
+        benchmark_n: int = 200,
+        sources: str | None = None,
+        benchmark_mode: str = "processes",
+    ) -> dict[str, Any]:
+        return _report(query, goal_type, budget_s, benchmark_n, sources, benchmark_mode)
+
+    @app.get("/report.md", response_class=PlainTextResponse)
+    def report_markdown(
+        query: str = "retrieval augmented generation",
+        goal_type: str = "markdown",
+        budget_s: float = 15.0,
+        benchmark_n: int = 200,
+        sources: str | None = None,
+        benchmark_mode: str = "processes",
+    ) -> str:
+        return render_report(
+            _report(query, goal_type, budget_s, benchmark_n, sources, benchmark_mode)
+        )
 
     @app.get("/cycles")
     def cycles(limit: int = 20) -> dict[str, Any]:

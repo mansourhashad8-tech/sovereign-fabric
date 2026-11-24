@@ -157,7 +157,9 @@ class EvolutionEngine:
     ) -> EvolutionCycle:
         started = time.monotonic()
 
-        consultation = self.guardians.consult(query, limit=limit, sources=sources)
+        consultation = self.guardians.consult(
+            query, limit=limit, sources=sources, deadline_s=budget_s
+        )
         absorbed = absorb(self.store, consultation.units)
         proposals = propose_capabilities(consultation.units)
 

@@ -13,7 +13,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from typing import Callable, Protocol
 
@@ -61,6 +61,7 @@ class ConsultationResult:
     query: str
     units: list[KnowledgeUnit]
     sources: dict[str, str] = field(default_factory=dict)
+    duration_s: float = 0.0
 
     @property
     def ok_sources(self) -> list[str]:
@@ -134,9 +135,17 @@ class HttpGuardian:
 
 
 class GuardianRegistry:
-    def __init__(self, guardians: list[Guardian], max_workers: int = 6) -> None:
+    def __init__(
+        self,
+        guardians: list[Guardian],
+        max_workers: int = 6,
+        failure_cooldown: float = 30.0,
+    ) -> None:
         self.guardians = {g.name: g for g in guardians}
         self.max_workers = max_workers
+        self.failure_cooldown = failure_cooldown
+        self._failed_at: dict[str, float] = {}
+        self._lock = threading.Lock()
 
     def register(self, guardian: Guardian) -> None:
         self.guardians[guardian.name] = guardian
@@ -150,28 +159,58 @@ class GuardianRegistry:
         limit: int = 5,
         sources: list[str] | None = None,
         parallel: bool = True,
+        deadline_s: float | None = None,
     ) -> ConsultationResult:
+        started = time.monotonic()
         selected = [s for s in (sources or self.names()) if s in self.guardians]
         status: dict[str, str] = {}
         collected: list[KnowledgeUnit] = []
+        ready: list[str] = []
+        now = time.monotonic()
+        for name in selected:
+            with self._lock:
+                failed_at = self._failed_at.get(name)
+            if failed_at is not None and now - failed_at < self.failure_cooldown:
+                status[name] = "cooldown"
+            else:
+                ready.append(name)
 
         def run(name: str) -> tuple[str, str, list[KnowledgeUnit]]:
             try:
-                return name, "ok", self.guardians[name].search(query, limit)
+                units = self.guardians[name].search(query, limit)
             except Exception as exc:  # a dead source must not kill the consultation
+                with self._lock:
+                    self._failed_at[name] = time.monotonic()
                 return name, f"error: {type(exc).__name__}: {exc}", []
+            with self._lock:
+                self._failed_at.pop(name, None)
+            return name, "ok", units
 
-        if parallel and len(selected) > 1:
-            with ThreadPoolExecutor(max_workers=min(self.max_workers, len(selected))) as pool:
-                results = list(pool.map(run, selected))
+        if parallel and len(ready) > 1:
+            pool = ThreadPoolExecutor(max_workers=len(ready))
+            futures = {pool.submit(run, name): name for name in ready}
+            try:
+                done, not_done = wait(futures, timeout=deadline_s)
+                for future in done:
+                    name, state, units = future.result()
+                    status[name] = state
+                    collected.extend(units)
+                for future in not_done:
+                    status[futures[future]] = "timeout"
+            finally:
+                pool.shutdown(wait=deadline_s is None, cancel_futures=True)
         else:
-            results = [run(name) for name in selected]
+            for name in ready:
+                name, state, units = run(name)
+                status[name] = state
+                collected.extend(units)
 
-        for name, state, units in results:
-            status[name] = state
-            collected.extend(units)
-
-        return ConsultationResult(query=query, units=_dedupe(collected), sources=status)
+        return ConsultationResult(
+            query=query,
+            units=_dedupe(collected),
+            sources=status,
+            duration_s=time.monotonic() - started,
+        )
 
 
 def _dedupe(units: list[KnowledgeUnit]) -> list[KnowledgeUnit]:

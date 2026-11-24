@@ -232,3 +232,52 @@ def test_default_registry_has_ten_sources():
     assert len(names) == 10
     assert {"arxiv", "openalex", "semanticscholar", "crossref", "github",
             "hackernews", "huggingface", "pypi", "npm", "local"} == set(names)
+
+
+def test_failed_source_is_skipped_during_cooldown():
+    class Boom:
+        name = "boom"
+
+        def search(self, query, limit=5):
+            raise RuntimeError("down")
+
+    registry = GuardianRegistry([Boom(), LocalGuardian()], failure_cooldown=60)
+    first = registry.consult("planning search", limit=2)
+    assert first.sources["boom"].startswith("error:")
+    second = registry.consult("planning search", limit=2)
+    assert second.sources["boom"] == "cooldown"
+    assert second.sources["local"] == "ok"
+
+
+def test_consult_deadline_marks_a_slow_source_timeout():
+    import time
+
+    from sovereign.models import KnowledgeUnit, Provenance
+
+    class Slow:
+        name = "slow"
+
+        def search(self, query, limit=5):
+            time.sleep(0.5)
+            return []
+
+    class Fast:
+        name = "fast"
+
+        def search(self, query, limit=5):
+            return [
+                KnowledgeUnit(
+                    id="f",
+                    title="t",
+                    summary="",
+                    provenance=Provenance(source="fast", url="u"),
+                )
+            ]
+
+    registry = GuardianRegistry([Slow(), Fast()])
+    started = time.perf_counter()
+    result = registry.consult("q", deadline_s=0.1)
+    elapsed = time.perf_counter() - started
+    assert result.sources["slow"] == "timeout"
+    assert result.sources["fast"] == "ok"
+    assert elapsed < 0.45
