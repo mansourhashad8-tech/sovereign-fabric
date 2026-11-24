@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-24T18:14:18.060779+00:00",
-  "commit": "f253929d20f7ad09b81f5b9d320bed27dcb62466",
+  "generated_at": "2026-11-24T18:17:25.413613+00:00",
+  "commit": "e0fac3b784e568481274725e1988834c23334b2b",
   "root": "sovereign",
-  "duration_s": 0.334,
+  "duration_s": 0.335,
   "license_file": "LICENSE",
   "source_files": [
     {
       "path": "sovereign/__init__.py",
-      "sha256": "fcf8e135f2321f628610cc348d2c657a14cf5e469a3d7696410604aefaaed138",
-      "lines": 66
+      "sha256": "02b1617b8a6f927ff913433b955e84f9d807d3d70fa6eef118fb7e19ae68545a",
+      "lines": 72
     },
     {
       "path": "sovereign/__main__.py",
@@ -92,13 +92,18 @@
     },
     {
       "path": "sovereign/extras.py",
-      "sha256": "838ce5fdc38e46a211c57cb75a68198137240a4a42c0125d82191da45897b2cc",
-      "lines": 746
+      "sha256": "1bc656b21b8672a0cced7e0cbb2ee8205b0e594b78d806e4a87a4f014ee98282",
+      "lines": 768
     },
     {
       "path": "sovereign/feedback.py",
       "sha256": "e699164bb0ded01f6a9d825b3f490020091c3ba870532b4633e2fe467313bb24",
       "lines": 72
+    },
+    {
+      "path": "sovereign/graphalg.py",
+      "sha256": "ef092f9b60df3e8b3d1a9ea835e2b17ac5c5b59e764232e1a6c71a9cbcdb789e",
+      "lines": 142
     },
     {
       "path": "sovereign/guard.py",
@@ -134,6 +139,11 @@
       "path": "sovereign/mastery.py",
       "sha256": "6c68b9efc3cf000458af98a0627f0c78700d90918b844a86f6913f995e03589b",
       "lines": 75
+    },
+    {
+      "path": "sovereign/media.py",
+      "sha256": "50b87141e30053bbf0c3addc9e5e81b1a719b8e536605e0d92802c10cf8da632",
+      "lines": 132
     },
     {
       "path": "sovereign/metrics.py",
@@ -202,8 +212,8 @@
     },
     {
       "path": "sovereign/selfmodel.py",
-      "sha256": "0182a350a3773a368e338300c0ddbb2f6972915a559b0b5d6661260c76475c44",
-      "lines": 168
+      "sha256": "25578686510aa790987cdd04a9cf673d8f4f128feeedb8b56237b2ba0ef7a851",
+      "lines": 169
     },
     {
       "path": "sovereign/stats.py",
