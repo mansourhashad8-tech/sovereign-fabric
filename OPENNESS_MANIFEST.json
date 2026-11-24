@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-24T17:50:14.830091+00:00",
-  "commit": "e112858347af4b942935cf80921ccb1c12f4baa9",
+  "generated_at": "2026-11-24T18:05:47.849226+00:00",
+  "commit": "b2d780c9fbe9babdcf34fa29c8ae7be93e68fe47",
   "root": "sovereign",
-  "duration_s": 0.335,
+  "duration_s": 0.32,
   "license_file": "LICENSE",
   "source_files": [
     {
       "path": "sovereign/__init__.py",
-      "sha256": "bcd8104c3d8c7a7fd4a586b3642c30226d689dca35a3f7c42cf8d8cb5a7dea01",
-      "lines": 57
+      "sha256": "52a1d61ae62b16b5011e1b80aaf6093843a30f72553efaee73a4e7df3f0ce7ee",
+      "lines": 63
     },
     {
       "path": "sovereign/__main__.py",
@@ -27,13 +27,13 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "f91055c26f7d2f6742196822bbe5de2d5035774d76db27876e5ef237895e8094",
-      "lines": 835
+      "sha256": "493f3ae9abf679add5dce986b23f274c9bc5c4679b60f8068c3676eceb0b687e",
+      "lines": 869
     },
     {
       "path": "sovereign/arabic.py",
-      "sha256": "8a117901a4c3d0b3572c9ba2005f754d3e71e244340e09fb2625d0fe595044b0",
-      "lines": 40
+      "sha256": "d0f95aaff0b026860afa61a96aa02c3ab1d9da3f5766cce8037c2f323eddc398",
+      "lines": 62
     },
     {
       "path": "sovereign/blueprints.py",
@@ -47,8 +47,8 @@
     },
     {
       "path": "sovereign/capabilities.py",
-      "sha256": "1e0e440bcce0dd741ba87a93d803132939a73c3a37ba54b6fb199c090e3e6c1d",
-      "lines": 178
+      "sha256": "73d2c5651c1006ecebbfc0f5b30da13867d6e5cf047d3a97d9408f375403efb0",
+      "lines": 179
     },
     {
       "path": "sovereign/cli.py",
@@ -67,8 +67,8 @@
     },
     {
       "path": "sovereign/diagnostics.py",
-      "sha256": "2d84c6d16a40640988af7d6d1aca0eca27172f9ea811665665e959518b7280a2",
-      "lines": 89
+      "sha256": "6365a6a0cc566ddb32b0e33e8cd4b03283626b57e4dcfdfa13941c0a260d4ac1",
+      "lines": 88
     },
     {
       "path": "sovereign/evidence.py",
@@ -92,8 +92,13 @@
     },
     {
       "path": "sovereign/extras.py",
-      "sha256": "78f9daedb6d1092db19fc1633a95b38d6656c9a2fc1002520638da2e80bdf399",
-      "lines": 736
+      "sha256": "4f37ede342799a7cb8b8189bc2d3ed668019d42019b727990737f51fb9fd6c94",
+      "lines": 724
+    },
+    {
+      "path": "sovereign/feedback.py",
+      "sha256": "e699164bb0ded01f6a9d825b3f490020091c3ba870532b4633e2fe467313bb24",
+      "lines": 72
     },
     {
       "path": "sovereign/guard.py",
@@ -132,7 +137,7 @@
     },
     {
       "path": "sovereign/metrics.py",
-      "sha256": "1ce43468beab08a0155aa7e17be865c82058693c1973f3b07326f7319b204f91",
+      "sha256": "088a57fca51ed656bc77820627075801840f9fc763138c2b7f1b1015e642e8cf",
       "lines": 85
     },
     {
@@ -176,6 +181,11 @@
       "lines": 52
     },
     {
+      "path": "sovereign/repair.py",
+      "sha256": "a5489fbafb382a0c031fca2317d63d7ecaaaeb3df0c0887606eb2d239cb25c06",
+      "lines": 103
+    },
+    {
       "path": "sovereign/report.py",
       "sha256": "2348029a70a70febb9f8216cec7c1703eb043900011c8dd39601ee1837809213",
       "lines": 162
@@ -187,8 +197,8 @@
     },
     {
       "path": "sovereign/selfmodel.py",
-      "sha256": "ec51d32edf51b1bfc835e8205d4661d7cadc45eb15bbb52706a168bcca8f6788",
-      "lines": 165
+      "sha256": "0c9e1da67dbea2b60cdf8b75054b00c2ee08f90828bdce573f74b3c5174c0f16",
+      "lines": 167
     },
     {
       "path": "sovereign/stats.py",
@@ -197,7 +207,7 @@
     },
     {
       "path": "sovereign/store.py",
-      "sha256": "86f2edbe5983efb9200a75d42f664b003507527ffe75b4bad414ca4f7493123f",
+      "sha256": "c65fcc64f77fe5b24c3d8c7c4dd884baf74a87ca6fbbd6a11578a5f79105145c",
       "lines": 403
     },
     {
@@ -212,8 +222,8 @@
     },
     {
       "path": "sovereign/vectors.py",
-      "sha256": "e840d6509d8b011f84b09f77a708cefbd5385de6c2b816fbc31e90c93642246b",
-      "lines": 41
+      "sha256": "78f5e12d2e5cdf57349ced2d1a17ba8e4f5438249937dc1b51e24909a2ae98a3",
+      "lines": 58
     }
   ],
   "findings": [],
