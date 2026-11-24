@@ -9,11 +9,13 @@ from pydantic import BaseModel, Field
 
 from .absorption import absorb
 from .curriculum import Curriculum
+from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
 from .evidence import verify_claim
 from .evolution import EvolutionEngine
 from .intent import parse_intent
 from .loop import EvolutionLoop
+from .mastery import Mastery
 from .optimizer import Optimizer
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
 from .models import Evidence, KnowledgeUnit
@@ -74,6 +76,14 @@ class AcquireRequest(BaseModel):
     outputs: list[str] = Field(default_factory=lambda: ["out"])
     examples: list[Any]
     rounds: int = 2
+
+
+class BriefRequest(BaseModel):
+    query: str = Field(min_length=1)
+    limit: int = Field(default=5, ge=1, le=20)
+    sources: list[str] | None = None
+    lang: str = "en"
+    deadline_s: float = Field(default=12.0, gt=0, le=120)
 
 
 class ClaimRequest(BaseModel):
@@ -172,6 +182,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /remote/status",
                 "GET /self",
                 "GET /properties",
+                "POST /brief",
+                "GET /mastery",
+                "POST /mastery/practice",
                 "POST /verify_claim",
                 "POST /ask",
                 "POST /optimize",
@@ -355,6 +368,26 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "capability": result.capability.name if result.capability else None,
             "attempts": result.attempts,
         }
+
+    @app.post("/brief")
+    def brief(body: BriefRequest) -> dict[str, Any]:
+        return build_brief(
+            engine,
+            body.query,
+            limit=body.limit,
+            sources=body.sources,
+            lang=body.lang,
+            deadline_s=body.deadline_s,
+        )
+
+    @app.get("/mastery")
+    def mastery() -> dict[str, Any]:
+        model = Mastery(engine)
+        return {"table": model.table(), "weakest": model.weakest()}
+
+    @app.post("/mastery/practice")
+    def mastery_practice(iterations: int = 1, budget_s: float = 8.0) -> dict[str, Any]:
+        return Mastery(engine).practice(iterations=iterations, budget_s=budget_s)
 
     @app.post("/verify_claim")
     def verify(body: ClaimRequest) -> dict[str, Any]:

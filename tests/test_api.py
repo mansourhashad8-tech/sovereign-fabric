@@ -292,3 +292,19 @@ def test_verify_claim_endpoint_refuses_an_unsupported_claim():
 
 def test_dashboard_shows_the_self_model():
     assert "Self-model" in _client().get("/dashboard").text
+
+
+def test_brief_endpoint_works_with_a_local_source():
+    body = _client().post(
+        "/brief",
+        json={"query": "planning and search", "limit": 2, "sources": ["local"]},
+    ).json()
+    assert body["ok"] is True
+    assert body["units"]
+    assert "## What the sources say" in body["markdown"]
+
+
+def test_mastery_endpoint_returns_a_weakest_goal():
+    body = _client().get("/mastery").json()
+    assert "table" in body
+    assert body["weakest"]

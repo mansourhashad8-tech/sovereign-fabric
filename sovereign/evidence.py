@@ -22,8 +22,11 @@ _STOP = {
 }
 
 
-def _terms(text: str) -> set[str]:
+def content_terms(text: str) -> set[str]:
     return {word for word in _WORD.findall(text.lower()) if word not in _STOP}
+
+
+_terms = content_terms
 
 
 def verify_claim(store, claim: str, k: int = 5, threshold: float = 0.5) -> dict[str, Any]:

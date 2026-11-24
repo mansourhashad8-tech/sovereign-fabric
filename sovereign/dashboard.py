@@ -143,6 +143,28 @@ DASHBOARD_HTML = """<!doctype html>
   </div>
 
   <div class="panel" style="margin-top:14px">
+    <h3>Research brief</h3>
+    <div class="caps" style="margin-bottom:10px">
+      <input id="briefQuery" value="retrieval augmented generation"
+             style="flex:1;min-width:260px;background:#0b1220;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit">
+      <select id="briefLang"
+              style="background:#0b1220;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit">
+        <option value="en">English</option>
+        <option value="ar">العربية</option>
+      </select>
+      <button onclick="runBrief()">Build brief</button>
+    </div>
+    <pre id="briefOut" class="limits" style="white-space:pre-wrap;max-height:360px;overflow:auto"></pre>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
+    <h3>Mastery <span id="masteryStamp" style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400"></span></h3>
+    <div class="caps" id="masteryTable"></div>
+    <div style="margin-top:10px"><button onclick="practiceNow()">Practice weakest</button></div>
+    <div class="limits" id="masteryOut"></div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
     <h3>Capabilities</h3>
     <div class="caps" id="caps"></div>
   </div>
@@ -281,6 +303,58 @@ async function loadLoop() { try { renderLoop(await get('/loop/status')); } catch
 
 setInterval(loadLoop, 5000);
 loadLoop();
+
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  });
+  if (!response.ok) throw new Error(response.status + ' ' + await response.text());
+  return response.json();
+}
+
+async function runBrief() {
+  const query = $('briefQuery').value.trim();
+  if (!query) return;
+  $('briefOut').textContent = 'Consulting sources...';
+  try {
+    const brief = await postJson('/brief', { query, limit: 5, lang: $('briefLang').value });
+    $('briefOut').textContent = brief.markdown;
+  } catch (e) {
+    $('briefOut').textContent = String(e);
+  }
+}
+
+async function loadMastery() {
+  try {
+    const model = await get('/mastery');
+    const rows = Object.entries(model.table);
+    $('masteryTable').innerHTML = rows.length
+      ? rows.map(([goal, row]) =>
+          `<span class="cap ${row.rate >= 1 ? 'admitted' : (row.rate > 0 ? '' : 'quarantined')}">${esc(goal)} · ${row.passed}/${row.attempts}</span>`
+        ).join('')
+      : '<span class="limits">no cycles recorded yet</span>';
+    $('masteryStamp').textContent = '· weakest: ' + model.weakest;
+  } catch (e) {}
+}
+
+async function practiceNow() {
+  $('masteryOut').textContent = 'Practising the weakest goal...';
+  try {
+    const result = await postJson('/mastery/practice?iterations=1&budget_s=8', {});
+    const run = result.runs[0] || {};
+    $('masteryOut').textContent =
+      `practised ${run.goal} · ok=${run.ok} · ${(run.plan || []).join(' → ')}`;
+    await loadMastery();
+    await loadSelf();
+  } catch (e) {
+    $('masteryOut').textContent = String(e);
+  }
+}
+
+loadMastery();
+setInterval(loadMastery, 20000);
 
 async function loadSelf() {
   try {

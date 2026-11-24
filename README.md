@@ -58,6 +58,10 @@ own powers is not sovereign; it is a liability.
   result says `entails: false`, because vocabulary overlap is not entailment.
 - **Randomized property checks**: invariants over the native chain catch a
   broken implementation that example tests might miss.
+- **A cited brief for any topic**: consult, absorb, rank, and quote with
+  provenance in English or Arabic headings. It is extractive, not synthetic.
+- **Mastery practice**: the weakest goal is chosen from recorded cycles and
+  practised with auto-extension, so a missing capability can be acquired.
 - **Self-extension through a gate**: the system generates a capability from a
   behavioural spec and admits it only if it reproduces every example inside a
   separate interpreter with a timeout and a sanitized environment. Failures are
@@ -201,6 +205,37 @@ A deliberately broken implementation is caught; the tests prove it.
 The optimizer reports a 95% bootstrap confidence interval for every speedup.
 A point estimate without an interval is a weaker claim than it looks.
 
+## A cited brief for any topic
+
+`POST /brief` accepts any query, consults the 13 sources, absorbs the result,
+ranks the units, and returns an extractive Markdown brief with provenance. It
+reports topic coverage, recurring concepts, failed sources, and the newest
+retrieval date. Arabic headings are available; the quoted content stays in its
+original language.
+
+Live run: 5 units, coverage 1.0, 0.225s on a warm cache, newest unit
+2026-11-24. Twelve of thirteen sources answered; Semantic Scholar returned 429
+and is listed as a gap.
+
+```bash
+curl -s -X POST localhost:12000/brief \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"retrieval augmented generation","limit":5,"lang":"ar"}'
+```
+
+## Mastery: practise the weakest goal
+
+`GET /mastery` builds a pass-rate table from recorded cycles.
+`POST /mastery/practice` picks the lowest rate and runs a real cycle with
+auto-extension, so an unreachable goal can be acquired if a verified blueprint
+exists. The before/after tables are returned; improvement is not guaranteed.
+
+Live: `markdown` reached 3/3 after one practice run.
+
+```bash
+python -m sovereign mastery --practice 1
+```
+
 ## Self-directed practice
 
 `POST /curriculum` picks concepts the system has absorbed, forms small tasks,
@@ -283,6 +318,8 @@ source cannot hold the whole consultation.
 | "Semantic entailment" | Claim checking is lexical support over absorbed text; it returns `entails: false` on purpose. |
 | "A 2026 research snapshot" | No frozen snapshot exists. It consults live sources and reports retrieval dates; it cannot know what is not published. |
 | "Self-awareness" | The self-model is computed from the registry, event log, and planner. It is evidence, not subjective experience. |
+| "A synthesis engine" | The brief quotes and cites absorbed units. It does not infer, translate, or verify truth. |
+| "A guaranteed learner" | Mastery practice records before/after rates; it can fail to improve, and the table says so. |
 | "Sub-millisecond execution for any task" | Only cache hits are microseconds; real work takes real time. |
 | "Quantum parallel processing" | A classical process pool on 4 cores; measured 2.36x on CPU-heavy work and slower on trivial work. |
 | "Borrowed supercomputers" | A remote hook exists; no endpoint is configured, so it refuses. |
@@ -325,6 +362,8 @@ sovereign/
   selfmodel.py     evidence-derived self-assessment, can/cannot, limits
   evidence.py      lexical claim support (not entailment)
   properties.py    randomized invariants over native capabilities
+  brief.py         cited, extractive brief for any topic (EN/AR headings)
+  mastery.py       pass-rate table + weakest-goal practice
   stats.py         bootstrap confidence intervals
   api.py           FastAPI service
   cli.py           command-line interface
@@ -353,6 +392,14 @@ curl -s -X POST localhost:12000/evolve -H 'Content-Type: application/json' \
 # autonomous: supply no spec; the entity finds and verifies its own capability
 curl -s -X POST localhost:12000/evolve -H 'Content-Type: application/json' \
   -d '{"request":"retrieval augmented generation","goal_type":"doubled","initial":["text"],"text":"ab","auto_extend":true,"max_attempts":2}'
+
+# cited brief for any topic (English or Arabic headings)
+curl -s -X POST localhost:12000/brief -H 'Content-Type: application/json' \
+  -d '{"query":"retrieval augmented generation","limit":5,"lang":"ar"}'
+
+# mastery table and weakest-goal practice
+curl -s localhost:12000/mastery
+curl -s -X POST 'localhost:12000/mastery/practice?iterations=1&budget_s=10'
 
 # self-directed practice over its own absorbed knowledge
 curl -s -X POST localhost:12000/curriculum -H 'Content-Type: application/json' \
@@ -389,6 +436,9 @@ curl -s localhost:12000/redteam
 | GET | `/self` | evidence-derived self-assessment, can/cannot, limits |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
+| POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
+| GET | `/mastery` | pass-rate table and weakest goal |
+| POST | `/mastery/practice` | practise the weakest goal with auto-extension |
 | POST | `/ask` | route an Arabic or English request into a cycle |
 | POST | `/optimize` | benchmark equivalent implementations, keep the faster |
 | GET/POST | `/loop/status`, `/loop/start`, `/loop/stop`, `/loop/tick` | bounded continuous loop |
@@ -418,7 +468,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 151 tests
+python -m pytest        # 157 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -434,7 +484,8 @@ equivalence, kept win, no-gain honesty, event log, confidence intervals), the
 bounded continuous loop (tick, start/stop, optimization inside a tick), Arabic
 and English intent routing, the evidence-derived self-model, lexical claim
 support and refusal, randomized property checks (including a deliberately
-broken implementation), self-directed curriculum, red-team guardrail
+broken implementation), cited briefs in English and Arabic, mastery
+tracking/practice, self-directed curriculum, red-team guardrail
 coverage, batch execution across serial/threads/processes, measured-speedup
 honesty, hot-cache hits and expiry, verified prefetch, remote-executor refusal,
 consultation deadline and failure cooldown, the judged end-to-end report and the

@@ -99,6 +99,17 @@ def main(argv: list[str] | None = None) -> int:
     loop.add_argument("--ticks", type=int, default=0)
     loop.add_argument("--sources", nargs="*", default=None)
 
+    brief = sub.add_parser("brief", help="cited extractive brief for any topic")
+    brief.add_argument("query")
+    brief.add_argument("--limit", type=int, default=5)
+    brief.add_argument("--lang", choices=["en", "ar"], default="en")
+    brief.add_argument("--sources", nargs="*", default=None)
+
+    mastery = sub.add_parser("mastery", help="mastery table and weakest-goal practice")
+    mastery.add_argument("--practice", type=int, default=0)
+    mastery.add_argument("--budget-s", type=float, default=8.0)
+    mastery.add_argument("--sources", nargs="*", default=None)
+
     self_parser = sub.add_parser("self", help="precise self-assessment from evidence")
     properties = sub.add_parser("properties", help="run property checks over native capabilities")
     properties.add_argument("--cases", type=int, default=30)
@@ -211,6 +222,32 @@ def main(argv: list[str] | None = None) -> int:
                 iterations=args.iterations,
             )
         )
+    elif args.command == "brief":
+        from .brief import build_brief
+
+        _print(
+            build_brief(
+                engine,
+                args.query,
+                limit=args.limit,
+                sources=args.sources,
+                lang=args.lang,
+            )
+        )
+    elif args.command == "mastery":
+        from .mastery import Mastery
+
+        model = Mastery(engine)
+        if args.practice:
+            _print(
+                model.practice(
+                    iterations=args.practice,
+                    budget_s=args.budget_s,
+                    sources=args.sources,
+                )
+            )
+        else:
+            _print({"table": model.table(), "weakest": model.weakest()})
     elif args.command == "self":
         from .selfmodel import SelfModel
 
