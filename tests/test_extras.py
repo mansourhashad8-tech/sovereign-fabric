@@ -214,3 +214,33 @@ def test_unique_lines_and_excerpt():
     assert engine.registry.invoke(
         "text.excerpt", {"value": "abcdefghij", "limit": 4}
     )["value"] == "abcd…"
+
+
+def test_ask_routes_math_csv_date_and_url():
+    client = TestClient(create_app())
+
+    def ask(request):
+        return client.post(
+            "/ask",
+            json={"request": request, "sources": ["local"], "budget_s": 1},
+        ).json()
+
+    math = ask("احسب: 2*(3+4)")
+    assert math["intent"]["goal_type"] == "number"
+    assert math["plan"] == ["math.eval"]
+    assert math["result"] == 14
+
+    csv = ask("csv: name,score\nb,2\na,1")
+    assert csv["intent"]["goal_type"] == "table"
+    assert csv["plan"] == ["csv.parse"]
+    assert csv["result"]["columns"] == ["name", "score"]
+
+    dates = ask("تاريخ: 2026-01-01 2026-01-11")
+    assert dates["intent"]["goal_type"] == "days"
+    assert dates["plan"] == ["date.diff"]
+    assert dates["result"]["days"] == 10
+
+    url = ask("رابط: https://example.com/a?b=1&b=2")
+    assert url["intent"]["goal_type"] == "url_parts"
+    assert url["plan"] == ["url.parse"]
+    assert url["result"]["netloc"] == "example.com"
