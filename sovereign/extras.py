@@ -11,17 +11,19 @@ from __future__ import annotations
 import ast
 import base64
 import csv
+import difflib
 import hashlib
 import io
 import json
 import math
 import operator
 import re
+import statistics
 import string
 import unicodedata
 import urllib.parse
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from itertools import islice
 from typing import Any
 
@@ -411,6 +413,182 @@ def template_render(payload: dict[str, Any]) -> dict[str, Any]:
     return {"value": string.Template(template).safe_substitute({str(k): str(v) for k, v in values.items()})}
 
 
+def text_arabic_normalize(payload: dict[str, Any]) -> dict[str, Any]:
+    return {"value": normalize_arabic(_text(payload))}
+
+
+_ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+
+
+def text_arabic_digits(payload: dict[str, Any]) -> dict[str, Any]:
+    return {"value": _text(payload).translate(_ARABIC_DIGITS)}
+
+
+def text_arabic_stem(payload: dict[str, Any]) -> dict[str, Any]:
+    stems: list[str] = []
+    for token in _words(_text(payload)):
+        word = token
+        for prefix in ("وال", "بال", "كال", "فال", "لل", "ال"):
+            if word.startswith(prefix) and len(word) - len(prefix) >= 3:
+                word = word[len(prefix) :]
+                break
+        for suffix in ("ها", "ان", "ات", "ون", "ين", "ة", "ه", "ي"):
+            if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+                word = word[: -len(suffix)]
+                break
+        stems.append(word)
+    return {"value": stems}
+
+
+def text_stopwords(payload: dict[str, Any]) -> dict[str, Any]:
+    kept = [word for word in _words(_text(payload)) if word.lower() not in _STOP]
+    return {"value": " ".join(kept)}
+
+
+def text_unique_lines(payload: dict[str, Any]) -> dict[str, Any]:
+    seen: set[str] = set()
+    lines: list[str] = []
+    for line in _text(payload).splitlines():
+        item = line.strip()
+        if item and item not in seen:
+            seen.add(item)
+            lines.append(item)
+    return {"value": "\n".join(lines)}
+
+
+def text_excerpt(payload: dict[str, Any]) -> dict[str, Any]:
+    limit = _bounded(payload, "limit", 200, 2000)
+    text = _text(payload)
+    return {"value": text[:limit] + ("…" if len(text) > limit else "")}
+
+
+def json_get(payload: dict[str, Any]) -> dict[str, Any]:
+    path = str(payload.get("path", "")).strip()
+    if not path or len(path) > 200:
+        raise ValueError("path must be 1..200 characters")
+    value = json.loads(_text(payload))
+    for part in path.split("."):
+        if isinstance(value, list):
+            value = value[int(part)]
+        elif isinstance(value, dict):
+            value = value[part]
+        else:
+            raise KeyError(part)
+    return {"value": value}
+
+
+def json_minify(payload: dict[str, Any]) -> dict[str, Any]:
+    value = json.loads(_text(payload))
+    return {"value": json.dumps(value, separators=(",", ":"), ensure_ascii=False)}
+
+
+def csv_to_json(payload: dict[str, Any]) -> dict[str, Any]:
+    table = csv_parse(payload)["value"]
+    columns = table["columns"]
+    records = [dict(zip(columns, row)) for row in table["rows"]]
+    return {"value": json.dumps(records, ensure_ascii=False)}
+
+
+def table_aggregate(payload: dict[str, Any]) -> dict[str, Any]:
+    columns, rows = _table(payload)
+    if not columns:
+        raise ValueError("table has no columns")
+    column = payload.get("column", 0)
+    index = columns.index(column) if isinstance(column, str) and column in columns else int(column)
+    op = str(payload.get("op", "sum")).lower()
+    if op not in {"sum", "avg", "min", "max", "count"}:
+        raise ValueError("op must be sum, avg, min, max, or count")
+    raw = [row[index] for row in rows]
+    if op == "count":
+        return {"value": {"column": columns[index], "op": op, "result": len(raw)}}
+    numbers: list[float] = []
+    for item in raw:
+        try:
+            numbers.append(float(item))
+        except (TypeError, ValueError):
+            raise ValueError(f"non-numeric value in column {columns[index]!r}")
+    if not numbers:
+        raise ValueError("no numeric values")
+    if op == "sum":
+        result = sum(numbers)
+    elif op == "avg":
+        result = sum(numbers) / len(numbers)
+    elif op == "min":
+        result = min(numbers)
+    else:
+        result = max(numbers)
+    return {"value": {"column": columns[index], "op": op, "result": result}}
+
+
+def _numbers(payload: dict[str, Any]) -> list[float]:
+    value = payload.get("value")
+    items = value if isinstance(value, list) else re.split(r"[,\s]+", str(value or ""))
+    items = [item for item in items if str(item).strip()]
+    if not items:
+        raise ValueError("no numbers supplied")
+    if len(items) > 10_000:
+        raise ValueError("too many numbers")
+    try:
+        return [float(item) for item in items]
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"non-numeric input: {exc}") from exc
+
+
+def math_stats(payload: dict[str, Any]) -> dict[str, Any]:
+    numbers = _numbers(payload)
+    return {
+        "value": {
+            "count": len(numbers),
+            "sum": sum(numbers),
+            "mean": statistics.fmean(numbers),
+            "median": statistics.median(numbers),
+            "stdev": statistics.pstdev(numbers),
+            "min": min(numbers),
+            "max": max(numbers),
+        }
+    }
+
+
+def date_add(payload: dict[str, Any]) -> dict[str, Any]:
+    text = _text(payload).strip()
+    days = int(payload.get("days", 0))
+    if abs(days) > 36500:
+        raise ValueError("days must be within +/-36500")
+    return {"value": (date.fromisoformat(text) + timedelta(days=days)).isoformat()}
+
+
+def date_weekday(payload: dict[str, Any]) -> dict[str, Any]:
+    text = _text(payload).strip()
+    parsed = date.fromisoformat(text)
+    return {"value": {"date": text, "weekday": parsed.strftime("%A"), "iso": parsed.isoweekday()}}
+
+
+def url_query(payload: dict[str, Any]) -> dict[str, Any]:
+    parsed = urllib.parse.urlsplit(_text(payload))
+    return {"value": {key: values for key, values in urllib.parse.parse_qs(parsed.query, keep_blank_values=True).items()}}
+
+
+def text_diff(payload: dict[str, Any]) -> dict[str, Any]:
+    left, right = _pair(payload)
+    a = left.splitlines()[:200]
+    b = right.splitlines()[:200]
+    diff = list(difflib.unified_diff(a, b, fromfile="left", tofile="right", lineterm=""))
+    return {"value": "\n".join(diff[:400])}
+
+
+def uuid_validate(payload: dict[str, Any]) -> dict[str, Any]:
+    text = _text(payload).strip()
+    try:
+        parsed = uuid.UUID(text)
+    except (ValueError, AttributeError):
+        return {"value": {"valid": False, "version": None}}
+    return {"value": {"valid": True, "version": parsed.version, "canonical": str(parsed)}}
+
+
+def regex_escape(payload: dict[str, Any]) -> dict[str, Any]:
+    return {"value": re.escape(_text(payload))}
+
+
 EXTRAS: dict[str, tuple[Any, str, tuple[str, ...], tuple[str, ...]]] = {
     "text.clean": (text_clean, "Normalize unicode and collapse whitespace", ("dirty_text",), ("text",)),
     "text.sentences": (text_sentences, "Split text into sentences (Arabic-aware)", ("text",), ("sentences",)),
@@ -437,14 +615,31 @@ EXTRAS: dict[str, tuple[Any, str, tuple[str, ...], tuple[str, ...]]] = {
     "hash.sha256": (hash_sha256, "SHA-256 digest of text", ("text",), ("digest",)),
     "uuid.generate": (uuid_generate, "Generate random UUIDs", ("uuid_request",), ("uuids",)),
     "template.render": (template_render, "Render $placeholders without expression evaluation", ("template",), ("rendered_text",)),
+    "text.arabic_normalize": (text_arabic_normalize, "Normalize Arabic letters, diacritics, and tatweel", ("text",), ("text",)),
+    "text.arabic_digits": (text_arabic_digits, "Convert Arabic-Indic digits to ASCII digits", ("text",), ("text",)),
+    "text.arabic_stem": (text_arabic_stem, "Light rule-based Arabic stemmer (not morphology)", ("text",), ("stems",)),
+    "text.stopwords": (text_stopwords, "Remove Arabic and English stopwords", ("text",), ("text",)),
+    "text.unique_lines": (text_unique_lines, "Deduplicate non-empty lines, order preserved", ("text",), ("text",)),
+    "text.excerpt": (text_excerpt, "Bounded text excerpt with an ellipsis", ("text",), ("text_excerpt",)),
+    "json.get": (json_get, "Read a dotted path from a JSON document", ("json_text",), ("json_value",)),
+    "json.minify": (json_minify, "Minify JSON without changing its value", ("json_text",), ("json_minified",)),
+    "csv.to_json": (csv_to_json, "Convert a bounded CSV table to JSON records", ("csv_text",), ("json_text",)),
+    "table.aggregate": (table_aggregate, "Sum, average, min, max, or count a table column", ("table",), ("aggregate",)),
+    "math.stats": (math_stats, "Count, sum, mean, median, stdev, min, max", ("math_values",), ("math_stats",)),
+    "date.add": (date_add, "Add days to an ISO date", ("date",), ("date",)),
+    "date.weekday": (date_weekday, "Weekday name and ISO number for a date", ("date",), ("weekday",)),
+    "url.query": (url_query, "Parse URL query parameters", ("url",), ("url_query",)),
+    "text.diff": (text_diff, "Unified diff of two bounded texts", ("text_pair",), ("diff",)),
+    "uuid.validate": (uuid_validate, "Validate a UUID and report its version", ("uuid",), ("uuid_status",)),
+    "regex.escape": (regex_escape, "Escape text for literal use in a regex", ("text",), ("regex_escaped",)),
 }
 
 
 def bootstrap_extras(registry: CapabilityRegistry) -> None:
-    """Admit the extra built-ins exactly once."""
-    if registry.get("json.validate") is not None:
-        return
+    """Admit each extra capability once; new names can be added later."""
     for name, (func, description, inputs, outputs) in EXTRAS.items():
+        if registry.get(name) is not None:
+            continue
         registry.register(
             Capability(
                 name=name,

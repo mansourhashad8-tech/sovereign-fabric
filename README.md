@@ -183,18 +183,19 @@ from sovereign.arabic import tokenize_text
 tokenize_text("الذكاءُ الاصطناعي، والتعلّم!")  # ['الذكاء', 'الاصطناعي', 'والتعلم']
 ```
 
-## 30 executable capabilities
+## 47 executable capabilities
 
-The registry carries 30 admitted capabilities. Five are the original chain
+The registry carries 47 admitted capabilities. Five are the original chain
 (tokenize -> count -> summarize -> report, plus extractive summary). The other
-25 are in `sovereign/extras.py` and cover:
+42 are in `sovereign/extras.py` and cover:
 
 | Area | Capabilities |
 | --- | --- |
-| Text | `text.clean`, `text.sentences`, `sentences.stats`, `text.stats`, `text.langdetect`, `text.keywords`, `text.ngrams`, `text.entities`, `text.redact`, `tokens.top`, `text.similarity` |
-| Data | `json.validate`, `json.pretty`, `csv.parse`, `table.sort`, `table.filter`, `markdown.table` |
-| Exact work | `math.eval` (whitelisted AST arithmetic), `date.diff`, `url.parse` |
-| Encoding and identity | `base64.encode`, `base64.decode`, `hash.sha256`, `uuid.generate`, `template.render` |
+| Text | `text.clean`, `text.sentences`, `sentences.stats`, `text.stats`, `text.langdetect`, `text.keywords`, `text.ngrams`, `text.entities`, `text.redact`, `tokens.top`, `text.similarity`, `text.stopwords`, `text.unique_lines`, `text.excerpt`, `text.diff` |
+| Arabic | `text.arabic_normalize`, `text.arabic_digits`, `text.arabic_stem` |
+| Data | `json.validate`, `json.pretty`, `json.get`, `json.minify`, `csv.parse`, `csv.to_json`, `table.sort`, `table.filter`, `table.aggregate`, `markdown.table` |
+| Exact work | `math.eval` (whitelisted AST arithmetic), `math.stats`, `date.diff`, `date.add`, `date.weekday`, `url.parse`, `url.query` |
+| Encoding and identity | `base64.encode`, `base64.decode`, `hash.sha256`, `uuid.generate`, `uuid.validate`, `template.render`, `regex.escape` |
 
 Call any of them directly:
 
@@ -212,9 +213,10 @@ curl -s -X POST localhost:12000/ask   -H 'Content-Type: application/json'   -d '
 
 What these are, precisely: `text.langdetect` detects the dominant script, not
 the language; `text.entities` is regex extraction, not NER; `text.similarity`
-is Jaccard over tokens, not embeddings; `math.eval` is arithmetic, not algebra;
-`csv.parse` is bounded to 1000 rows and 50 columns. Every bound is a conscious
-limit, not a hidden one.
+is Jaccard over tokens, not embeddings; `text.arabic_stem` is a light prefix /
+suffix stripper, not morphology; `math.eval` is arithmetic, not algebra;
+`math.stats` reports population standard deviation; `csv.parse` is bounded to
+1000 rows and 50 columns. Every bound is a conscious limit, not a hidden one.
 
 ## A self-model that plans its own claims
 
@@ -226,7 +228,7 @@ verdict and passes that verdict through the overclaim detector.
 Live shape:
 
 ```text
-Precise self-assessment: 30 active capabilities (30 builtin, 0 synthesized),
+Precise self-assessment: 47 active capabilities (47 builtin, 0 synthesized),
 N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
 passed every criterion. Property checks: 40/40 passed. 7 limits are declared.
 I am not conscious, not quantum, and not a million-fold accelerator.
@@ -435,7 +437,7 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | "Self-awareness" | The self-model is computed from the registry, event log, and planner. It is evidence, not subjective experience. |
 | "A synthesis engine" | The brief quotes and cites absorbed units. It does not infer, translate, or verify truth. |
 | "A guaranteed learner" | Mastery practice records before/after rates; it can fail to improve, and the table says so. |
-| "A general-purpose agent" | 30 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, and the similarity is Jaccard. Breadth is not general reasoning. |
+| "A general-purpose agent" | 47 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
 | "Zero vulnerabilities" | The audit reports 0 findings from these rules and 0 OSV hits; that is not a proof of absence. |
 | "A security certification" | The scanner is public and conservative; it is not an external audit or a DAST suite. |
 | "A closed model" | No closed-source library is required. The optional expert endpoint is a service, disabled by default. |
@@ -472,7 +474,7 @@ sovereign/
   absorption.py    consult -> index -> link, in one pass
   capabilities.py  versioned registry, hot-swap, rollback, sandboxed invocation
   native.py        built-in transform chain
-  extras.py        25 bounded data/text/math/date/url/encoding capabilities
+  extras.py        42 bounded data/text/math/date/url/encoding capabilities
   blueprints.py    behavioural specs + autonomous acquisition when planning is blocked
   synthesis.py     spec -> generate -> verify in subprocess -> admit/quarantine
   pathfinder.py    A* over capability types, parallel multi-goal, failure memo
