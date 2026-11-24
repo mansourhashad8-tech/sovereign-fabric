@@ -11,6 +11,10 @@ holistic validator that refuses overclaims.
 This README is deliberately blunt about limits. A system that exaggerates its
 own powers is not sovereign; it is a liability.
 
+**Public repository**: [mansourhashad8-tech/sovereign-fabric](https://github.com/mansourhashad8-tech/sovereign-fabric).
+The CI workflow runs the tests and the strict openness/vulnerability audit on
+every push.
+
 ## Start here
 
 - **Dashboard**: `/dashboard` — one self-contained page (no build, no CDN) that
