@@ -99,6 +99,19 @@ def main(argv: list[str] | None = None) -> int:
     loop.add_argument("--ticks", type=int, default=0)
     loop.add_argument("--sources", nargs="*", default=None)
 
+    audit = sub.add_parser("audit", help="static scan + licence + OSV audit")
+    audit.add_argument("--root", default="sovereign")
+    audit.add_argument("--offline", action="store_true")
+    audit.add_argument("--strict", action="store_true")
+
+    disclosure = sub.add_parser("disclosure", help="write a public disclosure report")
+    disclosure.add_argument("--path", default="SECURITY_DISCLOSURE.md")
+    disclosure.add_argument("--offline", action="store_true")
+
+    openness = sub.add_parser("openness", help="write a source/licence manifest")
+    openness.add_argument("--path", default="OPENNESS_MANIFEST.json")
+    openness.add_argument("--offline", action="store_true")
+
     brief = sub.add_parser("brief", help="cited extractive brief for any topic")
     brief.add_argument("query")
     brief.add_argument("--limit", type=int, default=5)
@@ -222,6 +235,30 @@ def main(argv: list[str] | None = None) -> int:
                 iterations=args.iterations,
             )
         )
+    elif args.command == "audit":
+        from .security import audit
+
+        result = audit(args.root, online=not args.offline)
+        _print(result)
+        if args.strict and not result["passed"]:
+            raise SystemExit(1)
+    elif args.command == "disclosure":
+        from .security import write_disclosure
+
+        result = write_disclosure(args.path, online=not args.offline)
+        _print(
+            {
+                "path": args.path,
+                "openness_passed": result["openness_passed"],
+                "security_passed": result["security_passed"],
+                "finding_counts": result["finding_counts"],
+            }
+        )
+    elif args.command == "openness":
+        from .security import write_manifest
+
+        result = write_manifest(args.path, online=not args.offline)
+        _print({"path": args.path, "source_files": len(result["source_files"]), "dependencies": len(result["dependencies"])})
     elif args.command == "brief":
         from .brief import build_brief
 

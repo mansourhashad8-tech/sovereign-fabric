@@ -308,3 +308,15 @@ def test_mastery_endpoint_returns_a_weakest_goal():
     body = _client().get("/mastery").json()
     assert "table" in body
     assert body["weakest"]
+
+
+def test_security_audit_endpoint_is_open_and_clean():
+    body = _client().get("/security/audit?online=false").json()
+    assert body["license_file"] == "LICENSE"
+    assert body["openness_passed"] is True
+    assert body["finding_counts"]["high"] == 0
+
+
+def test_security_report_endpoint_is_markdown():
+    text = _client().get("/security/report?online=false").text
+    assert "# Security & Openness Disclosure" in text

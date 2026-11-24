@@ -7,6 +7,7 @@ name = "sovereign-fabric"
 version = "0.1.0"
 description = "Honest self-evolving cognitive-executive fabric with external guardianship"
 requires-python = ">=3.11"
+license = {text = "MIT"}
 dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.27",

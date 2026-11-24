@@ -11,7 +11,10 @@ pretending to have borrowed a supercomputer.
 
 from __future__ import annotations
 
+import json
 import os
+import subprocess
+import sys
 import threading
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
@@ -30,14 +33,46 @@ class RemoteUnavailable(ExecutionError):
     pass
 
 
+_SENSITIVE = ("TOKEN", "SECRET", "PASSWORD", "CREDENTIAL", "APIKEY", "API_KEY")
+_SOURCE_WRAPPER = """{source}
+import json, sys
+payload = json.loads(sys.stdin.read())
+print(json.dumps({{"ok": True, "result": run(payload)}}, default=str))
+"""
+
+
+def _safe_env() -> dict[str, str]:
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if not any(marker in key.upper() for marker in _SENSITIVE)
+    }
+
+
+def _run_source(source: str, payload: Any, timeout: float = 5.0) -> Any:
+    proc = subprocess.run(
+        [sys.executable, "-I", "-c", _SOURCE_WRAPPER.format(source=source)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        env=_safe_env(),
+    )
+    if proc.returncode != 0:
+        raise ExecutionError(f"source exited {proc.returncode}: {proc.stderr.strip()[:300]}")
+    try:
+        data = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise ExecutionError("source produced invalid output") from exc
+    return data["result"]
+
+
 def _worker(task: tuple[str, str, Any]) -> Any:
     kind, ref, payload = task
     if kind == "native":
         return NATIVE[ref](payload)
     if kind == "source":
-        namespace: dict[str, Any] = {}
-        exec(ref, namespace)
-        return namespace["run"](payload)
+        return _run_source(ref, payload)
     raise ExecutionError(f"unknown execution kind {kind!r}")
 
 

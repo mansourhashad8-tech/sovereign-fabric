@@ -171,5 +171,5 @@ class PathFinder:
             f"{op.name}@{op.version}:{','.join(sorted(op.inputs))}>{','.join(sorted(op.outputs))}"
             for op in operators
         )
-        signature = hashlib.sha1(world.encode("utf-8")).hexdigest()[:12]
+        signature = hashlib.sha256(world.encode("utf-8")).hexdigest()[:12]
         return f"plan:{goal}|{','.join(sorted(start))}|{signature}"

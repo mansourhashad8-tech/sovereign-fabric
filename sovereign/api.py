@@ -22,6 +22,7 @@ from .models import Evidence, KnowledgeUnit
 from .redteam import audit
 from .properties import check_capabilities
 from .report import render_report, system_report
+from .security import audit as security_audit, disclosure_markdown
 from .selfmodel import SelfModel
 from .store import FabricStore
 
@@ -182,6 +183,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /remote/status",
                 "GET /self",
                 "GET /properties",
+                "GET /security/audit",
+                "GET /security/report",
                 "POST /brief",
                 "GET /mastery",
                 "POST /mastery/practice",
@@ -368,6 +371,17 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "capability": result.capability.name if result.capability else None,
             "attempts": result.attempts,
         }
+
+    @app.get("/security/audit")
+    def security_audit_endpoint(online: bool = True) -> dict[str, Any]:
+        return security_audit(online=online)
+
+    @app.get("/security/report")
+    def security_report_endpoint(online: bool = True) -> PlainTextResponse:
+        return PlainTextResponse(
+            disclosure_markdown(security_audit(online=online)),
+            media_type="text/markdown",
+        )
 
     @app.post("/brief")
     def brief(body: BriefRequest) -> dict[str, Any]:

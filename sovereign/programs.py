@@ -12,6 +12,8 @@ the claim precise: "reproduces these examples", not "is correct".
 
 from __future__ import annotations
 
+import ast
+import operator
 from typing import Any, Iterator
 
 _SAFE = {
@@ -121,8 +123,100 @@ def _source(expression: str) -> str:
     )
 
 
+_BINOPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+}
+_CMPOPS = {
+    ast.Eq: operator.eq,
+    ast.NotEq: operator.ne,
+    ast.Lt: operator.lt,
+    ast.LtE: operator.le,
+    ast.Gt: operator.gt,
+    ast.GtE: operator.ge,
+    ast.In: lambda left, right: left in right,
+    ast.NotIn: lambda left, right: left not in right,
+}
+_METHODS = {"lower", "upper", "title", "capitalize", "strip", "split", "replace", "join", "swapcase"}
+
+
+def _eval(node: ast.AST, env: dict[str, Any]) -> Any:
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Name):
+        if node.id in env:
+            return env[node.id]
+        raise ValueError(f"name not allowed: {node.id}")
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        values = [_eval(item, env) for item in node.elts]
+        return {ast.List: list, ast.Tuple: tuple, ast.Set: set}[type(node)](values)
+    if isinstance(node, ast.UnaryOp):
+        operand = _eval(node.operand, env)
+        if isinstance(node.op, ast.USub):
+            return -operand
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        if isinstance(node.op, ast.Not):
+            return not operand
+        raise ValueError("unary operator not allowed")
+    if isinstance(node, ast.BinOp):
+        operation = _BINOPS.get(type(node.op))
+        if operation is None:
+            raise ValueError("binary operator not allowed")
+        return operation(_eval(node.left, env), _eval(node.right, env))
+    if isinstance(node, ast.BoolOp):
+        values = [_eval(item, env) for item in node.values]
+        return all(values) if isinstance(node.op, ast.And) else any(values)
+    if isinstance(node, ast.Compare):
+        left = _eval(node.left, env)
+        for operation, comparator in zip(node.ops, node.comparators):
+            right = _eval(comparator, env)
+            if not _CMPOPS[type(operation)](left, right):
+                return False
+            left = right
+        return True
+    if isinstance(node, ast.IfExp):
+        return _eval(node.body if _eval(node.test, env) else node.orelse, env)
+    if isinstance(node, ast.Subscript):
+        value = _eval(node.value, env)
+        if isinstance(node.slice, ast.Slice):
+            lower = _eval(node.slice.lower, env) if node.slice.lower else None
+            upper = _eval(node.slice.upper, env) if node.slice.upper else None
+            step = _eval(node.slice.step, env) if node.slice.step else None
+            return value[lower:upper:step]
+        return value[_eval(node.slice, env)]
+    if isinstance(node, ast.Call):
+        arguments = [_eval(argument, env) for argument in node.args]
+        keywords = {keyword.arg: _eval(keyword.value, env) for keyword in node.keywords if keyword.arg}
+        if isinstance(node.func, ast.Name) and node.func.id in _SAFE:
+            return _SAFE[node.func.id](*arguments, **keywords)
+        if isinstance(node.func, ast.Attribute) and node.func.attr in _METHODS:
+            target = _eval(node.func.value, env)
+            return getattr(target, node.func.attr)(*arguments, **keywords)
+        raise ValueError("call not allowed")
+    if isinstance(node, (ast.ListComp, ast.GeneratorExp)):
+        if len(node.generators) != 1:
+            raise ValueError("only one comprehension clause is allowed")
+        generator = node.generators[0]
+        if not isinstance(generator.target, ast.Name):
+            raise ValueError("comprehension target must be a name")
+        output = []
+        for item in _eval(generator.iter, env):
+            local = dict(env)
+            local[generator.target.id] = item
+            if all(_eval(condition, local) for condition in generator.ifs):
+                output.append(_eval(node.elt, local))
+        return iter(output) if isinstance(node, ast.GeneratorExp) else output
+    raise ValueError(f"expression node not allowed: {type(node).__name__}")
+
+
 def _evaluate(expression: str, value: Any) -> Any:
-    return eval(expression, {"__builtins__": {}, **_SAFE, "value": value})
+    tree = ast.parse(expression, mode="eval")
+    return _eval(tree.body, {"value": value})
 
 
 class ProgramSearch:

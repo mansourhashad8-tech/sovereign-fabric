@@ -30,7 +30,7 @@ class ArxivGuardian(HttpGuardian):
 
     def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
         url = (
-            "http://export.arxiv.org/api/query"
+            "https://export.arxiv.org/api/query"
             f"?search_query=all:{quote(query)}&start=0&max_results={limit}"
         )
         root = ET.fromstring(self._get(url))

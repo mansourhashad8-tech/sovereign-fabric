@@ -30,7 +30,7 @@ def default_fetch(url: str, timeout: float = 6.0) -> str:
 
 
 def stable_id(*parts: str) -> str:
-    digest = hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()
+    digest = hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()
     return digest[:16]
 
 
