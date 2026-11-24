@@ -100,6 +100,7 @@ class SelfModel:
             "Feedback is a smoothed vote that reorders search; it does not train a model.",
             "Self-repair restores known built-ins with broken import entries; it cannot invent missing code.",
             "External expert answers are unverified text and are never executed.",
+            "Media capabilities read headers only; there is no OCR, vision, or audio transcription.",
         ]
         if not self.engine.experts:
             limits.insert(

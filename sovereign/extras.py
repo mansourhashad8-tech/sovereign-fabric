@@ -32,6 +32,8 @@ from typing import Any
 
 from .arabic import normalize_arabic, split_sentences, stem_text, tokenize_text
 from .capabilities import CapabilityRegistry
+from .graphalg import pagerank as _pagerank, shortest_path as _shortest_path
+from .media import image_info as _image_info, wav_info as _wav_info
 from .models import Capability, Provenance
 from .quantum import grover_search, simulate_circuit
 
@@ -541,6 +543,22 @@ def math_stats(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def graph_shortest_path(payload: dict[str, Any]) -> dict[str, Any]:
+    return _shortest_path(payload)
+
+
+def graph_pagerank(payload: dict[str, Any]) -> dict[str, Any]:
+    return _pagerank(payload)
+
+
+def image_metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    return {"value": _image_info(payload)}
+
+
+def audio_wav_metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    return {"value": _wav_info(payload)}
+
+
 def _quantum_body(payload: dict[str, Any]) -> dict[str, Any]:
     value = payload.get("value")
     return value if isinstance(value, dict) else payload
@@ -724,6 +742,10 @@ EXTRAS: dict[str, tuple[Any, str, tuple[str, ...], tuple[str, ...]]] = {
     "markdown.headings": (markdown_headings, "Extract ATX Markdown headings", ("text",), ("headings",)),
     "quantum.simulate": (quantum_simulate, "Exact statevector simulation for <=8 qubits (not hardware)", ("quantum_circuit",), ("probabilities",)),
     "quantum.grover": (quantum_grover, "Exact Grover iteration for <=6 qubits (no speedup claim)", ("quantum_search",), ("probabilities",)),
+    "image.info": (image_metadata, "Read PNG/GIF/BMP/JPEG dimensions from base64 (header only, no OCR)", ("image_base64",), ("image_info",)),
+    "audio.wav_info": (audio_wav_metadata, "Read WAV channels, rate, bits, and duration from base64 (header only)", ("wav_base64",), ("wav_info",)),
+    "graph.shortest_path": (graph_shortest_path, "Dijkstra shortest path over a bounded edge list", ("graph_path",), ("path",)),
+    "graph.pagerank": (graph_pagerank, "Bounded PageRank over an explicit edge list", ("graph_rank",), ("rank",)),
 }
 
 

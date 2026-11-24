@@ -191,11 +191,11 @@ from sovereign.arabic import tokenize_text
 tokenize_text("الذكاءُ الاصطناعي، والتعلّم!")  # ['الذكاء', 'الاصطناعي', 'والتعلم']
 ```
 
-## 54 executable capabilities
+## 58 executable capabilities
 
-The registry carries 54 admitted capabilities. Five are the original chain
+The registry carries 58 admitted capabilities. Five are the original chain
 (tokenize -> count -> summarize -> report, plus extractive summary). The other
-49 are in `sovereign/extras.py` and cover:
+53 are in `sovereign/extras.py` and cover:
 
 | Area | Capabilities |
 | --- | --- |
@@ -206,6 +206,8 @@ The registry carries 54 admitted capabilities. Five are the original chain
 | Exact work | `math.eval` (whitelisted AST arithmetic), `math.stats`, `date.diff`, `date.add`, `date.weekday`, `url.parse`, `url.query` |
 | Encoding and identity | `base64.encode`, `base64.decode`, `hash.sha256`, `uuid.generate`, `uuid.validate`, `template.render`, `regex.escape` |
 | Quantum simulation | `quantum.simulate` (exact statevector, <=8 qubits), `quantum.grover` (<=6 qubits) |
+| Media metadata | `image.info` (PNG/GIF/BMP/JPEG dimensions), `audio.wav_info` (channels, rate, bits, duration) |
+| Graphs | `graph.shortest_path` (Dijkstra), `graph.pagerank` |
 
 Call any of them directly:
 
@@ -226,6 +228,10 @@ curl -s -X POST localhost:12000/invoke \
 The simulator is exact and bounded: 8 qubits (256 amplitudes), 64 gates, and
 no hardware or speedup claim. Grover is bounded to 6 qubits and 10 iterations;
 it demonstrates amplitude amplification, not a practical advantage.
+
+`image.info` and `audio.wav_info` read headers from base64, bounded at 2 MB.
+They report dimensions, channels, sample rate, bits, and duration; they do not
+decode pixels, run OCR, or transcribe audio.
 
 Compose them without writing a new module:
 
@@ -314,9 +320,9 @@ verdict and passes that verdict through the overclaim detector.
 Live shape:
 
 ```text
-Precise self-assessment: 54 active capabilities (54 builtin, 0 synthesized),
+Precise self-assessment: 58 active capabilities (58 builtin, 0 synthesized),
 N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
-passed every criterion. Property checks: 40/40 passed. 11 limits are declared.
+passed every criterion. Property checks: 40/40 passed. 12 limits are declared.
 I am not conscious, not quantum, and not a million-fold accelerator.
 ```
 
@@ -523,7 +529,7 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | "Self-awareness" | The self-model is computed from the registry, event log, and planner. It is evidence, not subjective experience. |
 | "A synthesis engine" | The brief quotes and cites absorbed units. It does not infer, translate, or verify truth. |
 | "A guaranteed learner" | Mastery practice records before/after rates; it can fail to improve, and the table says so. |
-| "A general-purpose agent" | 54 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
+| "A general-purpose agent" | 58 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
 | "Zero vulnerabilities" | The audit reports 0 findings from these rules and 0 OSV hits; that is not a proof of absence. |
 | "A security certification" | The scanner is public and conservative; it is not an external audit or a DAST suite. |
 | "A closed model" | No closed-source library is required. The optional expert endpoint is a service, disabled by default. |
@@ -560,8 +566,10 @@ sovereign/
   absorption.py    consult -> index -> link, in one pass
   capabilities.py  versioned registry, hot-swap, rollback, sandboxed invocation
   native.py        built-in transform chain
-  extras.py        49 bounded data/text/math/date/url/encoding/quantum capabilities
+  extras.py        53 bounded data/text/math/date/url/encoding/quantum/media/graph capabilities
   quantum.py       exact statevector simulator, <=8 qubits
+  media.py         bounded image/WAV header readers
+  graphalg.py      bounded Dijkstra and PageRank
   pipeline.py      bounded composition of any capabilities
   feedback.py      smoothed outcome votes that reorder capability search
   repair.py        quarantine broken built-ins and restore known names

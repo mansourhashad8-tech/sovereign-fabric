@@ -40,7 +40,8 @@ flowchart LR
    bounded capability pipelines, blueprint acquisition, enumerative program
    synthesis, and a subprocess gate.
 5. **Execution and validation**: serial/thread/process execution with measured
-   speedup; six scores and an overclaim detector.
+   speedup, bounded media header readers, and graph path/rank; six scores and an
+   overclaim detector.
 6. **Introspection**: a self-model that plans its own claims, lexical claim
    support, randomized property checks, confidence intervals, outcome feedback,
    and a self-repair path for broken built-in entries.

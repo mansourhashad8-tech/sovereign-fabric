@@ -22,7 +22,9 @@ from .models import (
     Provenance,
     ValidationReport,
 )
+from .graphalg import pagerank, shortest_path
 from .pathfinder import Operator, PathFinder, operators_from
+from .media import image_info, wav_info
 from .pipeline import run_pipeline
 from .quantum import grover_search, simulate_circuit
 from .repair import repair
@@ -41,6 +43,10 @@ __all__ = [
     "diagnose",
     "Metrics",
     "run_pipeline",
+    "image_info",
+    "wav_info",
+    "pagerank",
+    "shortest_path",
     "grover_search",
     "simulate_circuit",
     "feedback_scores",

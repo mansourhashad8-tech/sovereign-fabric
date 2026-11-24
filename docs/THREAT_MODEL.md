@@ -24,7 +24,7 @@
 
 | Threat | Example | Mitigation | Residual risk |
 | --- | --- | --- | --- |
-| Spoofing | Forged API client | Optional `X-API-Key`, constant-time compare | GET endpoints are public by design |
+| Spoofing | Forged API client, malformed media header | Optional `X-API-Key`, constant-time compare, strict media signature check, 2 MB cap, header-only parser | GET endpoints are public by design; a valid media header is not proof of content |
 | Tampering | Modified dependency or source, spam feedback | Hash manifest, licence audit, CI, review, rate-limited feedback, event log | Feedback is unauthenticated by default and can reorder search; no signed commits enforced |
 | Repudiation | Unlogged mutation | Append-only event log for cycles and optimizations | API access logs are not persisted |
 | Information disclosure | Question sent to an external model | Only the user question and optional system text are sent; no environment, store, or knowledge units; response marked unverified | The provider's retention policy is outside this system |
