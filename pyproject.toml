@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sovereign-fabric"
+version = "0.1.0"
+description = "Honest self-evolving cognitive-executive fabric with external guardianship"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "httpx>=0.26",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+sovereign = "sovereign.cli:main"
+
+[tool.setuptools]
+packages = ["sovereign", "sovereign.guardians"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
