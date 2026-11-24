@@ -147,3 +147,16 @@ def test_list_knowledge_returns_recent_units():
     units = store.list_knowledge(limit=2)
     assert len(units) == 2
     store.close()
+
+
+def test_tokenize_arabic_and_retrieve_arabic_knowledge():
+    assert tokenize("الذكاءُ الاصطناعي، والتعلّم!") == ["الذكاء", "الاصطناعي", "والتعلم"]
+    store = FabricStore()
+    store.upsert_knowledge(
+        _unit("ar", "الذكاء الاصطناعي", "تعلم الآلة والشبكات العصبية")
+    )
+    store.upsert_knowledge(_unit("en", "SQLite WAL", "write ahead logging"))
+    hits = store.search_knowledge("الاصطناعي", k=2)
+    assert hits[0][0].id == "ar"
+    assert hits[0][1] > hits[1][1]
+    store.close()

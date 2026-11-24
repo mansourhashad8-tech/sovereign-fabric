@@ -176,24 +176,28 @@ output `retrieval augmented generation`.
 Arabic text is normalized before tokenization: diacritics and tatweel are
 removed, `أ/إ/آ` unify to `ا`, `ى` to `ي`, `ة` to `ه`, and Arabic punctuation
 is dropped from tokens. English behaviour is unchanged. The same normalization
-is used by `text.tokenize`, its optimized variant, and the extractive summary.
+is used by `text.tokenize`, its optimized variant, the extractive summary, and
+now the embedding tokenizer. Before that change the embedding regex accepted
+only `[a-z0-9]`, so Arabic queries produced an all-zero vector and could not
+retrieve Arabic knowledge at all.
 
 ```python
 from sovereign.arabic import tokenize_text
 tokenize_text("الذكاءُ الاصطناعي، والتعلّم!")  # ['الذكاء', 'الاصطناعي', 'والتعلم']
 ```
 
-## 47 executable capabilities
+## 52 executable capabilities
 
-The registry carries 47 admitted capabilities. Five are the original chain
+The registry carries 52 admitted capabilities. Five are the original chain
 (tokenize -> count -> summarize -> report, plus extractive summary). The other
-42 are in `sovereign/extras.py` and cover:
+47 are in `sovereign/extras.py` and cover:
 
 | Area | Capabilities |
 | --- | --- |
 | Text | `text.clean`, `text.sentences`, `sentences.stats`, `text.stats`, `text.langdetect`, `text.keywords`, `text.ngrams`, `text.entities`, `text.redact`, `tokens.top`, `text.similarity`, `text.stopwords`, `text.unique_lines`, `text.excerpt`, `text.diff` |
 | Arabic | `text.arabic_normalize`, `text.arabic_digits`, `text.arabic_stem` |
-| Data | `json.validate`, `json.pretty`, `json.get`, `json.minify`, `csv.parse`, `csv.to_json`, `table.sort`, `table.filter`, `table.aggregate`, `markdown.table` |
+| Data | `json.validate`, `json.pretty`, `json.get`, `json.minify`, `csv.parse`, `csv.to_json`, `table.sort`, `table.filter`, `table.aggregate`, `markdown.table`, `toml.parse`, `ini.parse` |
+| Markup | `html.text`, `html.links`, `markdown.headings` |
 | Exact work | `math.eval` (whitelisted AST arithmetic), `math.stats`, `date.diff`, `date.add`, `date.weekday`, `url.parse`, `url.query` |
 | Encoding and identity | `base64.encode`, `base64.decode`, `hash.sha256`, `uuid.generate`, `uuid.validate`, `template.render`, `regex.escape` |
 
@@ -203,6 +207,18 @@ Call any of them directly:
 curl -s -X POST localhost:12000/invoke   -H 'Content-Type: application/json'   -d '{"capability":"math.eval","payload":{"value":"2*(3+4)"}}'
 # {"capability":"math.eval","result":{"value":14}}
 ```
+
+Compose them without writing a new module:
+
+```bash
+curl -s -X POST localhost:12000/pipeline \
+  -H 'Content-Type: application/json' \
+  -d '{"steps":[{"capability":"csv.parse","payload":{"value":"name,score\nb,2\na,1"}},{"capability":"table.aggregate","payload":{"column":"score","op":"sum"}}]}'
+# {"ok":true,"value":{"column":"score","op":"sum","result":3.0},...}
+```
+
+The previous step's `value` is passed to the next step; a failure returns the
+partial trace with `failed_at` and an error, not a fabricated result.
 
 Or route an Arabic request into the planner:
 
@@ -216,7 +232,10 @@ the language; `text.entities` is regex extraction, not NER; `text.similarity`
 is Jaccard over tokens, not embeddings; `text.arabic_stem` is a light prefix /
 suffix stripper, not morphology; `math.eval` is arithmetic, not algebra;
 `math.stats` reports population standard deviation; `csv.parse` is bounded to
-1000 rows and 50 columns. Every bound is a conscious limit, not a hidden one.
+1000 rows and 50 columns; `html.text` strips tags and scripts but does not render
+or execute a page; `toml.parse` and `ini.parse` return JSON strings;
+`markdown.headings` recognises ATX headings only. Every bound is a conscious
+limit, not a hidden one.
 
 ## A self-model that plans its own claims
 
@@ -228,9 +247,9 @@ verdict and passes that verdict through the overclaim detector.
 Live shape:
 
 ```text
-Precise self-assessment: 47 active capabilities (47 builtin, 0 synthesized),
+Precise self-assessment: 52 active capabilities (52 builtin, 0 synthesized),
 N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
-passed every criterion. Property checks: 40/40 passed. 7 limits are declared.
+passed every criterion. Property checks: 40/40 passed. 9 limits are declared.
 I am not conscious, not quantum, and not a million-fold accelerator.
 ```
 
@@ -437,7 +456,7 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | "Self-awareness" | The self-model is computed from the registry, event log, and planner. It is evidence, not subjective experience. |
 | "A synthesis engine" | The brief quotes and cites absorbed units. It does not infer, translate, or verify truth. |
 | "A guaranteed learner" | Mastery practice records before/after rates; it can fail to improve, and the table says so. |
-| "A general-purpose agent" | 47 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
+| "A general-purpose agent" | 52 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
 | "Zero vulnerabilities" | The audit reports 0 findings from these rules and 0 OSV hits; that is not a proof of absence. |
 | "A security certification" | The scanner is public and conservative; it is not an external audit or a DAST suite. |
 | "A closed model" | No closed-source library is required. The optional expert endpoint is a service, disabled by default. |
@@ -474,7 +493,10 @@ sovereign/
   absorption.py    consult -> index -> link, in one pass
   capabilities.py  versioned registry, hot-swap, rollback, sandboxed invocation
   native.py        built-in transform chain
-  extras.py        42 bounded data/text/math/date/url/encoding capabilities
+  extras.py        47 bounded data/text/math/date/url/encoding capabilities
+  pipeline.py      bounded composition of any capabilities
+  metrics.py       in-process Prometheus counters
+  diagnostics.py   read-only database/registry/planner/security checks
   blueprints.py    behavioural specs + autonomous acquisition when planning is blocked
   synthesis.py     spec -> generate -> verify in subprocess -> admit/quarantine
   pathfinder.py    A* over capability types, parallel multi-goal, failure memo
@@ -574,7 +596,12 @@ curl -s localhost:12000/redteam
 | POST | `/optimize` | benchmark equivalent implementations, keep the faster |
 | GET/POST | `/loop/status`, `/loop/start`, `/loop/stop`, `/loop/tick` | bounded continuous loop |
 | GET | `/capabilities`, POST `/capabilities/rollback` | registry |
+| GET | `/capabilities/search` | rank capabilities by a natural query |
 | POST | `/invoke` | invoke any active capability directly |
+| POST | `/pipeline` | compose up to 20 capabilities, passing each `value` forward |
+| GET | `/ready` | database, capabilities, guardians, and planner readiness |
+| GET | `/metrics` | Prometheus text counters and gauges |
+| GET | `/diagnostics` | read-only database, entry, planner, and security checks |
 | GET | `/cycles`, `/failures` | audit log and failure memo |
 
 Offline (no network) it still works, but the validator correctly reports

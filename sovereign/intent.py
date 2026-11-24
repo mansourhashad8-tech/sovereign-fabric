@@ -22,6 +22,10 @@ _RULES: list[tuple[str, tuple[str, ...]]] = [
     ("url", ("رابط", "url", "link")),
     ("json", ("json", "جيسون")),
     ("csv", ("csv", "سي اس في")),
+    ("toml", ("toml", "تومل")),
+    ("ini", ("ini:", "ini file", "ملف ini", "إيني")),
+    ("html", ("html", "اتش تي ام ال")),
+    ("headings", ("عناوين", "headings", "markdown headings")),
     ("summary", ("لخص", "ملخص", "خلاصة", "summarize", "summary")),
     ("counts", ("عدد", "تكرار", "إحصاء", "احص", "count", "frequency")),
     ("tokens", ("كلمات", "توكن", "قسّم", "قسم", "tokenize", "tokens")),
@@ -35,6 +39,9 @@ _INITIAL = {
     "date": "dates",
     "url": "url",
     "similarity": "text_pair",
+    "html": "html_text",
+    "toml": "toml_text",
+    "ini": "ini_text",
 }
 
 _GOAL = {
@@ -46,6 +53,9 @@ _GOAL = {
     "math": "number",
     "date": "days",
     "url": "url_parts",
+    "html": "text",
+    "toml": "json_pretty",
+    "ini": "json_pretty",
 }
 
 

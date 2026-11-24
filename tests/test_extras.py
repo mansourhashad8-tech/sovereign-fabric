@@ -14,7 +14,7 @@ def _engine():
 def test_extras_are_registered_and_idempotent():
     engine = _engine()
     names = {cap.name for cap in engine.registry.list_active()}
-    assert len(names) >= 45
+    assert len(names) >= 52
     assert {
         "json.validate",
         "csv.parse",
@@ -33,6 +33,11 @@ def test_extras_are_registered_and_idempotent():
         "math.stats",
         "date.weekday",
         "text.diff",
+        "html.text",
+        "html.links",
+        "toml.parse",
+        "ini.parse",
+        "markdown.headings",
     } <= names
     before = len(names)
     from sovereign.extras import bootstrap_extras
@@ -244,3 +249,28 @@ def test_ask_routes_math_csv_date_and_url():
     assert url["intent"]["goal_type"] == "url_parts"
     assert url["plan"] == ["url.parse"]
     assert url["result"]["netloc"] == "example.com"
+
+
+def test_html_toml_ini_and_markdown_headings():
+    engine = _engine()
+    html = engine.registry.invoke(
+        "html.text",
+        {"value": "<h1>Hi</h1><script>x()</script><p>There &amp; here</p>"},
+    )["value"]
+    assert html == "Hi There & here"
+    links = engine.registry.invoke(
+        "html.links", {"value": '<a href="https://a.dev">A</a><a href="/b">B</a>'}
+    )["value"]
+    assert links == ["https://a.dev", "/b"]
+    toml = engine.registry.invoke("toml.parse", {"value": "[a]\nb = 1\n"})["value"]
+    assert toml == '{"a": {"b": 1}}'
+    ini = engine.registry.invoke("ini.parse", {"value": "[s]\na=1\n"})["value"]
+    assert ini == '{"s": {"a": "1"}}'
+    headings = engine.registry.invoke(
+        "markdown.headings", {"value": "# A\n## B\ntext\n### C ###"}
+    )["value"]
+    assert headings == [
+        {"level": 1, "text": "A"},
+        {"level": 2, "text": "B"},
+        {"level": 3, "text": "C"},
+    ]

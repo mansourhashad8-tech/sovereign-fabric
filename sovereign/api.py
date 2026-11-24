@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import time
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -12,13 +13,17 @@ from .capabilities import CapabilityError
 from .curriculum import Curriculum
 from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
+from .diagnostics import diagnose
 from .evidence import verify_claim
 from .evolution import EvolutionEngine
 from .guard import ApiKey, RateLimiter, max_body_bytes, security_headers
 from .intent import parse_intent
 from .loop import EvolutionLoop
 from .mastery import Mastery
+from .metrics import Metrics
 from .optimizer import Optimizer
+from .pathfinder import operators_from
+from .pipeline import run_pipeline
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
 from .models import Evidence, KnowledgeUnit
 from .redteam import audit
@@ -27,6 +32,7 @@ from .report import render_report, system_report
 from .security import audit as security_audit, cyclonedx_sbom, disclosure_markdown
 from .selfmodel import SelfModel
 from .store import FabricStore
+from .vectors import cosine, embed
 
 
 class ConsultRequest(BaseModel):
@@ -92,6 +98,15 @@ class BriefRequest(BaseModel):
 class InvokeRequest(BaseModel):
     capability: str = Field(min_length=1, max_length=100)
     payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class PipelineStep(BaseModel):
+    capability: str = Field(min_length=1, max_length=100)
+    payload: dict[str, Any] | None = None
+
+
+class PipelineRequest(BaseModel):
+    steps: list[PipelineStep] = Field(min_length=1, max_length=20)
 
 
 class ClaimRequest(BaseModel):
@@ -165,17 +180,25 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.loop = loop
     api_key = ApiKey()
     limiter = RateLimiter()
+    metrics = Metrics()
 
     @app.middleware("http")
     async def harden(request: Request, call_next):
+        started = time.perf_counter()
+
+        def deny(status: int, detail: str, kind: str, extra: dict[str, str] | None = None):
+            metrics.reject(kind)
+            metrics.observe(status, time.perf_counter() - started)
+            return JSONResponse(
+                {"detail": detail},
+                status_code=status,
+                headers={**security_headers(), **(extra or {})},
+            )
+
         if request.method not in {"GET", "HEAD", "OPTIONS"} and not api_key.allows(
             request.headers.get("x-api-key")
         ):
-            return JSONResponse(
-                {"detail": "invalid or missing API key"},
-                status_code=401,
-                headers=security_headers(),
-            )
+            return deny(401, "invalid or missing API key", "auth")
         length = request.headers.get("content-length")
         if length:
             try:
@@ -183,22 +206,29 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             except ValueError:
                 size = 0
             if size > max_body_bytes():
-                return JSONResponse(
-                    {"detail": "request body too large"},
-                    status_code=413,
-                    headers=security_headers(),
-                )
+                return deny(413, "request body too large", "body_limit")
         client = request.client.host if request.client else "unknown"
         decision = limiter.check(client)
         if not decision.allowed:
-            return JSONResponse(
-                {"detail": "rate limit exceeded"},
-                status_code=429,
-                headers={**security_headers(), "Retry-After": str(decision.retry_after)},
+            return deny(
+                429,
+                "rate limit exceeded",
+                "rate_limit",
+                {
+                    "Retry-After": str(decision.retry_after),
+                    "X-RateLimit-Limit": str(limiter.limit),
+                    "X-RateLimit-Remaining": "0",
+                },
             )
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            metrics.observe(500, time.perf_counter() - started)
+            raise
+        metrics.observe(response.status_code, time.perf_counter() - started)
         for name, value in security_headers().items():
             response.headers.setdefault(name, value)
+        response.headers["X-RateLimit-Limit"] = str(limiter.limit)
         response.headers["X-RateLimit-Remaining"] = str(decision.remaining)
         return response
 
@@ -210,12 +240,16 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "dashboard": "/dashboard",
             "endpoints": [
                 "GET /health",
+                "GET /ready",
+                "GET /metrics",
+                "GET /diagnostics",
                 "GET /dashboard",
                 "GET /guardians",
                 "POST /consult",
                 "POST /absorb",
                 "GET /knowledge/search",
                 "GET /capabilities",
+                "GET /capabilities/search",
                 "POST /capabilities/rollback",
                 "POST /synthesize",
                 "POST /evolve",
@@ -237,6 +271,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /verify_claim",
                 "POST /ask",
                 "POST /invoke",
+                "POST /pipeline",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -296,6 +331,36 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         except CapabilityError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {"capability": body.capability, "result": result}
+
+    @app.post("/pipeline")
+    def pipeline(body: PipelineRequest) -> dict[str, Any]:
+        try:
+            return run_pipeline(engine.registry, [step.model_dump() for step in body.steps])
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/capabilities/search")
+    def capability_search(
+        q: str = Query(min_length=1, max_length=200),
+        k: int = Query(default=5, ge=1, le=50),
+    ) -> dict[str, Any]:
+        qvec = embed(q)
+        hits = []
+        for cap in engine.registry.list_active():
+            text = " ".join(
+                [cap.name, cap.description, *cap.inputs, *cap.outputs]
+            )
+            hits.append(
+                {
+                    "name": cap.name,
+                    "description": cap.description,
+                    "inputs": list(cap.inputs),
+                    "outputs": list(cap.outputs),
+                    "score": round(cosine(qvec, embed(text)), 6),
+                }
+            )
+        hits.sort(key=lambda item: (-item["score"], item["name"]))
+        return {"query": q, "hits": hits[:k]}
 
     @app.get("/capabilities")
     def capabilities() -> dict[str, Any]:
@@ -417,6 +482,42 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "capability": result.capability.name if result.capability else None,
             "attempts": result.attempts,
         }
+
+    @app.get("/ready")
+    def ready() -> JSONResponse:
+        checks: dict[str, Any] = {}
+        try:
+            checks["database"] = engine.store.count_knowledge() >= 0
+        except Exception:
+            checks["database"] = False
+        active = engine.registry.list_active()
+        checks["capabilities"] = bool(active)
+        checks["guardians"] = bool(engine.guardians.names())
+        checks["planner"] = engine.pathfinder.plan(
+            ("text",), "markdown", operators_from(active)
+        ).solved
+        ok = all(checks.values())
+        return JSONResponse(
+            {"ok": ok, "checks": checks}, status_code=200 if ok else 503
+        )
+
+    @app.get("/metrics")
+    def metrics_endpoint() -> PlainTextResponse:
+        return PlainTextResponse(
+            metrics.render(
+                {
+                    "capabilities": len(engine.registry.list_active()),
+                    "knowledge_units": engine.store.count_knowledge(),
+                    "cycles": len(store.list_events("cycle")),
+                    "optimizations": len(store.list_events("capability.optimized")),
+                }
+            )
+        )
+
+    @app.get("/diagnostics")
+    def diagnostics_endpoint() -> dict[str, Any]:
+        report = diagnose(engine)
+        return report
 
     @app.get("/health")
     def health() -> dict[str, Any]:

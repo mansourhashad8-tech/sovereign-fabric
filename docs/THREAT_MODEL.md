@@ -27,9 +27,9 @@
 | Spoofing | Forged API client | Optional `X-API-Key`, constant-time compare | GET endpoints are public by design |
 | Tampering | Modified dependency or source | Hash manifest, licence audit, CI, review | No signed commits enforced |
 | Repudiation | Unlogged mutation | Append-only event log for cycles and optimizations | API access logs are not persisted |
-| Information disclosure | Secret in source or response | Secret pattern scan, sanitized subprocess env, no secrets in reports | A new secret format can evade the regex |
-| Denial of service | Huge body, request flood, huge guardian response | 2 MB API body cap, per-client sliding window, 2 MB guardian fetch cap | Limiter is in-process, not distributed |
-| Elevation of privilege | `eval`/`exec` escape | AST evaluator, isolated subprocess, no shell | Subprocess is not a full OS sandbox |
+| Information disclosure | Secret in source or response | Secret pattern scan, sanitized subprocess env, no secrets in reports; `/metrics` and `/diagnostics` report counts and static findings, never environment values | A new secret format can evade the regex |
+| Denial of service | Huge body, request flood, huge guardian response, long pipeline | 2 MB API body cap, per-client sliding window, 2 MB guardian fetch cap, 20-step pipeline cap, per-capability input caps | Limiter is in-process, not distributed |
+| Elevation of privilege | `eval`/`exec` escape | AST evaluator, isolated subprocess, no shell; pipeline can only call registered capabilities | Subprocess is not a full OS sandbox |
 | Prompt injection | Malicious guardian text | Text is data; it is not executed | A future LLM path could be influenced |
 
 ## Out of scope

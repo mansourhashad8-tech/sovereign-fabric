@@ -8,7 +8,9 @@ result the validator has not passed.
 
 from .absorption import absorb, propose_capabilities
 from .capabilities import CapabilityRegistry, bootstrap_native
+from .diagnostics import diagnose
 from .extras import bootstrap_extras
+from .metrics import Metrics
 from .evolution import EvolutionCycle, EvolutionEngine
 from .models import (
     Capability,
@@ -20,6 +22,7 @@ from .models import (
     ValidationReport,
 )
 from .pathfinder import Operator, PathFinder, operators_from
+from .pipeline import run_pipeline
 from .store import FabricStore
 from .synthesis import SynthesisResult, Synthesizer
 from .validator import HolisticValidator
@@ -32,6 +35,9 @@ __all__ = [
     "CapabilityRegistry",
     "bootstrap_native",
     "bootstrap_extras",
+    "diagnose",
+    "Metrics",
+    "run_pipeline",
     "EvolutionCycle",
     "EvolutionEngine",
     "Capability",

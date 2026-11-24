@@ -12,12 +12,14 @@ import hashlib
 import math
 import re
 
-_TOKEN = re.compile(r"[a-z0-9]+")
+from .arabic import normalize_arabic
+
+_TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 DEFAULT_DIM = 1024
 
 
 def tokenize(text: str) -> list[str]:
-    return _TOKEN.findall(text.lower())
+    return _TOKEN.findall(normalize_arabic(text).lower())
 
 
 def embed(text: str, dim: int = DEFAULT_DIM) -> list[float]:

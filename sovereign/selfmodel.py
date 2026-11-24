@@ -14,7 +14,21 @@ from .models import utcnow
 from .pathfinder import operators_from
 from .properties import check_capabilities
 
-_GOALS = ("markdown", "summary", "tokens", "counts", "report")
+_GOALS = (
+    "markdown",
+    "summary",
+    "tokens",
+    "counts",
+    "report",
+    "keywords",
+    "sentences",
+    "text_stats",
+    "redacted_text",
+    "digest",
+    "stems",
+    "headings",
+    "text_excerpt",
+)
 
 
 class SelfModel:
@@ -75,13 +89,14 @@ class SelfModel:
 
     def _limits(self, profile: dict[str, Any]) -> list[str]:
         limits = [
-            "Embeddings are deterministic lexical hashes, not a semantic model.",
+            "Embeddings are deterministic, Arabic-aware lexical hashes, not a semantic model.",
             "The planner is classical A*, not quantum and not parallel beyond its own search.",
             "Synthesis fits the examples it is given; it does not infer arbitrary intent.",
             "The continuous loop is a bounded scheduler with a stop button.",
             "No custody, no private keys, and no user gas are involved.",
             "No quantum hardware and no HPC endpoint are configured.",
             "The validator is auditable and tested, but it can still be wrong.",
+            "The Arabic stemmer is a light prefix/suffix rule set, not morphology.",
         ]
         if not self.engine.experts:
             limits.insert(

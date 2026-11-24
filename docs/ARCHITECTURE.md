@@ -9,12 +9,15 @@ flowchart LR
   F --> P[A* planner]
   P --> C[Capability registry]
   C --> X[Sandboxed execution]
+  API --> PL[Pipeline composition]
+  PL --> C
   X --> V[Six-criterion validator]
   V --> R[Report / dashboard]
   F --> S[Self-model]
   F --> B[Cited brief]
   F --> M[Mastery]
   API --> GUARD[Key, rate limit, body cap, headers]
+  API --> OPS[Metrics, readiness, diagnostics]
   GUARD --> SEC[Security and openness audit]
   SEC --> D[Disclosure report + SBOM]
 ```
@@ -28,15 +31,17 @@ flowchart LR
 2. **Fabric**: one SQLite store for knowledge units, the concept graph,
    capability versions, an append-only event log, a source cache, and a failure
    memo.
-3. **Planning and synthesis**: A* over capability types, blueprint acquisition,
-   enumerative program synthesis, and a subprocess gate.
+3. **Planning and synthesis**: reachability proof plus A* over capability types,
+   bounded capability pipelines, blueprint acquisition, enumerative program
+   synthesis, and a subprocess gate.
 4. **Execution and validation**: serial/thread/process execution with measured
    speedup; six scores and an overclaim detector.
 5. **Introspection**: a self-model that plans its own claims, lexical claim
    support, randomized property checks, and confidence intervals.
-6. **Openness**: a static scanner, licence inventory, OSV lookup, CycloneDX
-   SBOM, a public disclosure report, and a threat model. API guards add an
-   optional key, a per-client rate limit, a body cap, and security headers.
+6. **Openness and operations**: a static scanner, licence inventory, OSV lookup,
+   CycloneDX SBOM, a public disclosure report, and a threat model. API guards add
+   an optional key, a per-client rate limit, a body cap, and security headers;
+   `/metrics`, `/ready`, and `/diagnostics` expose process health without secrets.
 
 ## Data flow
 

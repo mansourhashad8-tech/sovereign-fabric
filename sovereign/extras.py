@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import ast
 import base64
+import configparser
 import csv
 import difflib
 import hashlib
+from html.parser import HTMLParser
 import io
 import json
 import math
@@ -20,6 +22,7 @@ import operator
 import re
 import statistics
 import string
+import tomllib
 import unicodedata
 import urllib.parse
 import uuid
@@ -589,6 +592,80 @@ def regex_escape(payload: dict[str, Any]) -> dict[str, Any]:
     return {"value": re.escape(_text(payload))}
 
 
+class _HTMLText(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._skip = 0
+        self.parts: list[str] = []
+        self.links: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"script", "style"}:
+            self._skip += 1
+        if tag == "a":
+            for key, value in attrs:
+                if key == "href" and value:
+                    self.links.append(value)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"script", "style"} and self._skip:
+            self._skip -= 1
+
+    def handle_data(self, data: str) -> None:
+        if not self._skip:
+            self.parts.append(data)
+
+
+def _html(payload: dict[str, Any]) -> _HTMLText:
+    text = _text(payload)
+    if len(text) > 200_000:
+        raise ValueError("HTML input exceeds 200000 characters")
+    parser = _HTMLText()
+    parser.feed(text)
+    return parser
+
+
+def html_text(payload: dict[str, Any]) -> dict[str, Any]:
+    parser = _html(payload)
+    text = " ".join(parser.parts)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return {"value": text[:200_000]}
+
+
+def html_links(payload: dict[str, Any]) -> dict[str, Any]:
+    parser = _html(payload)
+    return {"value": parser.links[:100]}
+
+
+def toml_parse(payload: dict[str, Any]) -> dict[str, Any]:
+    text = _text(payload)
+    if len(text) > 200_000:
+        raise ValueError("TOML input exceeds 200000 characters")
+    return {"value": json.dumps(tomllib.loads(text), ensure_ascii=False)}
+
+
+def ini_parse(payload: dict[str, Any]) -> dict[str, Any]:
+    text = _text(payload)
+    if len(text) > 200_000:
+        raise ValueError("INI input exceeds 200000 characters")
+    parser = configparser.ConfigParser(interpolation=None)
+    parser.read_string(text)
+    data = {section: dict(parser.items(section)) for section in parser.sections()}
+    return {"value": json.dumps(data, ensure_ascii=False)}
+
+
+def markdown_headings(payload: dict[str, Any]) -> dict[str, Any]:
+    headings: list[dict[str, Any]] = []
+    for line in _text(payload).splitlines():
+        match = re.match(r"^(#{1,6})\s+(.+?)\s*#*\s*$", line)
+        if match:
+            headings.append({"level": len(match.group(1)), "text": match.group(2)})
+        if len(headings) >= 200:
+            break
+    return {"value": headings}
+
+
 EXTRAS: dict[str, tuple[Any, str, tuple[str, ...], tuple[str, ...]]] = {
     "text.clean": (text_clean, "Normalize unicode and collapse whitespace", ("dirty_text",), ("text",)),
     "text.sentences": (text_sentences, "Split text into sentences (Arabic-aware)", ("text",), ("sentences",)),
@@ -632,6 +709,11 @@ EXTRAS: dict[str, tuple[Any, str, tuple[str, ...], tuple[str, ...]]] = {
     "text.diff": (text_diff, "Unified diff of two bounded texts", ("text_pair",), ("diff",)),
     "uuid.validate": (uuid_validate, "Validate a UUID and report its version", ("uuid",), ("uuid_status",)),
     "regex.escape": (regex_escape, "Escape text for literal use in a regex", ("text",), ("regex_escaped",)),
+    "html.text": (html_text, "Strip HTML tags, scripts, and styles into text", ("html_text",), ("text",)),
+    "html.links": (html_links, "Extract href links from HTML", ("html_text",), ("links",)),
+    "toml.parse": (toml_parse, "Parse TOML into JSON", ("toml_text",), ("json_text",)),
+    "ini.parse": (ini_parse, "Parse INI sections into JSON", ("ini_text",), ("json_text",)),
+    "markdown.headings": (markdown_headings, "Extract ATX Markdown headings", ("text",), ("headings",)),
 }
 
 
