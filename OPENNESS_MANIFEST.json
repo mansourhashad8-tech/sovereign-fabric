@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-24T15:46:51.278297+00:00",
-  "commit": "9e468e5e0864bf092bb39712a38ea793ee8e3aa4",
+  "generated_at": "2026-11-24T16:03:39.567723+00:00",
+  "commit": "64a099150c3123e3832416719d20f374e8b737ab",
   "root": "sovereign",
-  "duration_s": 0.35,
+  "duration_s": 0.305,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,13 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "eb65b18ed66311d95ef5ba7a081a544a6cfc44f7aa47869576090e2fc3fdb9e7",
-      "lines": 603
+      "sha256": "848607056b8db25412a43edeeeecc5bffbaff1ae09d870915a16517ff6bc7af0",
+      "lines": 650
+    },
+    {
+      "path": "sovereign/arabic.py",
+      "sha256": "8a117901a4c3d0b3572c9ba2005f754d3e71e244340e09fb2625d0fe595044b0",
+      "lines": 40
     },
     {
       "path": "sovereign/blueprints.py",
@@ -47,8 +52,8 @@
     },
     {
       "path": "sovereign/cli.py",
-      "sha256": "1b29e8ea6c7ff24b1c89f0ac7e69e5dbaec5480f7b412987db34558183debf20",
-      "lines": 369
+      "sha256": "222cddfa14030870349aac79643b5d076a3bc638b0a9f32e1265d4ccdcf01036",
+      "lines": 378
     },
     {
       "path": "sovereign/curriculum.py",
@@ -57,8 +62,8 @@
     },
     {
       "path": "sovereign/dashboard.py",
-      "sha256": "17c0d7d0a70bcec09dcc987bd6e3c11cbeb468800c5005b6f305945dbb3151a9",
-      "lines": 396
+      "sha256": "2d18b19847e4f29be62bfe89353196b71cf0c4ec4644fa985d9ffd6861b4569f",
+      "lines": 425
     },
     {
       "path": "sovereign/evidence.py",
@@ -79,6 +84,11 @@
       "path": "sovereign/expert.py",
       "sha256": "cbca46161407eba28ba55b7412b8df531a168526f63d09b8acb31c3c745db701",
       "lines": 160
+    },
+    {
+      "path": "sovereign/guard.py",
+      "sha256": "0214a62dfa25b410f67f87c8bf86bdeb9e08e3f1b2b9609522bc0eaac56dd156",
+      "lines": 92
     },
     {
       "path": "sovereign/guardians/__init__.py",
@@ -117,7 +127,7 @@
     },
     {
       "path": "sovereign/native.py",
-      "sha256": "f742a5e1c156ba998680c1fbdff049e4754813389d3a2f531fa902d43dd001c3",
+      "sha256": "1a8ac27910581a469709cd8e347bbd0e0cd1e1bcd9045e81045ee10475d8f9f0",
       "lines": 97
     },
     {
@@ -152,8 +162,8 @@
     },
     {
       "path": "sovereign/security.py",
-      "sha256": "b84db912dd5073bc040e76ab04889bbab534dffd59e6e346bbbddeb12f961271",
-      "lines": 500
+      "sha256": "4aa9c06e0115eb94b024866e89b4edb1747d84aaa47ffe88b0f443339676625b",
+      "lines": 542
     },
     {
       "path": "sovereign/selfmodel.py",
