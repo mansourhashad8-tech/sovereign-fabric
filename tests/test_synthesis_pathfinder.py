@@ -147,10 +147,21 @@ def test_pathfinder_unsolvable_is_memoised():
 def test_pathfinder_budget_exhaustion_is_not_memoised():
     store = FabricStore()
     pf = PathFinder(store)
-    plan = pf.plan(("text",), "unreachable", _chain_ops(), max_expansions=1)
+    plan = pf.plan(("text",), "markdown", _chain_ops(), max_expansions=1)
     assert plan.solved is False
     assert "budget" in plan.reason
     assert store.memo_entries() == []
+    store.close()
+
+
+def test_pathfinder_proves_unreachable_without_expanding_or_guessing():
+    store = FabricStore()
+    pf = PathFinder(store)
+    plan = pf.plan(("text",), "unreachable", _chain_ops(), max_expansions=1)
+    assert plan.solved is False
+    assert plan.explored == 0
+    assert "no applicable route" in plan.reason
+    assert store.memo_entries()
     store.close()
 
 

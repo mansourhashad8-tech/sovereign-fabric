@@ -8,11 +8,45 @@ markdown report and says `matched: null`.
 from __future__ import annotations
 
 _RULES: list[tuple[str, tuple[str, ...]]] = [
+    ("keywords", ("كلمات مفتاحية", "مفتاحية", "keywords", "keyphrases")),
+    ("stats", ("إحصاءات", "احصائيات", "stats", "statistics")),
+    ("language", ("لغة النص", "لغة", "language", "langdetect")),
+    ("sentences", ("جمل", "sentences")),
+    ("redact", ("احجب", "حجب", "redact", "redaction")),
+    ("entities", ("كيانات", "كيان", "entities")),
+    ("hash", ("تجزئة", "هاش", "sha256", "hash")),
+    ("base64", ("base64", "بيس64")),
+    ("similarity", ("تشابه", "similarity")),
+    ("math", ("احسب", "حساب", "calculate", "math")),
+    ("date", ("تاريخ", "date")),
+    ("url", ("رابط", "url", "link")),
+    ("json", ("json", "جيسون")),
+    ("csv", ("csv", "سي اس في")),
     ("summary", ("لخص", "ملخص", "خلاصة", "summarize", "summary")),
     ("counts", ("عدد", "تكرار", "إحصاء", "احص", "count", "frequency")),
     ("tokens", ("كلمات", "توكن", "قسّم", "قسم", "tokenize", "tokens")),
     ("markdown", ("تقرير", "اكتب", "report", "markdown", "brief")),
 ]
+
+_INITIAL = {
+    "json": "json_text",
+    "csv": "csv_text",
+    "math": "expression",
+    "date": "dates",
+    "url": "url",
+    "similarity": "text_pair",
+}
+
+_GOAL = {
+    "stats": "text_stats",
+    "redact": "redacted_text",
+    "hash": "digest",
+    "json": "json_pretty",
+    "csv": "table",
+    "math": "number",
+    "date": "days",
+    "url": "url_parts",
+}
 
 
 def payload_text(request: str) -> str:
@@ -34,11 +68,13 @@ def parse_intent(request: str) -> dict[str, object]:
             if index >= 0:
                 matches.append((index, order, goal, word))
     if matches:
-        _, _, goal, word = min(matches)
+        _, _, raw_goal, word = min(matches)
     else:
-        goal, word = "markdown", ""
+        raw_goal, word = "markdown", ""
+    goal = _GOAL.get(raw_goal, raw_goal)
     return {
         "goal_type": goal,
+        "initial": _INITIAL.get(raw_goal, "text"),
         "matched": word or None,
         "request": text,
         "text": payload_text(text),

@@ -21,6 +21,7 @@ from .acquire import ExpertAcquirer
 from .blueprints import autonomous_extend
 from .capabilities import CapabilityError, CapabilityRegistry, bootstrap_native
 from .expert import Expert, default_experts
+from .extras import bootstrap_extras
 from .guardians import ConsultationResult, GuardianRegistry, default_registry
 from .models import Evidence, Plan, ValidationReport
 from .pathfinder import PathFinder, operators_from
@@ -69,6 +70,7 @@ class EvolutionEngine:
         self.store = store
         self.registry = registry or CapabilityRegistry(store)
         bootstrap_native(self.registry)
+        bootstrap_extras(self.registry)
         self.guardians = guardians or default_registry(store)
         self.pathfinder = pathfinder or PathFinder(store)
         self.validator = validator or HolisticValidator()

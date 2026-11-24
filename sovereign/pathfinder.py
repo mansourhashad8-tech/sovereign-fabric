@@ -68,6 +68,12 @@ class PathFinder:
                 reason="pruned: this start was previously proven to have no route",
             )
 
+        if not self._reachable(goal, start, operators):
+            reason = "no applicable route exists"
+            if self.store is not None:
+                self.store.memo_record(memo_key, reason)
+            return Plan(goal=goal, steps=[], solved=False, explored=0, reason=reason)
+
         counter = itertools.count()
         heap: list[tuple[int, int, int, frozenset[str], tuple[Operator, ...]]] = []
 
@@ -162,6 +168,19 @@ class PathFinder:
                 pool.map(lambda g: self.plan(available, g, operators), goals)
             )
         return dict(zip(goals, results))
+
+    @staticmethod
+    def _reachable(goal: str, start: frozenset[str], operators: list[Operator]) -> bool:
+        """Monotone type closure: proves unreachability without a full search."""
+        state = set(start)
+        changed = True
+        while changed and goal not in state:
+            changed = False
+            for op in operators:
+                if op.inputs <= state and not op.outputs <= state:
+                    state |= op.outputs
+                    changed = True
+        return goal in state
 
     @staticmethod
     def _memo_key(goal: str, start: frozenset[str], operators: list[Operator]) -> str:

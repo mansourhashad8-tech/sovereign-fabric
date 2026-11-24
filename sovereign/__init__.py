@@ -8,6 +8,7 @@ result the validator has not passed.
 
 from .absorption import absorb, propose_capabilities
 from .capabilities import CapabilityRegistry, bootstrap_native
+from .extras import bootstrap_extras
 from .evolution import EvolutionCycle, EvolutionEngine
 from .models import (
     Capability,
@@ -30,6 +31,7 @@ __all__ = [
     "propose_capabilities",
     "CapabilityRegistry",
     "bootstrap_native",
+    "bootstrap_extras",
     "EvolutionCycle",
     "EvolutionEngine",
     "Capability",

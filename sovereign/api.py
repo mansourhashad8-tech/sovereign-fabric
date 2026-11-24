@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from .absorption import absorb
+from .capabilities import CapabilityError
 from .curriculum import Curriculum
 from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
@@ -86,6 +87,11 @@ class BriefRequest(BaseModel):
     sources: list[str] | None = None
     lang: str = "en"
     deadline_s: float = Field(default=12.0, gt=0, le=120)
+
+
+class InvokeRequest(BaseModel):
+    capability: str = Field(min_length=1, max_length=100)
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class ClaimRequest(BaseModel):
@@ -230,6 +236,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /mastery/practice",
                 "POST /verify_claim",
                 "POST /ask",
+                "POST /invoke",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -281,6 +288,14 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/knowledge/graph")
     def knowledge_graph(node: str, rel: str | None = None, depth: int = 1) -> dict[str, Any]:
         return store.graph(node, rel=rel, depth=depth)
+
+    @app.post("/invoke")
+    def invoke(body: InvokeRequest) -> dict[str, Any]:
+        try:
+            result = engine.registry.invoke(body.capability, body.payload)
+        except CapabilityError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"capability": body.capability, "result": result}
 
     @app.get("/capabilities")
     def capabilities() -> dict[str, Any]:
@@ -468,6 +483,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         cycle = engine.evolve(
             intent["request"],
             goal_type=intent["goal_type"],
+            initial=(intent.get("initial") or "text",),
             text=intent["text"],
             sources=body.sources,
             budget_s=body.budget_s,
