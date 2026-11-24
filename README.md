@@ -346,7 +346,8 @@ self-only CSP, and `X-RateLimit-Remaining`.
 `tests/test_dast.py` is an in-process dynamic suite: SQL-injection-shaped
 input, malformed JSON, XSS-shaped input, oversized bodies, wrong methods, and
 unknown routes. It checks status codes and response types, not just unit
-functions.
+functions. Guardian fetches are http(s)-only and capped at 2 MB
+(`tests/test_fetch.py`).
 
 ## Openness and mandatory disclosure
 
@@ -561,7 +562,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 183 tests
+python -m pytest        # 185 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,

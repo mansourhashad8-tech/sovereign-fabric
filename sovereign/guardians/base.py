@@ -21,12 +21,26 @@ from ..models import KnowledgeUnit, Provenance, utcnow
 from ..store import FabricStore
 
 USER_AGENT = "sovereign-fabric/0.1 (research; contact: local)"
+MAX_RESPONSE_BYTES = 2_000_000
 
 
-def default_fetch(url: str, timeout: float = 6.0) -> str:
+def default_fetch(url: str, timeout: float = 6.0, max_bytes: int = MAX_RESPONSE_BYTES) -> str:
+    scheme = urllib.parse.urlparse(url).scheme.lower()
+    if scheme not in {"http", "https"}:
+        raise ValueError(f"refusing non-http(s) URL: {scheme or '(none)'}")
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read().decode("utf-8", "replace")
+        declared = resp.headers.get("Content-Length")
+        if declared:
+            try:
+                if int(declared) > max_bytes:
+                    raise ValueError(f"response declares {declared} bytes, limit is {max_bytes}")
+            except ValueError:
+                raise
+        body = resp.read(max_bytes + 1)
+        if len(body) > max_bytes:
+            raise ValueError(f"response exceeds {max_bytes} bytes")
+        return body.decode("utf-8", "replace")
 
 
 def stable_id(*parts: str) -> str:

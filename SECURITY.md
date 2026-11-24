@@ -35,8 +35,8 @@ report. Redact them.
 - Guardian adapters and their parsing.
 - Capability synthesis and the subprocess gate.
 - The dependency chain declared in `pyproject.toml`.
-- API guards (key, rate limit, body cap, headers) and the DAST checks in
-  `tests/test_dast.py`.
+- API guards (key, rate limit, body cap, headers), the DAST checks in
+  `tests/test_dast.py`, and the http(s)-only 2 MB guardian fetch cap.
 
 Out of scope: social engineering, denial of service against third-party
 services, and vulnerabilities in optional external model providers.
