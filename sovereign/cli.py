@@ -62,6 +62,14 @@ def main(argv: list[str] | None = None) -> int:
     evolve.add_argument("--auto-extend", action="store_true")
     evolve.add_argument("--attempts", type=int, default=1)
 
+    curriculum = sub.add_parser("curriculum", help="run self-directed practice tasks")
+    curriculum.add_argument("--iterations", type=int, default=3)
+    curriculum.add_argument("--budget", type=float, default=10.0)
+    curriculum.add_argument("--sources", nargs="*", default=None)
+    curriculum.add_argument("--no-auto-extend", action="store_true")
+
+    sub.add_parser("redteam", help="audit the overclaim guardrail")
+
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -136,6 +144,20 @@ def main(argv: list[str] | None = None) -> int:
                 "duration_s": round(cycle.duration_s, 4),
             }
         )
+    elif args.command == "curriculum":
+        from .curriculum import Curriculum
+
+        results = Curriculum(engine).run(
+            iterations=args.iterations,
+            sources=args.sources,
+            budget_s=args.budget,
+            auto_extend=not args.no_auto_extend,
+        )
+        _print({"results": results})
+    elif args.command == "redteam":
+        from .redteam import audit
+
+        _print(audit(engine.validator))
     return 0
 
 

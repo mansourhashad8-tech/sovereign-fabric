@@ -28,13 +28,31 @@ _OVERCLAIMS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"quantum\s+(?:advantage|supremacy|speedup)", re.I), "quantum advantage"),
     (re.compile(r"\bimpossible\b", re.I), "absolute impossibility"),
     (
-        re.compile(r"\b(?:guaranteed|100\s*%|never\s+fails?|zero\s+failures?|no\s+failures?)\b", re.I),
+        re.compile(
+            r"\b(?:guaranteed|never\s+fails?|zero\s+failures?|no\s+failures?)\b", re.I
+        ),
         "absolute reliability",
     ),
+    (re.compile(r"\b100\s*%", re.I), "absolute reliability"),
     (re.compile(r"\bliving\s+(?:entity|being|organism)\b", re.I), "living-entity claim"),
     (re.compile(r"\binfinitely\s+(?:fast|scalable|capable)\b", re.I), "infinite capability"),
     (re.compile(r"\bzero[\s-](?:latency|cost)\b", re.I), "zero-resource claim"),
     (re.compile(r"\b(?:AGI|superintelligen\w*)\b", re.I), "AGI/superintelligence claim"),
+    (
+        re.compile(r"\b\d[\d,]{5,}\s*(?:x|times)\b", re.I),
+        "numeric magnitude claim",
+    ),
+    (re.compile(r"orders?\s+of\s+magnitude", re.I), "order-of-magnitude claim"),
+    (re.compile(r"\bself[\s-]?aware\b|\bconscious\b", re.I), "consciousness claim"),
+    (
+        re.compile(r"\b(?:never|always)\s+(?:wrong|right|correct|fails?)\b", re.I),
+        "absolute correctness claim",
+    ),
+    (re.compile(r"\bperfect\s+solution\b", re.I), "perfect-solution claim"),
+    (
+        re.compile(r"\bno\s+limitations?\b|\bunlimited\s+power\b|\bliterally\s+infinite\b", re.I),
+        "unbounded-capability claim",
+    ),
 ]
 
 _NEGATION = re.compile(

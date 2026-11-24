@@ -162,6 +162,13 @@ class FabricStore:
             seen |= nxt
         return {"nodes": sorted(seen), "edges": [list(e) for e in sorted(edges)]}
 
+    def list_knowledge(self, limit: int = 50) -> list[KnowledgeUnit]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM knowledge ORDER BY created_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [_row_to_unit(row) for row in rows]
+
     def count_knowledge(self) -> int:
         with self._lock:
             return self._conn.execute("SELECT COUNT(*) FROM knowledge").fetchone()[0]

@@ -172,3 +172,17 @@ def test_operators_from_sorts_deterministically():
     ops = operators_from(caps)
     assert [o.name for o in ops] == ["a.op", "b.op"]
     assert isinstance(ops[0], Operator)
+
+
+def test_alternatives_finds_distinct_routes():
+    from sovereign.pathfinder import Operator, PathFinder
+
+    ops = [
+        Operator("to_tokens", frozenset({"text"}), frozenset({"tokens"})),
+        Operator("tokens_md", frozenset({"tokens"}), frozenset({"markdown"})),
+        Operator("direct_md", frozenset({"text"}), frozenset({"markdown"})),
+    ]
+    alternatives = PathFinder().alternatives(("text",), "markdown", ops, k=3)
+    assert len(alternatives) >= 2
+    assert [s.capability for s in alternatives[0].steps] == ["direct_md"]
+    assert [s.capability for s in alternatives[1].steps] == ["to_tokens", "tokens_md"]

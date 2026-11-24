@@ -17,8 +17,10 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .absorption import absorb, propose_capabilities
+from .acquire import ExpertAcquirer
 from .blueprints import autonomous_extend
 from .capabilities import CapabilityError, CapabilityRegistry, bootstrap_native
+from .expert import Expert, default_experts
 from .guardians import ConsultationResult, GuardianRegistry, default_registry
 from .models import Evidence, Plan, ValidationReport
 from .pathfinder import PathFinder, operators_from
@@ -62,6 +64,7 @@ class EvolutionEngine:
         guardians: GuardianRegistry | None = None,
         pathfinder: PathFinder | None = None,
         validator: HolisticValidator | None = None,
+        experts: list[Expert] | None = None,
     ) -> None:
         self.store = store
         self.registry = registry or CapabilityRegistry(store)
@@ -70,6 +73,8 @@ class EvolutionEngine:
         self.pathfinder = pathfinder or PathFinder(store)
         self.validator = validator or HolisticValidator()
         self.synthesizer = Synthesizer(self.registry)
+        self.experts = list(experts) if experts is not None else default_experts()
+        self.acquirer = ExpertAcquirer(self.synthesizer, self.experts)
 
     def evolve(
         self,
@@ -168,7 +173,12 @@ class EvolutionEngine:
             )
         if not plan.solved and auto_extend:
             plan, added, ext_attempts = autonomous_extend(
-                self.registry, self.synthesizer, self.pathfinder, initial, goal_type
+                self.registry,
+                self.synthesizer,
+                self.pathfinder,
+                initial,
+                goal_type,
+                acquirer=self.acquirer,
             )
             extensions = ext_attempts
             if added:
@@ -176,7 +186,10 @@ class EvolutionEngine:
 
         execution: dict[str, Any] = {"ok": False, "reason": "no plan"}
         if plan.solved:
-            execution = self._execute(plan, text if text is not None else request)
+            source_text = text if text is not None else request
+            execution = self._execute(plan, source_text)
+            if not execution.get("ok"):
+                execution = self._try_alternatives(plan, initial, goal_type, source_text, execution)
 
         duration = time.monotonic() - started
         validation = self._validate(
@@ -225,6 +238,31 @@ class EvolutionEngine:
             payload = result if isinstance(result, dict) else {"value": result}
             trace.append({"capability": step.capability, "value": payload.get("value")})
         return {"ok": True, "value": payload.get("value"), "trace": trace}
+
+    def _try_alternatives(
+        self,
+        plan: Plan,
+        initial: tuple[str, ...],
+        goal_type: str,
+        text: str,
+        failed: dict[str, Any],
+    ) -> dict[str, Any]:
+        operators = operators_from(self.registry.list_active())
+        alternatives = self.pathfinder.alternatives(initial, goal_type, operators, k=3)
+        original = [step.capability for step in plan.steps]
+        tried = 0
+        for alternative in alternatives:
+            if [step.capability for step in alternative.steps] == original:
+                continue
+            tried += 1
+            result = self._execute(alternative, text)
+            if result.get("ok"):
+                result["alternatives_tried"] = tried
+                result["original_error"] = failed.get("error")
+                return result
+        fallback = dict(failed)
+        fallback["alternatives_tried"] = tried
+        return fallback
 
     def _validate(
         self,

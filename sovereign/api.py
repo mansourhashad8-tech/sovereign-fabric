@@ -7,8 +7,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from .absorption import absorb
+from .curriculum import Curriculum
 from .evolution import EvolutionEngine
 from .models import Evidence, KnowledgeUnit
+from .redteam import audit
 from .store import FabricStore
 
 
@@ -53,6 +55,22 @@ class ValidateRequest(BaseModel):
     claims: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     context: dict[str, Any] = Field(default_factory=dict)
+
+
+class AcquireRequest(BaseModel):
+    name: str
+    description: str
+    inputs: list[str] = Field(default_factory=lambda: ["text"])
+    outputs: list[str] = Field(default_factory=lambda: ["out"])
+    examples: list[Any]
+    rounds: int = 2
+
+
+class CurriculumRequest(BaseModel):
+    iterations: int = 3
+    sources: list[str] | None = None
+    budget_s: float = 10.0
+    auto_extend: bool = True
 
 
 def _unit_dict(unit: KnowledgeUnit) -> dict[str, Any]:
@@ -240,6 +258,47 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "diagnosis": cycle.diagnosis,
             "duration_s": round(cycle.duration_s, 4),
         }
+
+    @app.get("/experts")
+    def experts() -> dict[str, Any]:
+        return {
+            "experts": [
+                {"name": expert.name, "model": getattr(expert, "model", None)}
+                for expert in engine.experts
+            ]
+        }
+
+    @app.post("/acquire")
+    def acquire(body: AcquireRequest) -> dict[str, Any]:
+        result = engine.acquirer.acquire(
+            body.name,
+            body.description,
+            tuple(body.inputs),
+            tuple(body.outputs),
+            body.examples,
+            rounds=body.rounds,
+        )
+        return {
+            "admitted": result.admitted,
+            "reason": result.reason,
+            "capability": result.capability.name if result.capability else None,
+            "attempts": result.attempts,
+        }
+
+    @app.post("/curriculum")
+    def curriculum(body: CurriculumRequest) -> dict[str, Any]:
+        return {
+            "results": Curriculum(engine).run(
+                iterations=body.iterations,
+                sources=body.sources,
+                budget_s=body.budget_s,
+                auto_extend=body.auto_extend,
+            )
+        }
+
+    @app.get("/redteam")
+    def redteam() -> dict[str, Any]:
+        return audit(engine.validator)
 
     @app.get("/cycles")
     def cycles(limit: int = 20) -> dict[str, Any]:

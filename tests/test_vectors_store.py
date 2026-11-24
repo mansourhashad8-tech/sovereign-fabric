@@ -133,3 +133,17 @@ def test_graph_traversal_depth_two():
     assert ["a", "to", "b"] in g["edges"]
     assert ["b", "to", "c"] in g["edges"]
     store.close()
+
+
+def test_list_knowledge_returns_recent_units():
+    store = FabricStore()
+    for i in range(3):
+        store.upsert_knowledge(
+            KnowledgeUnit(
+                id=f"u{i}", title=f"T{i}", summary=f"S{i}",
+                provenance=Provenance(source="s", url=f"u{i}", retrieved_at=utcnow()),
+            )
+        )
+    units = store.list_knowledge(limit=2)
+    assert len(units) == 2
+    store.close()

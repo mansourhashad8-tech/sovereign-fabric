@@ -121,6 +121,33 @@ class PathFinder:
             self.store.memo_record(memo_key, reason)
         return Plan(goal=goal, steps=[], solved=False, explored=explored, reason=reason)
 
+    def alternatives(
+        self,
+        available: tuple[str, ...] | frozenset[str],
+        goal: str,
+        operators: list[Operator],
+        k: int = 3,
+        max_expansions: int = 5000,
+    ) -> list[Plan]:
+        """Distinct routes, found by banning the last step of the previous one."""
+        plans: list[Plan] = []
+        seen: set[tuple[str, ...]] = set()
+        banned: set[str] = set()
+        for _ in range(max(1, k)):
+            usable = [op for op in operators if op.name not in banned]
+            plan = self.plan(available, goal, usable, max_expansions)
+            if not plan.solved:
+                break
+            signature = tuple(step.capability for step in plan.steps)
+            if signature in seen:
+                break
+            seen.add(signature)
+            plans.append(plan)
+            if not plan.steps:
+                break
+            banned.add(plan.steps[-1].capability)
+        return plans
+
     def plan_many(
         self,
         available: tuple[str, ...] | frozenset[str],

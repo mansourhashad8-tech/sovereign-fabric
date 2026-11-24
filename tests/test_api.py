@@ -142,3 +142,22 @@ def test_evolve_auto_extend_endpoint():
     assert body["execution"]["value"] == "ABC"
     assert body["extensions"]
     assert body["ok"] is False  # local-only: guardianship still fails, honestly
+
+
+def test_redteam_endpoint_reports_full_coverage():
+    body = _client().get("/redteam").json()
+    assert body["coverage"] == 1.0
+    assert body["evaded"] == []
+
+
+def test_curriculum_endpoint_local_only_reports_honest_failure():
+    body = _client().post(
+        "/curriculum", json={"iterations": 2, "sources": ["local"], "budget_s": 5.0}
+    ).json()
+    assert len(body["results"]) == 2
+    assert all(r["ok"] is False for r in body["results"])
+
+
+def test_experts_endpoint_lists_configuration():
+    body = _client().get("/experts").json()
+    assert isinstance(body["experts"], list)

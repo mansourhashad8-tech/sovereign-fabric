@@ -34,6 +34,12 @@ own powers is not sovereign; it is a liability.
 - **A bounded repair loop**: a cycle that fails a criterion retries with a
   broader query, keeps the best attempt, records every attempt, and returns an
   actionable diagnosis.
+- **Recruited experts**: any OpenAI-compatible model can be asked for candidate
+  implementations; every candidate still has to pass the local gate.
+- **Self-directed practice**: the system forms small tasks from its own absorbed
+  knowledge and attempts them, recording what worked.
+- **A guardrail that attacks itself**: a red-team corpus measures the overclaim
+  detector's blind spots, and the patterns are widened from what it finds.
 - **Self-extension through a gate**: the system generates a capability from a
   behavioural spec and admits it only if it reproduces every example inside a
   separate interpreter with a timeout and a sanitized environment. Failures are
@@ -43,6 +49,46 @@ own powers is not sovereign; it is a liability.
   the operator set, so registering a new capability correctly re-opens search.
 - **A holistic validator** scoring six criteria and rejecting absolute or
   unfalsifiable language (negation-aware).
+
+## Recruiting other minds (external experts)
+
+The system does not have to be the only model in the loop. `sovereign/expert.py`
+speaks the OpenAI chat-completions protocol, so Groq, OpenAI, or a local server
+can act as an expert. `sovereign/acquire.py` asks every configured expert for
+candidate implementations, verifies each against the examples, and — if all
+fail — feeds the failures back and asks again.
+
+Nothing an expert says is trusted. Its output is a *candidate*; the same
+subprocess gate that checks generated code checks it. If no expert is
+reachable, acquisition says so and returns no capability.
+
+```bash
+export GROQ_API_KEY=...        # and/or OPENAI_API_KEY / OPENAI_BASE_URL
+```
+
+In this workspace the Groq key is present but the provider returns `401`, so
+the live attempt records the error and admits nothing. The pipeline is
+exercised end-to-end with injected experts in the tests.
+
+## Self-directed practice
+
+`POST /curriculum` picks concepts the system has absorbed, forms small tasks,
+and attempts them with its planner, gate, and validator. This is a bounded
+practice loop — the closest honest analogue to continuous self-evolution. It is
+not curiosity.
+
+## Attacking its own guardrail
+
+`GET /redteam` pushes a corpus of absolute claims through the overclaim
+detector and reports coverage. Red-teaming found a real bug: the `100%` pattern
+had a trailing word-boundary that made it miss. Coverage is now 20/20 on the
+corpus; that is evidence about the corpus, not proof of completeness.
+
+## Many routes
+
+When the first plan's execution fails, the engine asks the planner for
+alternative routes (found by banning the last step of the previous plan) and
+tries them before reporting failure.
 
 ## What this is not
 
@@ -112,7 +158,33 @@ curl -s -X POST localhost:12000/evolve -H 'Content-Type: application/json' \
 # autonomous: supply no spec; the entity finds and verifies its own capability
 curl -s -X POST localhost:12000/evolve -H 'Content-Type: application/json' \
   -d '{"request":"retrieval augmented generation","goal_type":"doubled","initial":["text"],"text":"ab","auto_extend":true,"max_attempts":2}'
+
+# self-directed practice over its own absorbed knowledge
+curl -s -X POST localhost:12000/curriculum -H 'Content-Type: application/json' \
+  -d '{"iterations":2,"budget_s":25}'
+
+# audit the overclaim guardrail
+curl -s localhost:12000/redteam
 ```
+
+## Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/health` | status and source list |
+| POST | `/consult` | query guardians, return provenance |
+| POST | `/absorb` | consult and index into the fabric |
+| GET | `/knowledge/search` | hybrid retrieval |
+| GET | `/knowledge/graph` | traverse the concept graph |
+| POST | `/synthesize` | spec -> verified capability |
+| POST | `/acquire` | ask external experts for a verified capability |
+| GET | `/experts` | configured experts |
+| POST | `/validate` | six-criterion validation |
+| POST | `/evolve` | full cycle (`auto_extend`, `max_attempts`) |
+| POST | `/curriculum` | self-directed practice |
+| GET | `/redteam` | guardrail coverage |
+| GET | `/capabilities`, POST `/capabilities/rollback` | registry |
+| GET | `/cycles`, `/failures` | audit log and failure memo |
 
 Offline (no network) it still works, but the validator correctly reports
 `guardianship = 0` and returns `ok: false` — doing the work is not the same as
@@ -137,16 +209,17 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 76 tests
+python -m pytest        # 94 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
 store/graph/versioning, all ten guardian parsers against recorded fixtures,
 cache and graceful degradation, absorption and graph linking, built-in and
 sandboxed invocation, secret stripping, the synthesis gate
-(accept/reject/quarantine), A* correctness and memoisation (including the
-world-signature fix), autonomous blueprint acquisition (single-step,
-multi-step bridge, unmet inputs, quarantine), validator scoring and
-negation-aware overclaim detection, the full evolution cycle (success,
-local-only refusal, overclaim refusal, synthesis path, autonomous extension,
-multi-attempt repair, failure memo), and the HTTP API.
+(accept/reject/quarantine), A* correctness, memoisation and alternative routes,
+autonomous blueprint acquisition (single-step, multi-step bridge, unmet inputs,
+quarantine), external-expert acquisition (accept, reject, iterative repair,
+no-expert honesty), self-directed curriculum, red-team guardrail coverage,
+validator scoring and negation-aware overclaim detection, the full evolution
+cycle (success, local-only refusal, overclaim refusal, synthesis path,
+autonomous extension, multi-attempt repair, failure memo), and the HTTP API.

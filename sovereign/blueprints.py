@@ -140,10 +140,12 @@ def autonomous_extend(
     goal: str,
     blueprints=None,
     max_additions: int = 3,
+    acquirer=None,
 ) -> tuple:
     library = BLUEPRINTS if blueprints is None else tuple(blueprints)
     added: list[str] = []
     attempts: list[dict[str, Any]] = []
+    tried: set[str] = set()
 
     for _ in range(max_additions):
         ops = operators_from(registry.list_active())
@@ -155,7 +157,8 @@ def autonomous_extend(
         candidates = [
             bp
             for bp in library
-            if registry.get(bp.name) is None
+            if bp.name not in tried
+            and registry.get(bp.name) is None
             and set(bp.inputs) <= reach
             and not set(bp.outputs) <= reach
         ]
@@ -170,6 +173,7 @@ def autonomous_extend(
             )
         )
         bp = candidates[0]
+        tried.add(bp.name)
         result = synthesizer.synthesize(
             name=bp.name,
             description=bp.description,
@@ -179,9 +183,29 @@ def autonomous_extend(
             examples=list(bp.examples),
         )
         attempts.append(
-            {"blueprint": bp.name, "admitted": result.admitted, "reason": result.reason}
+            {
+                "blueprint": bp.name,
+                "origin": "template",
+                "admitted": result.admitted,
+                "reason": result.reason,
+            }
         )
-        if result.admitted:
+        admitted = result.admitted
+        if not admitted and acquirer is not None:
+            acquired = acquirer.acquire(
+                bp.name, bp.description, bp.inputs, bp.outputs, list(bp.examples)
+            )
+            attempts.append(
+                {
+                    "blueprint": bp.name,
+                    "origin": "expert",
+                    "admitted": acquired.admitted,
+                    "reason": acquired.reason,
+                    "tried": len(acquired.attempts),
+                }
+            )
+            admitted = acquired.admitted
+        if admitted:
             added.append(bp.name)
 
     ops = operators_from(registry.list_active())
