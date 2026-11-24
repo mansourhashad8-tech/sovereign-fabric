@@ -46,3 +46,13 @@ def test_disclosure_has_required_sections():
         "## Limitations",
     ):
         assert section in markdown
+
+
+def test_cyclonedx_sbom_lists_every_dependency():
+    from sovereign.security import cyclonedx_sbom
+
+    sbom = cyclonedx_sbom()
+    assert sbom["bomFormat"] == "CycloneDX"
+    assert sbom["specVersion"] == "1.5"
+    assert sbom["components"]
+    assert all(component["purl"].startswith("pkg:pypi/") for component in sbom["components"])

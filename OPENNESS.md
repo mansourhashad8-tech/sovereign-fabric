@@ -35,6 +35,7 @@ python -m pytest
 python -m sovereign audit --strict
 python -m sovereign disclosure
 python -m sovereign openness
+python -m sovereign sbom
 ```
 
 The audit:
@@ -45,12 +46,14 @@ The audit:
   HTTP, and swallowed exceptions,
 - resolves direct and transitive requirements and classifies their licences,
 - queries OSV for known vulnerabilities in the resolved versions,
-- writes `SECURITY_DISCLOSURE.md` and `OPENNESS_MANIFEST.json`.
+- runs in-process DAST checks (`tests/test_dast.py`),
+- writes `SECURITY_DISCLOSURE.md`, `OPENNESS_MANIFEST.json`, and a CycloneDX
+  1.5 `sbom.cdx.json`.
 
 ## What is public and what is not
 
-Public: all source, tests, the scanner, the disclosure report, the manifest, and
-the dependency list.
+Public: all source, tests, the scanner, the DAST checks, the disclosure
+report, the manifest, the SBOM, the threat model, and the dependency list.
 
 Not public: the hosted runtime, optional model weights behind an external
 provider, and any user data. No user data is required to run the project.

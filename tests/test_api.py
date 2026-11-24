@@ -320,3 +320,9 @@ def test_security_audit_endpoint_is_open_and_clean():
 def test_security_report_endpoint_is_markdown():
     text = _client().get("/security/report?online=false").text
     assert "# Security & Openness Disclosure" in text
+
+
+def test_dashboard_shows_openness_panel():
+    text = _client().get("/dashboard").text
+    assert "Openness &amp; security" in text
+    assert "loadSecurity" in text

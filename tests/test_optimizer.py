@@ -23,12 +23,16 @@ def test_optimizer_keeps_a_verified_faster_variant():
     store.close()
 
 
-def test_optimizer_leaves_a_capability_alone_without_a_gain():
+def test_optimizer_only_switches_when_the_output_is_identical():
     store, registry, optimizer = _setup()
-    before = registry.active("text.tokenize").entry
+    before_entry = registry.active("text.tokenize").entry
+    before_value = registry.invoke("text.tokenize", {"value": "a b a"})
     result = optimizer.optimize("text.tokenize", repeats=2)
-    assert result["chosen"] is None
-    assert registry.active("text.tokenize").entry == before
+    assert registry.invoke("text.tokenize", {"value": "a b a"}) == before_value
+    if result["chosen"] is None:
+        assert registry.active("text.tokenize").entry == before_entry
+    else:
+        assert any(item["verified"] for item in result["variants"])
     store.close()
 
 

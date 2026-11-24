@@ -14,8 +14,9 @@ flowchart LR
   F --> S[Self-model]
   F --> B[Cited brief]
   F --> M[Mastery]
-  API --> SEC[Security and openness audit]
-  SEC --> D[Disclosure report]
+  API --> GUARD[Key, rate limit, body cap, headers]
+  GUARD --> SEC[Security and openness audit]
+  SEC --> D[Disclosure report + SBOM]
 ```
 
 ## Layers
@@ -33,8 +34,9 @@ flowchart LR
    speedup; six scores and an overclaim detector.
 5. **Introspection**: a self-model that plans its own claims, lexical claim
    support, randomized property checks, and confidence intervals.
-6. **Openness**: a static scanner, licence inventory, OSV lookup, and a public
-   disclosure report.
+6. **Openness**: a static scanner, licence inventory, OSV lookup, CycloneDX
+   SBOM, a public disclosure report, and a threat model. API guards add an
+   optional key, a per-client rate limit, a body cap, and security headers.
 
 ## Data flow
 

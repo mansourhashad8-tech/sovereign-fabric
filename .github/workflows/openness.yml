@@ -23,8 +23,12 @@ jobs:
         run: python -m sovereign audit --strict
       - name: Write disclosure report
         run: python -m sovereign disclosure
+      - name: Write CycloneDX SBOM
+        run: python -m sovereign sbom
       - name: Upload disclosure
         uses: actions/upload-artifact@v4
         with:
           name: disclosure
-          path: SECURITY_DISCLOSURE.md
+          path: |
+            SECURITY_DISCLOSURE.md
+            sbom.cdx.json

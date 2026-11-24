@@ -3,8 +3,8 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from .absorption import absorb
@@ -13,6 +13,7 @@ from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
 from .evidence import verify_claim
 from .evolution import EvolutionEngine
+from .guard import ApiKey, RateLimiter, max_body_bytes, security_headers
 from .intent import parse_intent
 from .loop import EvolutionLoop
 from .mastery import Mastery
@@ -22,14 +23,14 @@ from .models import Evidence, KnowledgeUnit
 from .redteam import audit
 from .properties import check_capabilities
 from .report import render_report, system_report
-from .security import audit as security_audit, disclosure_markdown
+from .security import audit as security_audit, cyclonedx_sbom, disclosure_markdown
 from .selfmodel import SelfModel
 from .store import FabricStore
 
 
 class ConsultRequest(BaseModel):
-    query: str
-    limit: int = 5
+    query: str = Field(min_length=1, max_length=500)
+    limit: int = Field(default=5, ge=1, le=50)
     sources: list[str] | None = None
 
 
@@ -51,12 +52,12 @@ class RollbackRequest(BaseModel):
 
 
 class EvolveRequest(BaseModel):
-    request: str
+    request: str = Field(min_length=1, max_length=2000)
     goal_type: str = "markdown"
     initial: list[str] = Field(default_factory=lambda: ["text"])
-    text: str | None = None
+    text: str | None = Field(default=None, max_length=20000)
     sources: list[str] | None = None
-    limit: int = 5
+    limit: int = Field(default=5, ge=1, le=50)
     synthesize: dict[str, Any] | None = None
     budget_s: float = 5.0
     auto_extend: bool = False
@@ -64,8 +65,8 @@ class EvolveRequest(BaseModel):
 
 
 class ValidateRequest(BaseModel):
-    subject: str
-    claims: list[str] = Field(default_factory=list)
+    subject: str = Field(min_length=1, max_length=500)
+    claims: list[str] = Field(default_factory=list, max_length=50)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     context: dict[str, Any] = Field(default_factory=dict)
 
@@ -80,7 +81,7 @@ class AcquireRequest(BaseModel):
 
 
 class BriefRequest(BaseModel):
-    query: str = Field(min_length=1)
+    query: str = Field(min_length=1, max_length=500)
     limit: int = Field(default=5, ge=1, le=20)
     sources: list[str] | None = None
     lang: str = "en"
@@ -88,12 +89,12 @@ class BriefRequest(BaseModel):
 
 
 class ClaimRequest(BaseModel):
-    claim: str = Field(min_length=1)
+    claim: str = Field(min_length=1, max_length=2000)
     k: int = 5
 
 
 class AskRequest(BaseModel):
-    request: str = Field(min_length=1)
+    request: str = Field(min_length=1, max_length=2000)
     budget_s: float = 10.0
     sources: list[str] | None = None
     auto_extend: bool = True
@@ -156,6 +157,44 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.cache = cache
     app.state.optimizer = optimizer
     app.state.loop = loop
+    api_key = ApiKey()
+    limiter = RateLimiter()
+
+    @app.middleware("http")
+    async def harden(request: Request, call_next):
+        if request.method not in {"GET", "HEAD", "OPTIONS"} and not api_key.allows(
+            request.headers.get("x-api-key")
+        ):
+            return JSONResponse(
+                {"detail": "invalid or missing API key"},
+                status_code=401,
+                headers=security_headers(),
+            )
+        length = request.headers.get("content-length")
+        if length:
+            try:
+                size = int(length)
+            except ValueError:
+                size = 0
+            if size > max_body_bytes():
+                return JSONResponse(
+                    {"detail": "request body too large"},
+                    status_code=413,
+                    headers=security_headers(),
+                )
+        client = request.client.host if request.client else "unknown"
+        decision = limiter.check(client)
+        if not decision.allowed:
+            return JSONResponse(
+                {"detail": "rate limit exceeded"},
+                status_code=429,
+                headers={**security_headers(), "Retry-After": str(decision.retry_after)},
+            )
+        response = await call_next(request)
+        for name, value in security_headers().items():
+            response.headers.setdefault(name, value)
+        response.headers["X-RateLimit-Remaining"] = str(decision.remaining)
+        return response
 
     @app.get("/")
     def root() -> dict[str, Any]:
@@ -184,6 +223,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /self",
                 "GET /properties",
                 "GET /security/audit",
+                "GET /security/sbom",
                 "GET /security/report",
                 "POST /brief",
                 "GET /mastery",
@@ -201,15 +241,6 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /failures",
                 "POST /validate",
             ],
-        }
-
-    @app.get("/health")
-    def health() -> dict[str, Any]:
-        return {
-            "status": "ok",
-            "knowledge_units": store.count_knowledge(),
-            "active_capabilities": len(engine.registry.list_active()),
-            "guardians": engine.guardians.names(),
         }
 
     @app.get("/guardians")
@@ -372,9 +403,25 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "attempts": result.attempts,
         }
 
+    @app.get("/health")
+    def health() -> dict[str, Any]:
+        return {
+            "status": "ok",
+            "ok": True,
+            "version": "0.1.0",
+            "capabilities": len(engine.registry.list_active()),
+            "knowledge_units": store.count_knowledge(),
+            "api_key_required": api_key.enabled,
+            "rate_limit_per_window": limiter.limit,
+        }
+
     @app.get("/security/audit")
     def security_audit_endpoint(online: bool = True) -> dict[str, Any]:
         return security_audit(online=online)
+
+    @app.get("/security/sbom")
+    def security_sbom_endpoint() -> dict[str, Any]:
+        return cyclonedx_sbom(security_audit(online=False))
 
     @app.get("/security/report")
     def security_report_endpoint(online: bool = True) -> PlainTextResponse:

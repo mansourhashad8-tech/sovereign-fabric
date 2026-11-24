@@ -35,6 +35,8 @@ report. Redact them.
 - Guardian adapters and their parsing.
 - Capability synthesis and the subprocess gate.
 - The dependency chain declared in `pyproject.toml`.
+- API guards (key, rate limit, body cap, headers) and the DAST checks in
+  `tests/test_dast.py`.
 
 Out of scope: social engineering, denial of service against third-party
 services, and vulnerabilities in optional external model providers.
@@ -46,6 +48,7 @@ python -m pytest
 python -m sovereign audit --strict      # static rules + licences + OSV
 python -m sovereign disclosure          # writes SECURITY_DISCLOSURE.md
 python -m sovereign openness            # writes OPENNESS_MANIFEST.json
+python -m sovereign sbom                # writes sbom.cdx.json
 ```
 
 The audit fails closed: a high/critical finding, an unknown licence, a known

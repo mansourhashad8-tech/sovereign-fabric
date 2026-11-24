@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from .arabic import split_sentences, tokenize_text
+
 
 def tokenize(payload: dict[str, Any]) -> dict[str, Any]:
     text = str(payload.get("value", ""))
-    return {"value": text.split()}
+    return {"value": tokenize_text(text)}
 
 
 def count_tokens(payload: dict[str, Any]) -> dict[str, Any]:
@@ -36,9 +38,7 @@ def format_report(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def extractive_summary(payload: dict[str, Any]) -> dict[str, Any]:
-    text = str(payload.get("value", ""))
-    normalized = text.replace("!", ".").replace("?", ".")
-    sentences = [s.strip() for s in normalized.split(".") if s.strip()]
+    sentences = split_sentences(str(payload.get("value", "")))
     return {"value": sentences[0] if sentences else ""}
 
 
@@ -61,7 +61,7 @@ _SENTENCE_END = _re.compile(r"[.!?]")
 
 
 def tokenize_regex(payload: dict[str, Any]) -> dict[str, Any]:
-    return {"value": _WHITESPACE.findall(str(payload.get("value", "")))}
+    return {"value": tokenize_text(str(payload.get("value", "")))}
 
 
 def count_tokens_counter(payload: dict[str, Any]) -> dict[str, Any]:

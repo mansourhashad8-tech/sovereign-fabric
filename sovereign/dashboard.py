@@ -165,6 +165,12 @@ DASHBOARD_HTML = """<!doctype html>
   </div>
 
   <div class="panel" style="margin-top:14px">
+    <h3>Openness &amp; security <span id="securityStamp" style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400"></span></h3>
+    <div class="caps" id="securityCaps"></div>
+    <div class="limits" id="securityOut"></div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
     <h3>Capabilities</h3>
     <div class="caps" id="caps"></div>
   </div>
@@ -355,6 +361,29 @@ async function practiceNow() {
 
 loadMastery();
 setInterval(loadMastery, 20000);
+
+async function loadSecurity() {
+  try {
+    const report = await get('/security/audit?online=false');
+    const counts = report.finding_counts || {};
+    const high = (counts.critical || 0) + (counts.high || 0);
+    $('securityCaps').innerHTML = [
+      `<span class="cap ${report.openness_passed ? 'admitted' : 'quarantined'}">openness ${report.openness_passed ? 'PASS' : 'REVIEW'}</span>`,
+      `<span class="cap ${high ? 'quarantined' : 'admitted'}">${high} high · ${counts.medium || 0} med · ${counts.low || 0} low</span>`,
+      `<span class="cap">${report.dependencies.length} deps</span>`,
+      `<span class="cap ${report.unknown_licenses.length ? 'quarantined' : 'admitted'}">unknown licences ${report.unknown_licenses.length}</span>`,
+      `<span class="cap">${report.source_files.length} files hashed</span>`
+    ].join('');
+    const osv = report.vulnerability_check || {};
+    $('securityOut').textContent =
+      `OSV: ${osv.ok ? (osv.vulnerabilities || []).length + ' known' : 'offline (CLI audit is online)'} · ` +
+      `report /security/report · SBOM /security/sbom`;
+    $('securityStamp').textContent = '· ' + new Date(report.generated_at).toLocaleTimeString();
+  } catch (e) {}
+}
+
+loadSecurity();
+setInterval(loadSecurity, 60000);
 
 async function loadSelf() {
   try {

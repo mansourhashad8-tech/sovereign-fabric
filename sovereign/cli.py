@@ -108,6 +108,10 @@ def main(argv: list[str] | None = None) -> int:
     disclosure.add_argument("--path", default="SECURITY_DISCLOSURE.md")
     disclosure.add_argument("--offline", action="store_true")
 
+    sbom = sub.add_parser("sbom", help="write a CycloneDX SBOM")
+    sbom.add_argument("--path", default="sbom.cdx.json")
+    sbom.add_argument("--offline", action="store_true")
+
     openness = sub.add_parser("openness", help="write a source/licence manifest")
     openness.add_argument("--path", default="OPENNESS_MANIFEST.json")
     openness.add_argument("--offline", action="store_true")
@@ -254,6 +258,11 @@ def main(argv: list[str] | None = None) -> int:
                 "finding_counts": result["finding_counts"],
             }
         )
+    elif args.command == "sbom":
+        from .security import write_sbom
+
+        result = write_sbom(args.path, online=not args.offline)
+        _print({"path": args.path, "components": len(result["components"]), "spec": result["specVersion"]})
     elif args.command == "openness":
         from .security import write_manifest
 

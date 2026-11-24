@@ -171,6 +171,18 @@ curl -X POST localhost:12000/ask \
 Live result: goal `summary`, plan `text.summarize`, all six criteria pass,
 output `retrieval augmented generation`.
 
+### Arabic normalization
+
+Arabic text is normalized before tokenization: diacritics and tatweel are
+removed, `أ/إ/آ` unify to `ا`, `ى` to `ي`, `ة` to `ه`, and Arabic punctuation
+is dropped from tokens. English behaviour is unchanged. The same normalization
+is used by `text.tokenize`, its optimized variant, and the extractive summary.
+
+```python
+from sovereign.arabic import tokenize_text
+tokenize_text("الذكاءُ الاصطناعي، والتعلّم!")  # ['الذكاء', 'الاصطناعي', 'والتعلم']
+```
+
 ## A self-model that plans its own claims
 
 `GET /self` does not describe itself from a script. It asks the planner whether
@@ -313,6 +325,29 @@ A source that fails is put in a 30-second cooldown instead of being retried on
 every call, and a global deadline marks stragglers as `timeout` so one slow
 source cannot hold the whole consultation.
 
+## API hardening
+
+The API has an optional key, a per-client rate limit, a body cap, and
+restrictive headers. The key is opt-in:
+
+```bash
+export SOVEREIGN_API_KEY=change-me        # non-GET requests need X-API-Key
+export SOVEREIGN_RATE_LIMIT=120           # requests per window
+export SOVEREIGN_RATE_WINDOW=60
+export SOVEREIGN_MAX_BODY=2000000
+```
+
+When the key is set, every POST/PUT/DELETE requires `X-API-Key`; the comparison
+uses `hmac.compare_digest`. GET endpoints stay public for the dashboard and
+report. Responses carry `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, a
+self-only CSP, and `X-RateLimit-Remaining`.
+
+`tests/test_dast.py` is an in-process dynamic suite: SQL-injection-shaped
+input, malformed JSON, XSS-shaped input, oversized bodies, wrong methods, and
+unknown routes. It checks status codes and response types, not just unit
+functions.
+
 ## Openness and mandatory disclosure
 
 The source is MIT-licensed. `python -m sovereign audit --strict` parses every
@@ -326,8 +361,9 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **36** source files hashed with SHA-256
+- **38** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
+- **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
 The scanner found real issues and they were fixed, not hidden:
 
@@ -341,11 +377,13 @@ The scanner found real issues and they were fixed, not hidden:
 python -m sovereign audit --strict
 python -m sovereign disclosure   # SECURITY_DISCLOSURE.md
 python -m sovereign openness     # OPENNESS_MANIFEST.json
+python -m sovereign sbom         # sbom.cdx.json
 ```
 
 The report says what it is: a conservative pattern audit, not proof of absence.
 It names the limitations, the failed checks, and the disclosure policy. See
-`SECURITY.md`, `OPENNESS.md`, and `docs/ARCHITECTURE.md`.
+`SECURITY.md`, `OPENNESS.md`, `docs/ARCHITECTURE.md`, and
+`docs/THREAT_MODEL.md`.
 
 ## What this is not
 
@@ -366,6 +404,9 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | "Zero vulnerabilities" | The audit reports 0 findings from these rules and 0 OSV hits; that is not a proof of absence. |
 | "A security certification" | The scanner is public and conservative; it is not an external audit or a DAST suite. |
 | "A closed model" | No closed-source library is required. The optional expert endpoint is a service, disabled by default. |
+| "A full OS sandbox" | Synthesized code runs in a separate process with a sanitized environment and a timeout. It is not a kernel sandbox. |
+| "A distributed rate limiter" | The limiter is in-process, per client. It does not coordinate across replicas. |
+| "An Arabic translator" | The system normalizes Arabic and routes Arabic requests; it does not translate content. |
 | "Sub-millisecond execution for any task" | Only cache hits are microseconds; real work takes real time. |
 | "Quantum parallel processing" | A classical process pool on 4 cores; measured 2.36x on CPU-heavy work and slower on trivial work. |
 | "Borrowed supercomputers" | A remote hook exists; no endpoint is configured, so it refuses. |
@@ -410,7 +451,9 @@ sovereign/
   properties.py    randomized invariants over native capabilities
   brief.py         cited, extractive brief for any topic (EN/AR headings)
   mastery.py       pass-rate table + weakest-goal practice
-  security.py      static scanner, licence inventory, OSV, disclosure report
+  security.py      static scanner, licence inventory, OSV, SBOM, disclosure
+  guard.py         optional API key, rate limit, body cap, security headers
+  arabic.py        Arabic normalization, tokenization, sentence splitting
   stats.py         bootstrap confidence intervals
   api.py           FastAPI service
   cli.py           command-line interface
@@ -488,6 +531,7 @@ curl -s localhost:12000/redteam
 | POST | `/mastery/practice` | practise the weakest goal with auto-extension |
 | GET | `/security/audit` | static scan, licences, OSV (`online=true|false`) |
 | GET | `/security/report` | Markdown disclosure report |
+| GET | `/security/sbom` | CycloneDX 1.5 SBOM |
 | POST | `/ask` | route an Arabic or English request into a cycle |
 | POST | `/optimize` | benchmark equivalent implementations, keep the faster |
 | GET/POST | `/loop/status`, `/loop/start`, `/loop/stop`, `/loop/tick` | bounded continuous loop |
@@ -517,7 +561,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 163 tests
+python -m pytest        # 183 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -534,9 +578,10 @@ bounded continuous loop (tick, start/stop, optimization inside a tick), Arabic
 and English intent routing, the evidence-derived self-model, lexical claim
 support and refusal, randomized property checks (including a deliberately
 broken implementation), cited briefs in English and Arabic, mastery
-tracking/practice, security scanner (dynamic code, shell, secrets, weak
-hashes, TLS, SQL, HTTP), licence inventory, disclosure report, self-directed
-curriculum, red-team guardrail
+tracking/practice, Arabic normalization, security scanner (dynamic code,
+shell, secrets, weak hashes, TLS, SQL, HTTP), API key/rate-limit/body guards,
+DAST checks, licence inventory, CycloneDX SBOM, disclosure report, threat
+model, self-directed curriculum, red-team guardrail
 coverage, batch execution across serial/threads/processes, measured-speedup
 honesty, hot-cache hits and expiry, verified prefetch, remote-executor refusal,
 consultation deadline and failure cooldown, the judged end-to-end report and the

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/mansourhashad8-tech/sovereign-fabric/security/advisories/new
+    about: Report privately. Do not open a public issue with exploit details.
+  - name: Openness and audit
+    url: https://github.com/mansourhashad8-tech/sovereign-fabric/blob/main/OPENNESS.md
+    about: How to reproduce the licence, SBOM, and vulnerability audit.

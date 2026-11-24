@@ -498,3 +498,45 @@ def write_manifest(path: str = "OPENNESS_MANIFEST.json", online: bool = True) ->
     report = audit(online=online)
     Path(path).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     return report
+
+
+def cyclonedx_sbom(report: dict[str, Any] | None = None) -> dict[str, Any]:
+    report = report or audit(online=False)
+    components = []
+    for row in report["dependencies"]:
+        version = row["version"] or ""
+        purl = f"pkg:pypi/{row['name'].lower()}@{version}" if version else f"pkg:pypi/{row['name'].lower()}"
+        component: dict[str, Any] = {
+            "type": "library",
+            "bom-ref": purl,
+            "name": row["name"],
+            "version": version,
+            "purl": purl,
+        }
+        if row["license"] and row["license"] != "unknown":
+            component["licenses"] = [{"license": {"name": row["license"]}}]
+        components.append(component)
+    return {
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.5",
+        "version": 1,
+        "metadata": {
+            "timestamp": report["generated_at"],
+            "tools": [
+                {"vendor": "sovereign-fabric", "name": "security.py", "version": "0.1.0"}
+            ],
+            "component": {
+                "type": "application",
+                "bom-ref": "pkg:pypi/sovereign-fabric@0.1.0",
+                "name": "sovereign-fabric",
+                "version": "0.1.0",
+            },
+        },
+        "components": components,
+    }
+
+
+def write_sbom(path: str = "sbom.cdx.json", online: bool = False) -> dict[str, Any]:
+    sbom = cyclonedx_sbom(audit(online=online))
+    Path(path).write_text(json.dumps(sbom, indent=2, ensure_ascii=False), encoding="utf-8")
+    return sbom
