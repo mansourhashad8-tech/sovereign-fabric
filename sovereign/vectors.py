@@ -12,7 +12,7 @@ import hashlib
 import math
 import re
 
-from .arabic import normalize_arabic
+from .arabic import normalize_arabic, stem_text
 
 _TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 DEFAULT_DIM = 1024
@@ -33,6 +33,23 @@ def embed(text: str, dim: int = DEFAULT_DIM) -> list[float]:
     if norm:
         vec = [v / norm for v in vec]
     return vec
+
+
+def embed_query(text: str, dim: int = DEFAULT_DIM) -> list[float]:
+    """Embed a query with a light Arabic stem variant mixed in.
+
+    Documents keep their exact word vectors. Queries that can be stemmed are
+    blended with the stemmed form, so ``الكتابات`` can reach ``كتاب`` without
+    re-embedding the whole store.
+    """
+    base = embed(text, dim)
+    stems = " ".join(stem_text(text))
+    if not stems or stems == " ".join(tokenize(text)):
+        return base
+    alt = embed(stems, dim)
+    mixed = [0.5 * a + 0.5 * b for a, b in zip(base, alt)]
+    norm = math.sqrt(sum(v * v for v in mixed))
+    return [v / norm for v in mixed] if norm else mixed
 
 
 def cosine(a: list[float], b: list[float]) -> float:

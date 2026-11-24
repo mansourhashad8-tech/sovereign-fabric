@@ -10,6 +10,7 @@ from .absorption import absorb, propose_capabilities
 from .capabilities import CapabilityRegistry, bootstrap_native
 from .diagnostics import diagnose
 from .extras import bootstrap_extras
+from .feedback import feedback_scores, feedback_summary, record_feedback
 from .metrics import Metrics
 from .evolution import EvolutionCycle, EvolutionEngine
 from .models import (
@@ -23,6 +24,7 @@ from .models import (
 )
 from .pathfinder import Operator, PathFinder, operators_from
 from .pipeline import run_pipeline
+from .repair import repair
 from .store import FabricStore
 from .synthesis import SynthesisResult, Synthesizer
 from .validator import HolisticValidator
@@ -38,6 +40,10 @@ __all__ = [
     "diagnose",
     "Metrics",
     "run_pipeline",
+    "feedback_scores",
+    "feedback_summary",
+    "record_feedback",
+    "repair",
     "EvolutionCycle",
     "EvolutionEngine",
     "Capability",

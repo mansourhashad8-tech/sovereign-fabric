@@ -2,7 +2,7 @@ import os
 
 from sovereign.models import Capability, KnowledgeUnit, Provenance, utcnow
 from sovereign.store import FabricStore
-from sovereign.vectors import DEFAULT_DIM, cosine, embed, tokenize
+from sovereign.vectors import DEFAULT_DIM, cosine, embed, embed_query, tokenize
 
 
 def _unit(uid: str, title: str, summary: str, source: str = "local") -> KnowledgeUnit:
@@ -158,5 +158,18 @@ def test_tokenize_arabic_and_retrieve_arabic_knowledge():
     store.upsert_knowledge(_unit("en", "SQLite WAL", "write ahead logging"))
     hits = store.search_knowledge("الاصطناعي", k=2)
     assert hits[0][0].id == "ar"
+    assert hits[0][1] > hits[1][1]
+    store.close()
+
+
+def test_arabic_query_expansion_reaches_the_stem():
+    assert cosine(embed_query("الكتابات"), embed("كتاب")) > cosine(
+        embed("الكتابات"), embed("كتاب")
+    )
+    store = FabricStore()
+    store.upsert_knowledge(_unit("book", "كتاب", "كتاب في التعلم"))
+    store.upsert_knowledge(_unit("wal", "SQLite WAL", "write ahead logging"))
+    hits = store.search_knowledge("الكتابات", k=2)
+    assert hits[0][0].id == "book"
     assert hits[0][1] > hits[1][1]
     store.close()

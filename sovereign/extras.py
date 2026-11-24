@@ -30,7 +30,7 @@ from datetime import date, timedelta
 from itertools import islice
 from typing import Any
 
-from .arabic import normalize_arabic, split_sentences, tokenize_text
+from .arabic import normalize_arabic, split_sentences, stem_text, tokenize_text
 from .capabilities import CapabilityRegistry
 from .models import Capability, Provenance
 
@@ -428,19 +428,7 @@ def text_arabic_digits(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def text_arabic_stem(payload: dict[str, Any]) -> dict[str, Any]:
-    stems: list[str] = []
-    for token in _words(_text(payload)):
-        word = token
-        for prefix in ("وال", "بال", "كال", "فال", "لل", "ال"):
-            if word.startswith(prefix) and len(word) - len(prefix) >= 3:
-                word = word[len(prefix) :]
-                break
-        for suffix in ("ها", "ان", "ات", "ون", "ين", "ة", "ه", "ي"):
-            if word.endswith(suffix) and len(word) - len(suffix) >= 3:
-                word = word[: -len(suffix)]
-                break
-        stems.append(word)
-    return {"value": stems}
+    return {"value": stem_text(_text(payload))}
 
 
 def text_stopwords(payload: dict[str, Any]) -> dict[str, Any]:

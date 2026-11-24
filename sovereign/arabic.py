@@ -38,3 +38,25 @@ def tokenize_text(text: str) -> list[str]:
 def split_sentences(text: str) -> list[str]:
     normalized = text.replace("!", ".").replace("?", ".").replace("؟", ".").replace("۔", ".")
     return [sentence.strip() for sentence in normalized.split(".") if sentence.strip()]
+
+_PREFIXES = ("وال", "بال", "كال", "فال", "لل", "ال")
+_SUFFIXES = ("ها", "ان", "ات", "ون", "ين", "ة", "ه", "ي")
+
+
+def light_stem(word: str) -> str:
+    """Strip common Arabic prefixes and suffixes; this is not morphology."""
+    word = normalize_arabic(word)
+    for prefix in _PREFIXES:
+        if word.startswith(prefix) and len(word) - len(prefix) >= 3:
+            word = word[len(prefix) :]
+            break
+    for suffix in _SUFFIXES:
+        if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+            word = word[: -len(suffix)]
+            break
+    return word
+
+
+def stem_text(text: str) -> list[str]:
+    return [light_stem(token) for token in tokenize_text(text)]
+

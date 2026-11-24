@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .models import Capability, KnowledgeUnit, Provenance, utcnow
-from .vectors import cosine, embed
+from .vectors import cosine, embed, embed_query
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS knowledge (
@@ -133,7 +133,7 @@ class FabricStore:
         self, query: str, k: int = 5, qvec=None
     ) -> list[tuple[KnowledgeUnit, float]]:
         if qvec is None:
-            qvec = embed(query)
+            qvec = embed_query(query)
         with self._lock:
             rows = self._conn.execute("SELECT * FROM knowledge").fetchall()
         scored = []

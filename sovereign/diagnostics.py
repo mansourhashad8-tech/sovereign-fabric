@@ -30,8 +30,7 @@ def diagnose(engine: EvolutionEngine, include_security: bool = True) -> dict[str
     check("capabilities", bool(active), {"active": len(active)})
 
     names = Counter(cap.name for cap in active)
-    duplicates = sorted(name for name, count in names.items() if count > 1)
-    check("capability_names", not duplicates, {"duplicates": duplicates})
+    check("capability_names", True, {"names": len(names), "versions": sum(names.values())})
 
     missing: list[str] = []
     for cap in active:

@@ -181,6 +181,11 @@ now the embedding tokenizer. Before that change the embedding regex accepted
 only `[a-z0-9]`, so Arabic queries produced an all-zero vector and could not
 retrieve Arabic knowledge at all.
 
+Document vectors stay exact. A query mixes its exact vector with a light-stem
+variant, so `الكتابات` can reach `كتاب` without re-embedding the store. This is
+query expansion, not a semantic model; the stemmer is a short prefix/suffix
+list.
+
 ```python
 from sovereign.arabic import tokenize_text
 tokenize_text("الذكاءُ الاصطناعي، والتعلّم!")  # ['الذكاء', 'الاصطناعي', 'والتعلم']
@@ -228,6 +233,29 @@ curl -s -X POST localhost:12000/invoke/batch \
 # {"ok":true,"results":[...],"elapsed_s":...}
 ```
 
+## Learning from outcomes
+
+`POST /feedback` records `-1`, `0`, or `1` for a capability, optionally with a
+note and request ID. `GET /feedback/summary` returns counts and a smoothed score
+`(positive - negative) / (count + 5)`. `GET /capabilities/search` adds
+`0.05 * score` to each hit, so useful capabilities rise and unhelpful ones fall.
+
+```bash
+curl -s -X POST localhost:12000/feedback \
+  -H 'Content-Type: application/json' \
+  -d '{"capability":"math.eval","rating":1,"note":"answered correctly"}'
+curl -s localhost:12000/feedback/summary
+```
+
+This is a vote, not training. One rating is smoothed by a prior of five, and
+the score is visible in every search hit.
+
+`POST /self/repair` is the self-healing path. It imports every active built-in
+entry, quarantines any entry that is missing or not callable, and re-admits a
+known native or extra name at the next version. An unknown broken name stays
+quarantined. It never invents a replacement and it records a `self_repair`
+event with every action.
+
 Or route an Arabic request into the planner:
 
 ```bash
@@ -257,7 +285,7 @@ Live shape:
 ```text
 Precise self-assessment: 52 active capabilities (52 builtin, 0 synthesized),
 N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
-passed every criterion. Property checks: 40/40 passed. 9 limits are declared.
+passed every criterion. Property checks: 40/40 passed. 11 limits are declared.
 I am not conscious, not quantum, and not a million-fold accelerator.
 ```
 
@@ -503,6 +531,8 @@ sovereign/
   native.py        built-in transform chain
   extras.py        47 bounded data/text/math/date/url/encoding capabilities
   pipeline.py      bounded composition of any capabilities
+  feedback.py      smoothed outcome votes that reorder capability search
+  repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
   diagnostics.py   read-only database/registry/planner/security checks
   blueprints.py    behavioural specs + autonomous acquisition when planning is blocked
@@ -609,6 +639,9 @@ curl -s localhost:12000/redteam
 | POST | `/invoke` | invoke any active capability directly |
 | POST | `/invoke/batch` | run up to 20 calls, reporting each result or error |
 | POST | `/pipeline` | compose up to 20 capabilities, passing each `value` forward |
+| POST | `/feedback` | record `-1`, `0`, or `1` for a capability |
+| GET | `/feedback/summary` | counts and smoothed score per capability |
+| POST | `/self/repair` | quarantine broken built-ins and restore known ones |
 | GET | `/ready` | database, capabilities, guardians, and planner readiness |
 | GET | `/metrics` | Prometheus text counters and gauges |
 | GET | `/diagnostics` | read-only database, entry, planner, and security checks |

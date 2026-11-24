@@ -25,11 +25,11 @@
 | Threat | Example | Mitigation | Residual risk |
 | --- | --- | --- | --- |
 | Spoofing | Forged API client | Optional `X-API-Key`, constant-time compare | GET endpoints are public by design |
-| Tampering | Modified dependency or source | Hash manifest, licence audit, CI, review | No signed commits enforced |
+| Tampering | Modified dependency or source, spam feedback | Hash manifest, licence audit, CI, review, rate-limited feedback, event log | Feedback is unauthenticated by default and can reorder search; no signed commits enforced |
 | Repudiation | Unlogged mutation | Append-only event log for cycles and optimizations | API access logs are not persisted |
 | Information disclosure | Secret in source or response | Secret pattern scan, sanitized subprocess env, no secrets in reports; `/metrics` and `/diagnostics` report counts and static findings, never environment values | A new secret format can evade the regex |
-| Denial of service | Huge body, request flood, huge guardian response, long pipeline | 2 MB API body cap, per-client sliding window, 2 MB guardian fetch cap, 20-step pipeline cap, per-capability input caps | Limiter is in-process, not distributed |
-| Elevation of privilege | `eval`/`exec` escape | AST evaluator, isolated subprocess, no shell; pipeline can only call registered capabilities | Subprocess is not a full OS sandbox |
+| Denial of service | Huge body, request flood, huge guardian response, long pipeline, feedback flood | 2 MB API body cap, per-client sliding window, 2 MB guardian fetch cap, 20-step pipeline cap, 20-call batch cap, per-capability input caps, rating validation | Limiter is in-process; the feedback table has no retention policy |
+| Elevation of privilege | `eval`/`exec` escape, repair abuse | AST evaluator, isolated subprocess, no shell; pipeline can only call registered capabilities; repair only quarantines broken built-ins and restores known names | Subprocess is not a full OS sandbox |
 | Prompt injection | Malicious guardian text | Text is data; it is not executed | A future LLM path could be influenced |
 
 ## Out of scope

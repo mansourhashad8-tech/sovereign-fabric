@@ -75,7 +75,7 @@ class Metrics:
                 f"# TYPE sovereign_{kind}_rejections_total counter",
                 f"sovereign_{kind}_rejections_total {value}",
             ]
-        for key in ("capabilities", "knowledge_units", "cycles", "optimizations"):
+        for key in ("capabilities", "knowledge_units", "cycles", "optimizations", "feedback"):
             if key in data:
                 lines += [
                     f"# HELP sovereign_{key} Current {key}",

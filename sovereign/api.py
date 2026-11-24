@@ -17,6 +17,7 @@ from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
 from .diagnostics import diagnose
 from .evidence import verify_claim
+from .feedback import feedback_scores, feedback_summary, record_feedback
 from .evolution import EvolutionEngine
 from .guard import ApiKey, RateLimiter, max_body_bytes, security_headers
 from .intent import parse_intent
@@ -26,6 +27,7 @@ from .metrics import Metrics
 from .optimizer import Optimizer
 from .pathfinder import operators_from
 from .pipeline import run_pipeline
+from .repair import repair
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
 from .models import Evidence, KnowledgeUnit
 from .redteam import audit
@@ -120,6 +122,13 @@ class BatchInvokeCall(BaseModel):
 
 class BatchInvokeRequest(BaseModel):
     calls: list[BatchInvokeCall] = Field(min_length=1, max_length=20)
+
+
+class FeedbackRequest(BaseModel):
+    capability: str = Field(min_length=1, max_length=100)
+    rating: int = Field(ge=-1, le=1)
+    note: str = Field(default="", max_length=500)
+    request_id: str | None = Field(default=None, max_length=64)
 
 
 class ClaimRequest(BaseModel):
@@ -294,6 +303,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /invoke",
                 "POST /invoke/batch",
                 "POST /pipeline",
+                "POST /feedback",
+                "GET /feedback/summary",
+                "POST /self/repair",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -378,6 +390,24 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "elapsed_s": round(time.perf_counter() - started, 6),
         }
 
+    @app.post("/feedback")
+    def feedback_endpoint(body: FeedbackRequest) -> dict[str, Any]:
+        try:
+            payload = record_feedback(
+                store, body.capability, body.rating, body.note, body.request_id
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"ok": True, "feedback": payload}
+
+    @app.get("/feedback/summary")
+    def feedback_summary_endpoint() -> dict[str, Any]:
+        return {"rows": feedback_summary(store)}
+
+    @app.post("/self/repair")
+    def self_repair_endpoint() -> dict[str, Any]:
+        return repair(engine)
+
     @app.post("/pipeline")
     def pipeline(body: PipelineRequest) -> dict[str, Any]:
         try:
@@ -391,18 +421,21 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         k: int = Query(default=5, ge=1, le=50),
     ) -> dict[str, Any]:
         qvec = embed(q)
+        scores = feedback_scores(store)
         hits = []
         for cap in engine.registry.list_active():
             text = " ".join(
                 [cap.name, cap.description, *cap.inputs, *cap.outputs]
             )
+            feedback = scores.get(cap.name, 0.0)
             hits.append(
                 {
                     "name": cap.name,
                     "description": cap.description,
                     "inputs": list(cap.inputs),
                     "outputs": list(cap.outputs),
-                    "score": round(cosine(qvec, embed(text)), 6),
+                    "score": round(cosine(qvec, embed(text)) + 0.05 * feedback, 6),
+                    "feedback": feedback,
                 }
             )
         hits.sort(key=lambda item: (-item["score"], item["name"]))
@@ -578,6 +611,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                     "knowledge_units": engine.store.count_knowledge(),
                     "cycles": len(store.list_events("cycle")),
                     "optimizations": len(store.list_events("capability.optimized")),
+                    "feedback": len(store.list_events("feedback", 5000)),
                 }
             )
         )

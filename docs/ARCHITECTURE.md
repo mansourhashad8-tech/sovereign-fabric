@@ -18,6 +18,8 @@ flowchart LR
   F --> M[Mastery]
   API --> GUARD[Key, rate limit, body cap, headers]
   API --> OPS[Metrics, readiness, diagnostics]
+  API --> FB[Feedback + self-repair]
+  FB --> F
   GUARD --> SEC[Security and openness audit]
   SEC --> D[Disclosure report + SBOM]
 ```
@@ -37,7 +39,8 @@ flowchart LR
 4. **Execution and validation**: serial/thread/process execution with measured
    speedup; six scores and an overclaim detector.
 5. **Introspection**: a self-model that plans its own claims, lexical claim
-   support, randomized property checks, and confidence intervals.
+   support, randomized property checks, confidence intervals, outcome feedback,
+   and a self-repair path for broken built-in entries.
 6. **Openness and operations**: a static scanner, licence inventory, OSV lookup,
    CycloneDX SBOM, a public disclosure report, and a threat model. API guards add
    an optional key, a per-client rate limit, a body cap, and security headers;

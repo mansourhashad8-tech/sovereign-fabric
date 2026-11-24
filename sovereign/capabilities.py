@@ -152,18 +152,20 @@ class CapabilityRegistry:
             return data["result"]
 
 
+NATIVE_SPEC = (
+    ("text.tokenize", "tokenize", "Split text into tokens", ("text",), ("tokens",)),
+    ("tokens.count", "count_tokens", "Count token frequencies", ("tokens",), ("counts",)),
+    ("counts.summarize", "summarize_counts", "Summarize counts into a report", ("counts",), ("report",)),
+    ("report.format", "format_report", "Render a report as markdown", ("report",), ("markdown",)),
+    ("text.summarize", "extractive_summary", "Extractive one-sentence summary", ("text",), ("summary",)),
+)
+
+
 def bootstrap_native(registry: CapabilityRegistry) -> None:
-    """Admit the built-in chain exactly once."""
-    if registry.get("text.tokenize") is not None:
-        return
-    spec = [
-        ("text.tokenize", "tokenize", "Split text into tokens", ("text",), ("tokens",)),
-        ("tokens.count", "count_tokens", "Count token frequencies", ("tokens",), ("counts",)),
-        ("counts.summarize", "summarize_counts", "Summarize counts into a report", ("counts",), ("report",)),
-        ("report.format", "format_report", "Render a report as markdown", ("report",), ("markdown",)),
-        ("text.summarize", "extractive_summary", "Extractive one-sentence summary", ("text",), ("summary",)),
-    ]
-    for name, func, description, inputs, outputs in spec:
+    """Admit each native capability once; a quarantined name can return."""
+    for name, func, description, inputs, outputs in NATIVE_SPEC:
+        if registry.active(name) is not None:
+            continue
         registry.register(
             Capability(
                 name=name,
@@ -173,6 +175,5 @@ def bootstrap_native(registry: CapabilityRegistry) -> None:
                 kind="builtin",
                 entry=f"sovereign.native:{func}",
                 provenance=Provenance(source="builtin", url="", license="internal", confidence=1.0),
-            ),
-            version=1,
+            )
         )
