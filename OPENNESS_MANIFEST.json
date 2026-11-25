@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-25T11:27:12.903660+00:00",
-  "commit": "e5450227ac81eb3d7815367455433b354bf9b381",
+  "generated_at": "2026-11-25T11:42:03.725654+00:00",
+  "commit": "ead2707549f5df852b9dec02459d2579f629771e",
   "root": "sovereign",
-  "duration_s": 0.334,
+  "duration_s": 0.382,
   "license_file": "LICENSE",
   "source_files": [
     {
       "path": "sovereign/__init__.py",
-      "sha256": "251801671d86845f9cdb6e79ae9574d6b0ce2ae7831dc4d94cde370f3d2324be",
-      "lines": 84
+      "sha256": "e6dfe13d9a865bcdbfa5a020ed5bf1607aeb4144353ab89f77d635c3f1f4e83c",
+      "lines": 87
     },
     {
       "path": "sovereign/__main__.py",
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "a36cf88b63f128c0e5a45e4ffc60bde3766f0a295034fb806b585d818e026d31",
-      "lines": 1050
+      "sha256": "d4b60e15d898820305250b43b094d33de68ed5d3b593c7104cb9ede75c68b34d",
+      "lines": 1064
     },
     {
       "path": "sovereign/arabic.py",
@@ -87,8 +87,8 @@
     },
     {
       "path": "sovereign/evolution.py",
-      "sha256": "327b01bdf1784cd7914436bf3bb0a8f61ecc2fb43c8e1a3afc0e23c8a43ab7c8",
-      "lines": 375
+      "sha256": "7cb58d30aa68a9d66804da4b19cb9415b7749f9937ead1c9c9f2efba4cb53d45",
+      "lines": 377
     },
     {
       "path": "sovereign/execution.py",
@@ -111,6 +111,11 @@
       "lines": 72
     },
     {
+      "path": "sovereign/gaps.py",
+      "sha256": "43b8ccc3777f3fafb8457af5af67e2137bbaff97c0d2f733839a068b2d03f5e1",
+      "lines": 141
+    },
+    {
       "path": "sovereign/graphalg.py",
       "sha256": "ef092f9b60df3e8b3d1a9ea835e2b17ac5c5b59e764232e1a6c71a9cbcdb789e",
       "lines": 142
@@ -122,8 +127,8 @@
     },
     {
       "path": "sovereign/guardians/__init__.py",
-      "sha256": "68d289c3b43c66c2fb55c2a15a4231cf37d831d7fb4c7718f5dfef01a6e0cbd8",
-      "lines": 64
+      "sha256": "154c5a5d13fcaa72a06388074376acdeca96e46b90e399f0e2ddff48d47e70c3",
+      "lines": 70
     },
     {
       "path": "sovereign/guardians/base.py",
@@ -132,8 +137,8 @@
     },
     {
       "path": "sovereign/guardians/sources.py",
-      "sha256": "f5b0ebe9c95e3c162f6262c97e2bdbca0fac5881c2c6138aea498c9ac95c1ce0",
-      "lines": 581
+      "sha256": "1680939fe8e6bcee0020b12ddec7f9e4194060e50eaac93f1d8e5de536ae5226",
+      "lines": 668
     },
     {
       "path": "sovereign/immunity.py",
@@ -202,8 +207,8 @@
     },
     {
       "path": "sovereign/protocol.py",
-      "sha256": "024dabe39b84e3372ca8bd5cf0f2ed84e7b3dedf9369feaee2b770a23c821c4d",
-      "lines": 297
+      "sha256": "127b2d8d7cb14d04db79d2438034f3fcbc8f2ef1e861224532bd80eb13c055cf",
+      "lines": 327
     },
     {
       "path": "sovereign/quantum.py",
@@ -249,6 +254,11 @@
       "path": "sovereign/synthesis.py",
       "sha256": "1d11d5556430420c86fc96a863d8ca5eb4f5f5033495d6b02e264128e4a1721c",
       "lines": 178
+    },
+    {
+      "path": "sovereign/toolbox.py",
+      "sha256": "4054f5d8388a4a0be1ec50235bbdab74302ba119ec2f97334f29cd57489c5072",
+      "lines": 629
     },
     {
       "path": "sovereign/validator.py",
