@@ -8,11 +8,13 @@ from .base import (
 from .sources import (
     ArxivGuardian,
     CrossrefGuardian,
+    DataCiteGuardian,
     GithubGuardian,
     HackerNewsGuardian,
     HuggingFaceGuardian,
     LocalGuardian,
     NpmGuardian,
+    PubMedGuardian,
     OpenAlexGuardian,
     PyPIGuardian,
     SemanticScholarGuardian,
@@ -29,11 +31,13 @@ __all__ = [
     "default_fetch",
     "ArxivGuardian",
     "CrossrefGuardian",
+    "DataCiteGuardian",
     "GithubGuardian",
     "HackerNewsGuardian",
     "HuggingFaceGuardian",
     "LocalGuardian",
     "NpmGuardian",
+    "PubMedGuardian",
     "OpenAlexGuardian",
     "PyPIGuardian",
     "SemanticScholarGuardian",
@@ -44,7 +48,7 @@ __all__ = [
 
 
 def default_registry(store=None) -> GuardianRegistry:
-    """Thirteen sources, including an offline corpus. A dead network still answers."""
+    """Fifteen sources, including an offline corpus. A dead network still answers."""
     return GuardianRegistry(
         [
             ArxivGuardian(store=store),
@@ -59,6 +63,8 @@ def default_registry(store=None) -> GuardianRegistry:
             WikipediaGuardian(store=store),
             StackExchangeGuardian(store=store),
             ZenodoGuardian(store=store),
+            DataCiteGuardian(store=store),
+            PubMedGuardian(store=store),
             LocalGuardian(),
         ]
     )

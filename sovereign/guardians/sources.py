@@ -544,6 +544,93 @@ class ZenodoGuardian(HttpGuardian):
         return units[:limit]
 
 
+
+
+class DataCiteGuardian(HttpGuardian):
+    name = "datacite"
+    base_confidence = 0.65
+    min_interval = 0.2
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = f"https://api.datacite.org/dois?query={quote(query)}&page[size]={limit}"
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for item in data.get("data", []):
+            attr = item.get("attributes") or {}
+            titles = attr.get("titles") or []
+            title = ""
+            for candidate in titles:
+                title = (candidate or {}).get("title") or ""
+                if title.strip():
+                    break
+            if not title.strip():
+                continue
+            descriptions = attr.get("descriptions") or []
+            summary = ""
+            for description in descriptions:
+                summary = (description or {}).get("description") or ""
+                if summary.strip():
+                    break
+            year = attr.get("publicationYear")
+            resource = ((attr.get("types") or {}).get("resourceTypeGeneral") or "dataset")
+            rights = attr.get("rightsList") or []
+            license_name = ""
+            if rights:
+                license_name = (rights[0] or {}).get("rights") or ""
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=_plain(summary)[:800],
+                    url=attr.get("url") or f"https://doi.org/{attr.get('doi', '')}",
+                    concepts=(resource,),
+                    tags=("dataset", "datacite"),
+                    license=license_name or "DataCite",
+                    retrieved_at=f"{year}-01-01" if year else None,
+                )
+            )
+        return units[:limit]
+
+
+class PubMedGuardian(HttpGuardian):
+    name = "pubmed"
+    base_confidence = 0.7
+    min_interval = 0.4
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        search_url = (
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+            f"?db=pubmed&term={quote(query)}&retmode=json&retmax={limit}"
+        )
+        found = json.loads(self._get(search_url))
+        ids = [str(item) for item in (found.get("esearchresult", {}).get("idlist") or [])]
+        if not ids:
+            return []
+        summary_url = (
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+            f"?db=pubmed&id={','.join(ids)}&retmode=json"
+        )
+        payload = json.loads(self._get(summary_url))
+        result = payload.get("result") or {}
+        units: list[KnowledgeUnit] = []
+        for uid in ids:
+            item = result.get(uid) or {}
+            title = item.get("title") or ""
+            if not title.strip():
+                continue
+            journal = item.get("fulljournalname") or item.get("source") or "PubMed"
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=f"{journal}. {item.get('pubdate', '')}".strip(),
+                    url=f"https://pubmed.ncbi.nlm.nih.gov/{uid}/",
+                    concepts=(journal,),
+                    tags=("paper", "pubmed"),
+                    license="PubMed",
+                )
+            )
+        return units[:limit]
+
+
 class LocalGuardian:
     """Offline corpus of durable engineering knowledge. Always available."""
 

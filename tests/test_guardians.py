@@ -1,9 +1,11 @@
 from sovereign.guardians import (
     ArxivGuardian,
+    DataCiteGuardian,
     GithubGuardian,
     HackerNewsGuardian,
     LocalGuardian,
     OpenAlexGuardian,
+    PubMedGuardian,
     PyPIGuardian,
     StackExchangeGuardian,
     WikipediaGuardian,
@@ -229,13 +231,40 @@ def test_npm_parsing():
     assert "planning" in units[0].concepts
 
 
-def test_default_registry_has_thirteen_sources():
+def test_default_registry_has_fifteen_sources():
     from sovereign.guardians import default_registry
     names = default_registry().names()
-    assert len(names) == 13
+    assert len(names) == 15
     assert {"arxiv", "openalex", "semanticscholar", "crossref", "github",
             "hackernews", "huggingface", "pypi", "npm", "local",
-            "wikipedia", "stackexchange", "zenodo"} == set(names)
+            "wikipedia", "stackexchange", "zenodo", "datacite", "pubmed"} == set(names)
+
+
+def test_datacite_parsing():
+    body = """{"data":[{"attributes":{"doi":"10.1/x","titles":[{"title":"A Dataset"}],
+      "descriptions":[{"description":"Fresh data."}],"publicationYear":2026,
+      "types":{"resourceTypeGeneral":"Dataset"},"rightsList":[{"rights":"CC-BY-4.0"}],
+      "url":"https://example.org/data"}}]}"""
+    g = DataCiteGuardian(fetch=_fixed(body), min_interval=0)
+    units = g.search("data", limit=5)
+    assert len(units) == 1
+    assert units[0].title == "A Dataset"
+    assert units[0].provenance.license == "CC-BY-4.0"
+    assert units[0].provenance.retrieved_at.startswith("2026")
+
+
+def test_pubmed_parsing_with_two_step_fixture():
+    bodies = {
+        "esearch": '{"esearchresult":{"idlist":["42"]}}',
+        "esummary": '{"result":{"42":{"title":"A Trial","fulljournalname":"Journal","pubdate":"2026"}}}',
+    }
+    def fetch(url):
+        return bodies["esearch"] if "esearch" in url else bodies["esummary"]
+    g = PubMedGuardian(fetch=fetch, min_interval=0)
+    units = g.search("trial", limit=5)
+    assert len(units) == 1
+    assert units[0].title == "A Trial"
+    assert units[0].provenance.url.endswith("/42/")
 
 
 def test_failed_source_is_skipped_during_cooldown():

@@ -14,6 +14,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .evolution import EvolutionCycle, EvolutionEngine
+from .gaps import record_run, request_hash
 from .intent import parse_intent
 
 PROTOCOL = "sovereign-deterministic/v1"
@@ -52,6 +53,8 @@ class Route:
     auto_extend: bool = False
     max_attempts: int = 1
     synthesize: dict[str, Any] | None = None
+    query_suffix: str = ""
+    all_sources: bool = False
 
 
 @dataclass
@@ -89,15 +92,16 @@ def audit_language(text: str) -> LanguageAudit:
 
 
 class DeterministicProtocol:
-    def __init__(self, engine: EvolutionEngine, max_alternatives: int = 4) -> None:
+    def __init__(self, engine: EvolutionEngine, max_alternatives: int = 5) -> None:
         self.engine = engine
-        self.max_alternatives = max(1, min(4, int(max_alternatives)))
+        self.max_alternatives = max(1, min(6, int(max_alternatives)))
 
     def routes(
         self,
         goal_type: str,
         initial: tuple[str, ...],
         synthesize: dict[str, Any] | None,
+        sources: list[str] | None = None,
     ) -> list[Route]:
         routes = [
             Route(
@@ -107,16 +111,29 @@ class DeterministicProtocol:
             ),
             Route(
                 "broader_retrieval",
-                "the same graph with a broader second retrieval query",
+                "the same graph with a broader recent-survey query",
                 max_attempts=2,
+                query_suffix=" recent survey",
             ),
+        ]
+        if sources is not None:
+            routes.append(
+                Route(
+                    "all_sources_retry",
+                    "the same goal with every configured source, not only the caller's subset",
+                    max_attempts=1,
+                    query_suffix=" recent survey",
+                    all_sources=True,
+                )
+            )
+        routes.extend([
             Route(
                 "autonomous_extension",
                 "acquire or synthesize a missing blueprint, then re-plan",
                 auto_extend=True,
                 max_attempts=1,
             ),
-        ]
+        ])
         if synthesize is not None:
             routes.append(
                 Route(
@@ -147,17 +164,21 @@ class DeterministicProtocol:
         init = tuple(initial) if initial is not None else (str(parsed["initial"]),)
         payload = text if text is not None else str(parsed["text"])
         limit = self.max_alternatives if max_alternatives is None else max_alternatives
-        routes = self.routes(goal, init, synthesize)[: max(1, min(4, int(limit)))]
+        routes = self.routes(goal, init, synthesize, sources)[
+            : max(1, min(6, int(limit)))
+        ]
 
         attempts: list[RouteAttempt] = []
         verified: RouteAttempt | None = None
         for route in routes:
+            route_request = request + route.query_suffix
+            route_sources = None if route.all_sources else sources
             cycle = self.engine.evolve(
-                request,
+                route_request,
                 goal_type=goal,
                 initial=init,
                 text=payload,
-                sources=sources,
+                sources=route_sources,
                 synthesize=route.synthesize,
                 budget_s=budget_s,
                 auto_extend=route.auto_extend,
@@ -178,8 +199,13 @@ class DeterministicProtocol:
             verified=verified,
             best=best,
             duration_s=time.monotonic() - started,
+            total_routes=len(routes),
         )
+        report["request_hash"] = request_hash(request)
+        report["best_attempt"] = {"name": best.name, "scores": best.scores}
         report["language_audit"] = asdict(audit_language(report["message"]))
+        record_run(self.engine.store, report)
+        report["recorded"] = True
         return report
 
     def _report(
@@ -192,6 +218,7 @@ class DeterministicProtocol:
         verified: RouteAttempt | None,
         best: RouteAttempt,
         duration_s: float,
+        total_routes: int,
     ) -> dict[str, Any]:
         ok = verified is not None
         if ok:
@@ -208,11 +235,12 @@ class DeterministicProtocol:
                 f"«{best.name}»؛ الفجوة الدقيقة: {gap}. "
                 "الخطوة التالية المحددة مذكورة في next_actions."
             )
-            next_actions = _next_actions(best, attempts)
+            next_actions = _next_actions(best, attempts, total_routes)
 
         return {
             "protocol": PROTOCOL,
             "request": request,
+            "goal_type": goal,
             "status": "verified" if ok else "escalation_required",
             "verified": ok,
             "message": message,
@@ -276,7 +304,9 @@ def _rank(attempt: RouteAttempt) -> tuple[int, int, float]:
     return (1 if attempt.validator_passed else 0, passed, sum(attempt.scores.values()))
 
 
-def _next_actions(best: RouteAttempt, attempts: list[RouteAttempt]) -> list[str]:
+def _next_actions(
+    best: RouteAttempt, attempts: list[RouteAttempt], total_routes: int
+) -> list[str]:
     actions: list[str] = []
     if best.scores.get("guardianship", 1) == 0:
         actions.append("provide an external source, API access, or a populated local corpus")
@@ -292,6 +322,6 @@ def _next_actions(best: RouteAttempt, attempts: list[RouteAttempt]) -> list[str]
         actions.append("supply a capability specification or examples for synthesis")
     if not actions:
         actions.append("rerun with the strongest route and inspect the validator failures")
-    if len(attempts) < 4:
+    if len(attempts) < total_routes:
         actions.append("allow the remaining escalation routes")
     return actions

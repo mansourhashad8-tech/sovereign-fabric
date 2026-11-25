@@ -32,10 +32,10 @@ every push.
 
 ## What this is
 
-- **An external-guardianship layer** over 13 real public sources: arXiv,
-  OpenAlex, Semantic Scholar, Crossref, GitHub, Hacker News, Hugging Face,
-  PyPI, npm, Wikipedia, Stack Overflow, Zenodo, plus an offline engineering
-  corpus. Each result carries provenance (source, URL, retrieval time,
+- **An external-guardianship layer** over 15 real public sources: arXiv,
+  OpenAlex, Semantic Scholar, Crossref, DataCite, PubMed, GitHub, Hacker News,
+  Hugging Face, PyPI, npm, Wikipedia, Stack Overflow, Zenodo, plus an offline
+  engineering corpus. Each result carries provenance (source, URL, retrieval time,
   licence, confidence).
 - **A unified fabric**: one SQLite store holds knowledge units, a concept
   graph, the capability registry, an append-only event log, a source cache and
@@ -191,11 +191,11 @@ from sovereign.arabic import tokenize_text
 tokenize_text("الذكاءُ الاصطناعي، والتعلّم!")  # ['الذكاء', 'الاصطناعي', 'والتعلم']
 ```
 
-## 58 executable capabilities
+## 93 executable capabilities
 
-The registry carries 58 admitted capabilities. Five are the original chain
-(tokenize -> count -> summarize -> report, plus extractive summary). The other
-53 are in `sovereign/extras.py` and cover:
+The registry carries 93 admitted capabilities. Five are the original chain
+(tokenize -> count -> summarize -> report, plus extractive summary). 53 are in
+`sovereign/extras.py`; 35 are in `sovereign/toolbox.py`. Together they cover:
 
 | Area | Capabilities |
 | --- | --- |
@@ -207,7 +207,10 @@ The registry carries 58 admitted capabilities. Five are the original chain
 | Encoding and identity | `base64.encode`, `base64.decode`, `hash.sha256`, `uuid.generate`, `uuid.validate`, `template.render`, `regex.escape` |
 | Quantum simulation | `quantum.simulate` (exact statevector, <=8 qubits), `quantum.grover` (<=6 qubits) |
 | Media metadata | `image.info` (PNG/GIF/BMP/JPEG dimensions), `audio.wav_info` (channels, rate, bits, duration) |
-| Graphs | `graph.shortest_path` (Dijkstra), `graph.pagerank` |
+| Graphs | `graph.shortest_path` (Dijkstra), `graph.pagerank`, `graph.components`, `graph.toposort` |
+| Extended toolbox | `hash.sha512`, hex/base32/URL codecs, `json.flatten`, `json.paths`, `json.merge`, `csv.columns`, `csv.select`, `table.unique`, `table.limit` |
+| Extended math and dates | `math.percent`, `math.percentile`, `math.gcd`, `math.lcm`, `math.primes`, `math.base_convert`, `date.iso_week`, `date.business_days` |
+| Validation and safety | `email.validate`, `ip.validate`, `credit_card.luhn`, `password.entropy`, `set.operation`, `xml.to_json`, `uuid.v5` |
 
 Call any of them directly:
 
@@ -344,12 +347,13 @@ reinforcement learning.
 ## Deterministic execution protocol
 
 `POST /protocol/execute` starts from the requested result, not from a capability
-inventory. It runs a fixed escalation sequence:
+inventory. It runs a fixed escalation sequence of up to five routes:
 
 1. `direct`: the current capability graph with one retrieval pass.
-2. `broader_retrieval`: the same graph with a broader second query.
-3. `autonomous_extension`: acquire or synthesize a missing blueprint, then re-plan.
-4. `supplied_synthesis`: verified synthesis from a caller-supplied specification.
+2. `broader_retrieval`: the same graph with a broader recent-survey query.
+3. `all_sources_retry`: every configured source, when the caller restricted sources.
+4. `autonomous_extension`: acquire or synthesize a missing blueprint, then re-plan.
+5. `supplied_synthesis`: verified synthesis from a caller-supplied specification.
 
 It stops at the first route where execution succeeds and all six validator
 criteria pass. The response is `verified` only then. Otherwise it returns
@@ -372,9 +376,25 @@ positions. Every protocol message is passed through this audit, and the
 response includes the result.
 
 Limits: `verified` means the six-criterion validator passed; it is not a
-semantic proof of intent. The route search is bounded at four routes. Open-ended
+semantic proof of intent. The route search is bounded at five routes. Open-ended
 goals still require relevant sources or a synthesis specification. Freshness
 is scored inside a 180-day window; older knowledge is not counted as recent.
+
+## Capability-demand ledger
+
+Every `escalation_required` response is also a measured gap. `GET /gaps` groups
+runs by goal type, counts failed criteria, and proposes bounded capability names
+with `status: "demand"` and `auto_created: false`. `GET /protocol/history`
+returns the append-only run and gap events. Neither endpoint stores the raw
+request: only a 16-hex-character SHA-256 prefix is recorded.
+
+```bash
+curl -s localhost:12000/gaps
+curl -s localhost:12000/protocol/history
+```
+
+The ledger is a design queue, not automatic self-modification. A recurring gap
+is evidence for the next capability; it is not a capability by itself.
 
 ## A self-model that plans its own claims
 
@@ -386,8 +406,8 @@ verdict and passes that verdict through the overclaim detector.
 Live shape:
 
 ```text
-Precise self-assessment: 58 active capabilities (58 builtin, 0 synthesized),
-N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
+Precise self-assessment: 93 active capabilities (93 builtin, 0 synthesized),
+N absorbed knowledge units, and 15 external sources. X of Y recorded cycles
 passed every criterion. Property checks: 40/40 passed. 17 limits are declared (18 without an expert).
 I am not conscious, not quantum, and not a million-fold accelerator.
 ```
@@ -421,7 +441,7 @@ A point estimate without an interval is a weaker claim than it looks.
 
 ## A cited brief for any topic
 
-`POST /brief` accepts any query, consults the 13 sources, absorbs the result,
+`POST /brief` accepts any query, consults the 15 sources, absorbs the result,
 ranks the units, and returns an extractive Markdown brief with provenance. It
 reports topic coverage, recurring concepts, failed sources, and the newest
 retrieval date. Arabic headings are available; the quoted content stays in its
@@ -505,7 +525,7 @@ detector. `GET /report.md` renders the same report, and
 
 Live run on 2026-11-24:
 
-- The report shows exactly how many of the 13 sources answered; a rate-limited
+- The report shows exactly how many of the 15 sources answered; a rate-limited
   source is marked, not hidden.
 - First consultation is sub-second when no source stalls; a global deadline
   bounds the rest.
@@ -555,7 +575,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **51** source files hashed with SHA-256
+- **53** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -587,7 +607,7 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | "A deep-learning immune system" | The detector is online statistics and fixed scan signatures. It has no neural network and its state is in-process. |
 | "Federated learning / a global brain" | Collective memory is a manual anonymized JSON exchange. There is no network transport, no model averaging, and no global peer. |
 | "Self-healing every vulnerability" | Self-repair only quarantines broken built-in entries and restores known names; it cannot patch the OS or invent missing code. |
-| "An absolute guarantee for any request" | The protocol runs four bounded routes. When none passes all six criteria it returns `escalation_required` with exact gaps and next actions, not a fabricated success. |
+| "An absolute guarantee for any request" | The protocol runs up to five bounded routes. When none passes all six criteria it returns `escalation_required` with exact gaps and next actions, not a fabricated success. |
 | "A million times faster" | No such speedup exists here. Speed is *measured* against a budget; unmeasured speed scores zero. |
 | "Quantum pathfinding" | The planner is classical A*. A quantum *simulator* gives no speedup over the algorithm it simulates; only real quantum hardware might, and none is used. |
 | "Never fails" | It retries, degrades gracefully and reports honestly. If it cannot meet a criterion, it says so and returns `ok: false`. |
@@ -599,7 +619,7 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | "Self-awareness" | The self-model is computed from the registry, event log, and planner. It is evidence, not subjective experience. |
 | "A synthesis engine" | The brief quotes and cites absorbed units. It does not infer, translate, or verify truth. |
 | "A guaranteed learner" | Mastery practice records before/after rates; it can fail to improve, and the table says so. |
-| "A general-purpose agent" | 58 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
+| "A general-purpose agent" | 93 bounded deterministic capabilities. The math is an AST evaluator, the entities are regex, the stemmer is rule-based, and the similarity is Jaccard. Breadth is not general reasoning. |
 | "Zero vulnerabilities" | The audit reports 0 findings from these rules and 0 OSV hits; that is not a proof of absence. |
 | "A security certification" | The scanner is public and conservative; it is not an external audit or a DAST suite. |
 | "A closed model" | No closed-source library is required. The optional expert endpoint is a service, disabled by default. |
@@ -632,7 +652,7 @@ sovereign/
     base.py        Guardian protocol, parallel registry, cache, rate limiter
     sources.py     arXiv, OpenAlex, Semantic Scholar, Crossref, GitHub, Hacker
                    News, Hugging Face, PyPI, npm, Wikipedia, Stack Overflow,
-                   Zenodo, local corpus
+                   Zenodo, DataCite, PubMed, local corpus
   absorption.py    consult -> index -> link, in one pass
   capabilities.py  versioned registry, hot-swap, rollback, sandboxed invocation
   native.py        built-in transform chain
@@ -644,6 +664,8 @@ sovereign/
   collective.py    anonymized lesson export/import, strict schema
   autonomy.py      four-check autonomy gate + transparent reward ledger
   protocol.py      result-first bounded escalation + language audit
+  toolbox.py       35 deterministic capabilities across encodings/data/math/dates
+  gaps.py          capability-demand ledger from protocol escalations
   pipeline.py      bounded composition of any capabilities
   feedback.py      smoothed outcome votes that reorder capability search
   repair.py        quarantine broken built-ins and restore known names
@@ -766,6 +788,8 @@ curl -s localhost:12000/redteam
 | GET | `/protocol` | routes, verification definition, and limits |
 | POST | `/protocol/execute` | result-first bounded escalation; `verified` or `escalation_required` |
 | POST | `/protocol/language` | detect prohibited expressions and return exact positions |
+| GET | `/protocol/history` | append-only protocol run and gap events |
+| GET | `/gaps` | grouped demand, failure reasons, and proposed capabilities |
 | GET | `/ready` | database, capabilities, guardians, and planner readiness |
 | GET | `/metrics` | Prometheus text counters and gauges |
 | GET | `/diagnostics` | read-only database, entry, planner, and security checks |

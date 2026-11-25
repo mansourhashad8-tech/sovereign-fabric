@@ -20,6 +20,7 @@ from .dashboard import DASHBOARD_HTML
 from .diagnostics import diagnose
 from .evidence import verify_claim
 from .feedback import feedback_scores, feedback_summary, record_feedback
+from .gaps import gap_summary, protocol_history
 from .evolution import EvolutionEngine
 from .guard import ApiKey, RateLimiter, max_body_bytes, security_headers
 from .immunity import ImmuneSystem
@@ -163,7 +164,7 @@ class ProtocolRequest(BaseModel):
     sources: list[str] | None = None
     synthesize: dict[str, Any] | None = None
     budget_s: float = Field(default=5.0, gt=0, le=60)
-    max_alternatives: int = Field(default=4, ge=1, le=4)
+    max_alternatives: int = Field(default=5, ge=1, le=6)
 
 
 class LanguageRequest(BaseModel):
@@ -369,6 +370,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /protocol",
                 "POST /protocol/execute",
                 "POST /protocol/language",
+                "GET /protocol/history",
+                "GET /gaps",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -738,7 +741,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "protocol": "sovereign-deterministic/v1",
             "routes": [
                 route.__dict__
-                for route in protocol.routes("markdown", ("text",), None)
+                for route in protocol.routes("markdown", ("text",), None, ["local"])
             ],
             "banned_phrases": len(BANNED_PHRASES),
             "freshness_window_days": 180,
@@ -777,6 +780,14 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "policy": audit_language(body.text).policy,
         }
 
+    @app.get("/protocol/history")
+    def protocol_history_endpoint(limit: int = Query(default=50, ge=1, le=200)) -> dict[str, Any]:
+        return protocol_history(store, limit=limit)
+
+    @app.get("/gaps")
+    def gaps_endpoint(limit: int = Query(default=100, ge=1, le=500)) -> dict[str, Any]:
+        return gap_summary(store, limit=limit)
+
     @app.get("/metrics")
     def metrics_endpoint() -> PlainTextResponse:
         immune_status = immune.status()
@@ -791,6 +802,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                     "immune_observations": immune_status["observations"],
                     "immune_quarantines": immune_status["quarantines_total"],
                     "collective_lessons": collective_status(store)["lessons"],
+                    "protocol_runs": len(store.list_events("protocol.run", 5000)),
+                    "protocol_gaps": len(store.list_events("protocol.gap", 5000)),
                 }
             )
         )
@@ -812,6 +825,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "rate_limit_per_window": limiter.limit,
             "immune_quarantined": immune.status()["quarantined"],
             "collective_lessons": collective_status(store)["lessons"],
+            "protocol_gaps": gap_summary(store)["escalated"],
         }
 
     @app.get("/security/audit")
