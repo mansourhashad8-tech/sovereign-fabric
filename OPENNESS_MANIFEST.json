@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T13:13:26.321387+00:00",
-  "commit": "d94484be96f28b25db58e5347203c70e7cc3c09d",
+  "generated_at": "2026-11-25T13:30:43.354299+00:00",
+  "commit": "8295e4db71c8baeb2ecc53fc612811b664467df1",
   "root": "sovereign",
-  "duration_s": 0.374,
+  "duration_s": 0.358,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "a6f7301bd6ac22c7c19b6062283a1168cde796117f3dfd5cbf703fa300e92494",
-      "lines": 1122
+      "sha256": "c2a395a0e46349ad3d4cd4ab833c1552bec2066baccd81eb4ace2030444d5684",
+      "lines": 1151
     },
     {
       "path": "sovereign/arabic.py",
@@ -152,8 +152,13 @@
     },
     {
       "path": "sovereign/intent.py",
-      "sha256": "1f72437bc00e35f48f42ca4d8e804e0d8b248e696703387d0202163ee7625048",
-      "lines": 91
+      "sha256": "fd746a3a6755aa6a65dfec06841f4e873119e9a2225bf50d18f4fae3c36cdd7a",
+      "lines": 101
+    },
+    {
+      "path": "sovereign/intent_model.py",
+      "sha256": "5fbf1522a61fb30a2da671eb7ad78d3e463bf8405a6f0aa904fafe3e0ee40b70",
+      "lines": 230
     },
     {
       "path": "sovereign/loop.py",
@@ -242,7 +247,7 @@
     },
     {
       "path": "sovereign/retrieval_benchmark.py",
-      "sha256": "6ff9ca5e9a1c5298c37f1effe5324f17a91ca01f4bba87a3a3400de613afef0d",
+      "sha256": "7fd33edcc7ed3f0c4179ac34f0447311c859f30c671551408199361c2c2e3fa5",
       "lines": 121
     },
     {
@@ -256,14 +261,19 @@
       "lines": 174
     },
     {
+      "path": "sovereign/semantic.py",
+      "sha256": "e9b5e3c53fd25ca3eedf0c78628285e69746588a9214676332a34d1e662133f5",
+      "lines": 109
+    },
+    {
       "path": "sovereign/stats.py",
       "sha256": "ca3bf1163aeeb06b33d337c54dae6787e2c771cd2068866cf219020786909c12",
       "lines": 54
     },
     {
       "path": "sovereign/store.py",
-      "sha256": "b24e65c15e2b44f52a52a96232f0426dbf88674bf0a1d3a6f07c39d258910ac8",
-      "lines": 466
+      "sha256": "cce52861a0858744996b57a090e919e017ae9d5cb2749a61df8469bbd52b8ae5",
+      "lines": 493
     },
     {
       "path": "sovereign/synthesis.py",
