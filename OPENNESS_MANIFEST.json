@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T20:56:01.492700+00:00",
-  "commit": "ef378445382d7bacf8e9898e60a413dde8e915b5",
+  "generated_at": "2026-11-25T21:04:55.092522+00:00",
+  "commit": "d6091192c093c59891bf94ce35663cc449de22dc",
   "root": "sovereign",
-  "duration_s": 0.395,
+  "duration_s": 0.409,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -107,8 +107,8 @@
     },
     {
       "path": "sovereign/evolution.py",
-      "sha256": "e57be0831127e8c0850569c7e10553197355e48e5758ee93cb45d4910b42017f",
-      "lines": 454
+      "sha256": "a3c57450204c4e76ab395fb6a70d352ba26fe4b002139a6978564150e855e48a",
+      "lines": 480
     },
     {
       "path": "sovereign/execution.py",
@@ -197,8 +197,8 @@
     },
     {
       "path": "sovereign/metacurriculum.py",
-      "sha256": "6a45a3ec4ec464b70dce0394305890d05c05bac448ecd37a2aa8431c81a3d488",
-      "lines": 112
+      "sha256": "e251824f83a93c5ef5b554a0ab1eb92c4334ee981df3d032b302b9cb73f7d8d6",
+      "lines": 115
     },
     {
       "path": "sovereign/metrics.py",
@@ -207,8 +207,8 @@
     },
     {
       "path": "sovereign/models.py",
-      "sha256": "9e32d45c584c9e63fd5808ae3b0dd1f2be985e6839473b5c175bc3fb64efb233",
-      "lines": 98
+      "sha256": "4d67344262b467b74dcd6750b6cd928b3bef55c7aa9a29124fa7406d3f37ae5a",
+      "lines": 99
     },
     {
       "path": "sovereign/native.py",
@@ -287,7 +287,7 @@
     },
     {
       "path": "sovereign/selfmodel.py",
-      "sha256": "0291cc372d6034e27cc7f2e6c4804e752d4ca539179469287f7b22c75046eab2",
+      "sha256": "9df4019c7532f7e90f9c25e982403cda002dfb4c7ee7823ba970b3010e88bc6d",
       "lines": 226
     },
     {
@@ -327,8 +327,8 @@
     },
     {
       "path": "sovereign/validator.py",
-      "sha256": "4345801d480d9a822f8db4e961b4eb5ac16ed2e21ae60cbb212be7e341eec5da",
-      "lines": 189
+      "sha256": "6fc84578b28bd09fd3e176a25ec394ed27329fd8a700ab2374a124a27f5e552c",
+      "lines": 197
     },
     {
       "path": "sovereign/vectors.py",
