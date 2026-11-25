@@ -413,8 +413,12 @@ uses reciprocal rank fusion (RRF, k=60) over both ranked lists. The hybrid score
 is an RRF score, not a probability, and the API returns the mode used.
 
 `POST /ranking/evaluate` computes nDCG@k and MRR from an explicit ranked id list
-and relevance map. It reports the metric only; without a labelled corpus the
-system makes no claim that hybrid is better than vector on real queries.
+and relevance map. It reports the metric only. `GET /ranking/benchmark` runs
+the same 12 queries over the offline local corpus in vector, BM25, and hybrid
+modes; it is a reproducible regression check, not a public leaderboard.
+On the 2026-11-24 run at k=5, vector and hybrid scored nDCG 0.883201 and
+MRR 1.0; BM25 scored nDCG 0.874322 and MRR 1.0. Hybrid did not beat vector on
+this small set, so the system does not claim that it does.
 
 ## Decision memory
 
@@ -603,7 +607,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **56** source files hashed with SHA-256
+- **57** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -774,6 +778,7 @@ curl -s localhost:12000/redteam
 | POST | `/absorb` | consult and index into the fabric |
 | GET | `/knowledge/search` | vector, BM25, or hybrid retrieval (`mode=`) |
 | POST | `/ranking/evaluate` | nDCG@k and MRR for a ranked id list and relevance map |
+| GET | `/ranking/benchmark` | fixed 12-query internal retrieval benchmark for all three modes |
 | GET | `/knowledge/graph` | traverse the concept graph |
 | POST | `/synthesize` | spec -> verified capability |
 | POST | `/acquire` | ask external experts for a verified capability |

@@ -885,6 +885,10 @@ class LocalGuardian:
                 )
             )
 
+    @property
+    def units(self) -> list[KnowledgeUnit]:
+        return list(self._units)
+
     def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
         qvec = embed(query)
         scored = [(u, cosine(qvec, u.embedding)) for u in self._units]

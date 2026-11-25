@@ -33,6 +33,7 @@ from .optimizer import Optimizer
 from .pathfinder import operators_from
 from .protocol import BANNED_PHRASES, DeterministicProtocol, audit_language
 from .ranking import evaluate_ranking
+from .retrieval_benchmark import run_benchmark
 from .pipeline import run_pipeline
 from .repair import repair
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
@@ -383,6 +384,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /decisions",
                 "GET /decisions/{request_hash}",
                 "POST /ranking/evaluate",
+                "GET /ranking/benchmark",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -807,6 +809,10 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.post("/ranking/evaluate")
     def ranking_evaluate_endpoint(body: RankingEvalRequest) -> dict[str, Any]:
         return evaluate_ranking(body.ranked, body.relevance, k=body.k)
+
+    @app.get("/ranking/benchmark")
+    def ranking_benchmark_endpoint(k: int = Query(default=5, ge=1, le=12)) -> dict[str, Any]:
+        return run_benchmark(k=k)
 
     @app.get("/decisions")
     def decisions_endpoint(limit: int = Query(default=50, ge=1, le=200)) -> dict[str, Any]:

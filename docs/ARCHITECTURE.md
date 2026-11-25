@@ -52,7 +52,8 @@ flowchart LR
 4. **Planning and synthesis**: reachability proof plus A* over capability types,
    bounded capability pipelines, blueprint acquisition, enumerative program
    synthesis, a subprocess gate, a 71-function deterministic toolbox, hybrid
-   vector/BM25 retrieval, nDCG@k/MRR evaluation, and a result-first protocol with up to five bounded
+   vector/BM25 retrieval, nDCG@k/MRR evaluation, a fixed retrieval benchmark,
+   and a result-first protocol with up to five bounded
    escalating routes.
 5. **Execution and validation**: serial/thread/process execution with measured
    speedup, bounded media header readers, encodings, JSON/CSV/table transforms,

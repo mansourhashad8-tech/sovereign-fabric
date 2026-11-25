@@ -97,3 +97,14 @@ def test_ranking_evaluation_api():
     )
     assert response.status_code == 200
     assert response.json()["ndcg"] == 1.0
+
+
+def test_fixed_retrieval_benchmark_is_reproducible_and_bounded():
+    client = TestClient(create_app())
+    response = client.get("/ranking/benchmark", params={"k": 5})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["queries"] == 12
+    assert set(body["modes"]) == {"vector", "bm25", "hybrid"}
+    assert all(0.0 <= body["modes"][mode]["ndcg"] <= 1.0 for mode in body["modes"])
+    assert body["best_mode"] in body["modes"]
