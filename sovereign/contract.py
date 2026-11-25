@@ -163,6 +163,13 @@ REQUIREMENTS: list[dict[str, Any]] = [
         "note": "weak rate plus uncertainty; one bounded practice cycle",
     },
     {
+        "id": "criterion_applicability",
+        "need": "do not fail a local transform for external-retrieval criteria",
+        "status": "met",
+        "evidence": ["validator.py", "models.py", "metacurriculum.py"],
+        "note": "explicit local_transform only; default local-only knowledge claims still fail",
+    },
+    {
         "id": "no_false_claims",
         "need": "never round a failure up to a success",
         "status": "met",

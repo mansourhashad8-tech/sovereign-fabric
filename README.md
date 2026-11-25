@@ -804,7 +804,7 @@ sovereign/
   selfhood.py      functional self-model, versioned definition, bounded initiative, reality bridge
   cosmic.py        protocol generation, seeded Monte Carlo, backward closure, honest limits
   metacurriculum.py self-directed practice: weak rate + predictive uncertainty
-  contract.py      curated 25-item requirement ledger with live coverage
+  contract.py      curated 26-item requirement ledger with live coverage
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
   diagnostics.py   read-only database/registry/planner/security checks
