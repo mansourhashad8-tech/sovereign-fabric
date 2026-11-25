@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-25T12:10:19.264543+00:00",
-  "commit": "7061058707b48c6c97993bb679fce58be699afa2",
+  "generated_at": "2026-11-25T12:39:05.876442+00:00",
+  "commit": "6e0aa25660716a748d7d88a4198bafab24b32c42",
   "root": "sovereign",
-  "duration_s": 0.402,
+  "duration_s": 0.373,
   "license_file": "LICENSE",
   "source_files": [
     {
       "path": "sovereign/__init__.py",
-      "sha256": "e6dfe13d9a865bcdbfa5a020ed5bf1607aeb4144353ab89f77d635c3f1f4e83c",
-      "lines": 87
+      "sha256": "0c2e125b1506c7874c4c72df60d33a2be7ece228c741cced55eba02c053c49d0",
+      "lines": 90
     },
     {
       "path": "sovereign/__main__.py",
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "ad45148df5de624f58fc289e5479ec0d6f92576168d86e3c3cab0b8386c82011",
-      "lines": 1082
+      "sha256": "b25353488bb22db0847c2be01cbb9a2d659692f72889f2a050cc945b036da33c",
+      "lines": 1094
     },
     {
       "path": "sovereign/arabic.py",
@@ -92,8 +92,8 @@
     },
     {
       "path": "sovereign/evolution.py",
-      "sha256": "7cb58d30aa68a9d66804da4b19cb9415b7749f9937ead1c9c9f2efba4cb53d45",
-      "lines": 377
+      "sha256": "5b401b782d6cd2ea1d0dabaf8a33c23f3a4b286955f04d41a4d2a8aac8b56088",
+      "lines": 379
     },
     {
       "path": "sovereign/execution.py",
@@ -132,8 +132,8 @@
     },
     {
       "path": "sovereign/guardians/__init__.py",
-      "sha256": "05ad3868ff89d8be547f8da6dcc8a1422d20a52c0060c826d50ca604c7918730",
-      "lines": 76
+      "sha256": "f0756d0078312ca835f80aaa4f7aa28aca61790b81d0581cfc4366701d4ca641",
+      "lines": 91
     },
     {
       "path": "sovereign/guardians/base.py",
@@ -142,8 +142,8 @@
     },
     {
       "path": "sovereign/guardians/sources.py",
-      "sha256": "edbb1263e84297f9e64cb2fdf8978d8f55cb74e2e7c17aae93795839e93024a0",
-      "lines": 732
+      "sha256": "d1342d1b4282c0f7347854cafe9656477e82e022bd95a6c10ee2fd0e8cc9fe04",
+      "lines": 893
     },
     {
       "path": "sovereign/immunity.py",
@@ -222,8 +222,8 @@
     },
     {
       "path": "sovereign/ranking.py",
-      "sha256": "e09a377d35bbc10763c41e1b5c6d7866b16f05ce63f98faebff34b5f0d8349cb",
-      "lines": 70
+      "sha256": "74aaca507013cd79cdfd904efef91766414b39a126bf4dd739bc71c05205f683",
+      "lines": 104
     },
     {
       "path": "sovereign/redteam.py",
@@ -269,6 +269,11 @@
       "path": "sovereign/toolbox.py",
       "sha256": "4054f5d8388a4a0be1ec50235bbdab74302ba119ec2f97334f29cd57489c5072",
       "lines": 629
+    },
+    {
+      "path": "sovereign/toolbox_ext.py",
+      "sha256": "b4c89d895f38e8f3c59c88c50230ade5c28fc21e4fedc1c53c619583ed105599",
+      "lines": 704
     },
     {
       "path": "sovereign/validator.py",
