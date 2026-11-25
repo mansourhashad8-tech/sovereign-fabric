@@ -3,7 +3,7 @@
 ```mermaid
 flowchart LR
   U[Arabic or English request] --> API[FastAPI service]
-  API --> G[15 external guardians]
+  API --> G[17 external guardians]
   G --> A[Absorption: index + graph]
   A --> F[(Unified SQLite fabric)]
   F --> P[A* planner]
@@ -31,6 +31,8 @@ flowchart LR
   PR --> V
   PR --> GP[Capability-demand ledger]
   GP --> F
+  PR --> DM[Decision memory]
+  DM --> F
   GUARD --> SEC[Security and openness audit]
   SEC --> D[Disclosure report + SBOM]
 ```
@@ -38,18 +40,19 @@ flowchart LR
 ## Layers
 
 1. **Guardianship**: adapters for arXiv, OpenAlex, Semantic Scholar, Crossref,
-   DataCite, PubMed, GitHub, Hacker News, Hugging Face, PyPI, npm, Wikipedia,
-   Stack Overflow, Zenodo, and a local corpus. A dead source degrades the result; it does not
+   DataCite, PubMed, Open Library, Wikidata, GitHub, Hacker News, Hugging Face,
+   PyPI, npm, Wikipedia, Stack Overflow, Zenodo, and a local corpus. A dead source degrades the result; it does not
    fail the run.
 2. **Expert guardianship**: optional OpenAI-compatible experts return unverified
    text candidates; they are never executed and never receive the store.
 3. **Fabric**: one SQLite store for knowledge units, the concept graph,
    capability versions, an append-only event log, a source cache, a failure memo,
-   and a capability-demand ledger fed by protocol escalations.
+   a capability-demand ledger fed by protocol escalations, and decision memory.
 4. **Planning and synthesis**: reachability proof plus A* over capability types,
    bounded capability pipelines, blueprint acquisition, enumerative program
-   synthesis, a subprocess gate, a 35-function deterministic toolbox, and a
-   result-first protocol with up to five bounded escalating routes.
+   synthesis, a subprocess gate, a 35-function deterministic toolbox, hybrid
+   vector/BM25 retrieval, and a result-first protocol with up to five bounded
+   escalating routes.
 5. **Execution and validation**: serial/thread/process execution with measured
    speedup, bounded media header readers, encodings, JSON/CSV/table transforms,
    math/date helpers, validation checks, and graph algorithms; six scores, a

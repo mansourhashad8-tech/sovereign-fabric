@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .models import Capability, KnowledgeUnit, Provenance, utcnow
+from .ranking import bm25_scores, reciprocal_rank_fusion
 from .vectors import cosine, embed, embed_query
 
 _SCHEMA = """
@@ -130,25 +131,65 @@ class FabricStore:
         return _row_to_unit(row) if row else None
 
     def search_knowledge(
-        self, query: str, k: int = 5, qvec=None
+        self,
+        query: str,
+        k: int = 5,
+        qvec=None,
+        mode: str = "vector",
     ) -> list[tuple[KnowledgeUnit, float]]:
+        """Rank knowledge by vector, BM25, or fused hybrid retrieval.
+
+        ``vector`` preserves the historical score (embedding + authority +
+        recency). ``bm25`` ranks exact terms. ``hybrid`` fuses the two ranked
+        lists with reciprocal rank fusion; its score is an RRF score, not a
+        probability.
+        """
+        mode = (mode or "vector").lower()
+        if mode not in {"vector", "bm25", "hybrid"}:
+            raise ValueError("mode must be vector, bm25, or hybrid")
         if qvec is None:
             qvec = embed_query(query)
         with self._lock:
             rows = self._conn.execute("SELECT * FROM knowledge").fetchall()
-        scored = []
-        for row in rows:
-            unit = _row_to_unit(row)
-            lexical = cosine(qvec, unit.embedding)
-            # Authority and recency break ties that pure lexical overlap cannot.
-            score = (
-                0.75 * lexical
-                + 0.15 * unit.provenance.confidence
-                + 0.10 * _recency_factor(unit.provenance.retrieved_at)
-            )
-            scored.append((unit, score))
-        scored.sort(key=lambda pair: (-pair[1], pair[0].id))
-        return scored[:k]
+        units = [_row_to_unit(row) for row in rows]
+
+        def vector_rank() -> list[tuple[KnowledgeUnit, float]]:
+            scored = []
+            for unit in units:
+                lexical = cosine(qvec, unit.embedding)
+                # Authority and recency break ties that pure lexical overlap cannot.
+                score = (
+                    0.75 * lexical
+                    + 0.15 * unit.provenance.confidence
+                    + 0.10 * _recency_factor(unit.provenance.retrieved_at)
+                )
+                scored.append((unit, score))
+            scored.sort(key=lambda pair: (-pair[1], pair[0].id))
+            return scored
+
+        if mode == "vector":
+            return vector_rank()[:k]
+
+        lexical_scores = bm25_scores(
+            query, [unit.searchable_text() for unit in units]
+        )
+        lexical = sorted(
+            zip(units, lexical_scores),
+            key=lambda pair: (-pair[1], pair[0].id),
+        )
+        if mode == "bm25":
+            return lexical[:k]
+
+        vector = vector_rank()
+        fused = reciprocal_rank_fusion(
+            [[unit.id for unit, _ in vector], [unit.id for unit, _ in lexical]]
+        )
+        by_id = {unit.id: unit for unit in units}
+        ranked = sorted(
+            ((by_id[unit_id], score) for unit_id, score in fused.items()),
+            key=lambda pair: (-pair[1], pair[0].id),
+        )
+        return ranked[:k]
 
     def graph(self, node: str, rel: str | None = None, depth: int = 1) -> dict[str, list]:
         seen = {node}

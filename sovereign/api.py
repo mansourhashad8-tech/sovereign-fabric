@@ -19,6 +19,7 @@ from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
 from .diagnostics import diagnose
 from .evidence import verify_claim
+from .decisions import decision_summary, lookup_decisions
 from .feedback import feedback_scores, feedback_summary, record_feedback
 from .gaps import gap_summary, protocol_history
 from .evolution import EvolutionEngine
@@ -372,6 +373,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /protocol/language",
                 "GET /protocol/history",
                 "GET /gaps",
+                "GET /decisions",
+                "GET /decisions/{request_hash}",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -405,15 +408,20 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         return {"query": result.query, "sources": result.sources, "absorbed": count}
 
     @app.get("/knowledge/search")
-    def search(q: str, k: int = 5) -> dict[str, Any]:
-        cache_key = ("search", q, k)
+    def search(
+        q: str,
+        k: int = 5,
+        mode: str = Query(default="hybrid", pattern="^(vector|bm25|hybrid)$"),
+    ) -> dict[str, Any]:
+        cache_key = ("search", q, k, mode)
         hits = cache.get(cache_key)
         qvec, prefetch_hit = prefetcher.embedding(q)
         if hits is None:
-            hits = store.search_knowledge(q, k, qvec=qvec)
+            hits = store.search_knowledge(q, k, qvec=qvec, mode=mode)
             cache.put(cache_key, hits)
         return {
             "query": q,
+            "mode": mode,
             "prefetch_hit": prefetch_hit,
             "hits": [
                 {"score": round(score, 4), **_unit_dict(unit)} for unit, score in hits
@@ -787,6 +795,16 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/gaps")
     def gaps_endpoint(limit: int = Query(default=100, ge=1, le=500)) -> dict[str, Any]:
         return gap_summary(store, limit=limit)
+
+    @app.get("/decisions")
+    def decisions_endpoint(limit: int = Query(default=50, ge=1, le=200)) -> dict[str, Any]:
+        return decision_summary(store, limit=limit)
+
+    @app.get("/decisions/{request_hash}")
+    def decision_lookup_endpoint(
+        request_hash: str, limit: int = Query(default=20, ge=1, le=100)
+    ) -> dict[str, Any]:
+        return lookup_decisions(store, request_hash, limit=limit)
 
     @app.get("/metrics")
     def metrics_endpoint() -> PlainTextResponse:

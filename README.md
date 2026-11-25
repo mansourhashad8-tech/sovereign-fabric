@@ -32,10 +32,10 @@ every push.
 
 ## What this is
 
-- **An external-guardianship layer** over 15 real public sources: arXiv,
-  OpenAlex, Semantic Scholar, Crossref, DataCite, PubMed, GitHub, Hacker News,
-  Hugging Face, PyPI, npm, Wikipedia, Stack Overflow, Zenodo, plus an offline
-  engineering corpus. Each result carries provenance (source, URL, retrieval time,
+- **An external-guardianship layer** over 17 real public sources: arXiv,
+  OpenAlex, Semantic Scholar, Crossref, DataCite, PubMed, Open Library,
+  Wikidata, GitHub, Hacker News, Hugging Face, PyPI, npm, Wikipedia, Stack
+  Overflow, Zenodo, plus an offline engineering corpus. Each result carries provenance (source, URL, retrieval time,
   licence, confidence).
 - **A unified fabric**: one SQLite store holds knowledge units, a concept
   graph, the capability registry, an append-only event log, a source cache and
@@ -396,6 +396,22 @@ curl -s localhost:12000/protocol/history
 The ledger is a design queue, not automatic self-modification. A recurring gap
 is evidence for the next capability; it is not a capability by itself.
 
+## Hybrid retrieval
+
+`GET /knowledge/search` now accepts `mode=vector`, `mode=bm25`, or
+`mode=hybrid` (default). Vector retrieval is the original deterministic
+embedding plus authority and recency. BM25 preserves rare exact terms. Hybrid
+uses reciprocal rank fusion (RRF, k=60) over both ranked lists. The hybrid score
+is an RRF score, not a probability, and the API returns the mode used.
+
+## Decision memory
+
+Every protocol run writes one `decision.record` event with the chosen route,
+scores, alternatives, next actions, and a rationale. It stores a 16-hex request
+hash, never the raw request. `GET /decisions` shows aggregates and exact-hash
+reuse candidates; `GET /decisions/{request_hash}` returns that request's
+decisions. `automatic_reuse=false`: the memory is for audit, not silent replay.
+
 ## A self-model that plans its own claims
 
 `GET /self` does not describe itself from a script. It asks the planner whether
@@ -407,7 +423,7 @@ Live shape:
 
 ```text
 Precise self-assessment: 93 active capabilities (93 builtin, 0 synthesized),
-N absorbed knowledge units, and 15 external sources. X of Y recorded cycles
+N absorbed knowledge units, and 17 external sources. X of Y recorded cycles
 passed every criterion. Property checks: 40/40 passed. 17 limits are declared (18 without an expert).
 I am not conscious, not quantum, and not a million-fold accelerator.
 ```
@@ -441,14 +457,14 @@ A point estimate without an interval is a weaker claim than it looks.
 
 ## A cited brief for any topic
 
-`POST /brief` accepts any query, consults the 15 sources, absorbs the result,
+`POST /brief` accepts any query, consults the 17 sources, absorbs the result,
 ranks the units, and returns an extractive Markdown brief with provenance. It
 reports topic coverage, recurring concepts, failed sources, and the newest
 retrieval date. Arabic headings are available; the quoted content stays in its
 original language.
 
 Live run: 5 units, coverage 1.0, 0.225s on a warm cache, newest unit
-2026-11-24. Twelve of thirteen sources answered; Semantic Scholar returned 429
+2026-11-24. Most sources answered; Semantic Scholar returned 429
 and is listed as a gap.
 
 ```bash
@@ -525,7 +541,7 @@ detector. `GET /report.md` renders the same report, and
 
 Live run on 2026-11-24:
 
-- The report shows exactly how many of the 15 sources answered; a rate-limited
+- The report shows exactly how many of the 17 sources answered; a rate-limited
   source is marked, not hidden.
 - First consultation is sub-second when no source stalls; a global deadline
   bounds the rest.
@@ -575,7 +591,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **53** source files hashed with SHA-256
+- **55** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -652,7 +668,7 @@ sovereign/
     base.py        Guardian protocol, parallel registry, cache, rate limiter
     sources.py     arXiv, OpenAlex, Semantic Scholar, Crossref, GitHub, Hacker
                    News, Hugging Face, PyPI, npm, Wikipedia, Stack Overflow,
-                   Zenodo, DataCite, PubMed, local corpus
+                   Zenodo, DataCite, PubMed, Open Library, Wikidata, local corpus
   absorption.py    consult -> index -> link, in one pass
   capabilities.py  versioned registry, hot-swap, rollback, sandboxed invocation
   native.py        built-in transform chain
@@ -664,6 +680,8 @@ sovereign/
   collective.py    anonymized lesson export/import, strict schema
   autonomy.py      four-check autonomy gate + transparent reward ledger
   protocol.py      result-first bounded escalation + language audit
+  ranking.py       BM25 + reciprocal rank fusion
+  decisions.py     append-only decision memory (hashes only)
   toolbox.py       35 deterministic capabilities across encodings/data/math/dates
   gaps.py          capability-demand ledger from protocol escalations
   pipeline.py      bounded composition of any capabilities
@@ -740,7 +758,7 @@ curl -s localhost:12000/redteam
 | GET | `/health` | status and source list |
 | POST | `/consult` | query guardians, return provenance |
 | POST | `/absorb` | consult and index into the fabric |
-| GET | `/knowledge/search` | hybrid retrieval |
+| GET | `/knowledge/search` | vector, BM25, or hybrid retrieval (`mode=`) |
 | GET | `/knowledge/graph` | traverse the concept graph |
 | POST | `/synthesize` | spec -> verified capability |
 | POST | `/acquire` | ask external experts for a verified capability |
@@ -790,6 +808,8 @@ curl -s localhost:12000/redteam
 | POST | `/protocol/language` | detect prohibited expressions and return exact positions |
 | GET | `/protocol/history` | append-only protocol run and gap events |
 | GET | `/gaps` | grouped demand, failure reasons, and proposed capabilities |
+| GET | `/decisions` | decision memory summary and exact-hash reuse candidates |
+| GET | `/decisions/{request_hash}` | decisions recorded for one request hash |
 | GET | `/ready` | database, capabilities, guardians, and planner readiness |
 | GET | `/metrics` | Prometheus text counters and gauges |
 | GET | `/diagnostics` | read-only database, entry, planner, and security checks |

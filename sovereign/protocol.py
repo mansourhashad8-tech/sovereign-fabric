@@ -13,6 +13,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from .decisions import record_decision
 from .evolution import EvolutionCycle, EvolutionEngine
 from .gaps import record_run, request_hash
 from .intent import parse_intent
@@ -205,6 +206,8 @@ class DeterministicProtocol:
         report["best_attempt"] = {"name": best.name, "scores": best.scores}
         report["language_audit"] = asdict(audit_language(report["message"]))
         record_run(self.engine.store, report)
+        decision = record_decision(self.engine.store, report)
+        report["decision_id"] = decision["decision_id"]
         report["recorded"] = True
         return report
 

@@ -4,6 +4,7 @@ from sovereign.guardians import GuardianRegistry, LocalGuardian
 from sovereign.models import KnowledgeUnit, Provenance, utcnow
 from sovereign.protocol import DeterministicProtocol, audit_language
 from sovereign.gaps import gap_summary, protocol_history
+from sovereign.decisions import decision_summary, lookup_decisions
 from sovereign.store import FabricStore
 from fastapi.testclient import TestClient
 
@@ -42,6 +43,26 @@ def _verified_engine() -> EvolutionEngine:
 def test_language_audit_flags_banned_phrases_and_accepts_solution_language():
     assert audit_language("هذا مستحيل") .compliant is False
     assert audit_language("تم تحقيق النتيجة بالدليل") .compliant is True
+
+
+def test_decision_memory_records_the_route_and_reuses_only_by_exact_hash():
+    engine = _verified_engine()
+    try:
+        report = DeterministicProtocol(engine).execute(
+            "planning search text", text="alpha beta alpha", budget_s=5.0
+        )
+        assert report["decision_id"]
+        summary = decision_summary(engine.store)
+        assert summary["decisions"] == 1
+        assert summary["verified"] == 1
+        assert summary["recent"][0]["route"] == "direct"
+        found = lookup_decisions(engine.store, report["request_hash"])
+        assert found["count"] == 1
+        assert found["decisions"][0]["payload"]["automatic_reuse"] is False
+        assert "planning search text" not in str(summary)
+        assert "planning search text" not in str(found)
+    finally:
+        engine.store.close()
 
 
 def test_protocol_routes_include_a_real_broader_query_and_all_sources_retry():
@@ -141,3 +162,5 @@ def test_protocol_api_exposes_status_execution_and_language_audit():
     assert result["next_actions"]
     assert client.get("/gaps").json()["escalated"] >= 1
     assert client.get("/protocol/history").json()["runs"]
+    assert client.get("/decisions").json()["decisions"] >= 1
+    assert client.get(f"/decisions/{result['request_hash']}").json()["count"] >= 1

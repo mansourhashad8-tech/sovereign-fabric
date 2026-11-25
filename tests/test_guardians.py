@@ -5,9 +5,11 @@ from sovereign.guardians import (
     HackerNewsGuardian,
     LocalGuardian,
     OpenAlexGuardian,
+    OpenLibraryGuardian,
     PubMedGuardian,
     PyPIGuardian,
     StackExchangeGuardian,
+    WikidataGuardian,
     WikipediaGuardian,
     ZenodoGuardian,
 )
@@ -231,13 +233,14 @@ def test_npm_parsing():
     assert "planning" in units[0].concepts
 
 
-def test_default_registry_has_fifteen_sources():
+def test_default_registry_has_seventeen_sources():
     from sovereign.guardians import default_registry
     names = default_registry().names()
-    assert len(names) == 15
+    assert len(names) == 17
     assert {"arxiv", "openalex", "semanticscholar", "crossref", "github",
             "hackernews", "huggingface", "pypi", "npm", "local",
-            "wikipedia", "stackexchange", "zenodo", "datacite", "pubmed"} == set(names)
+            "wikipedia", "stackexchange", "zenodo", "datacite", "pubmed",
+            "openlibrary", "wikidata"} == set(names)
 
 
 def test_datacite_parsing():
@@ -366,3 +369,38 @@ def test_zenodo_parsing_keeps_license_and_date():
     assert units[0].provenance.license == "cc-by-4.0"
     assert units[0].provenance.retrieved_at == "2026-04-01"
     assert "Dataset" in units[0].concepts
+
+
+OPENLIBRARY_JSON = """{
+  "docs": [
+    {"title": "Planning Algorithms", "author_name": ["Steven LaValle"],
+     "first_publish_year": 2006, "key": "/works/OL1W",
+     "subject": ["Robotics", "Algorithms"]}
+  ]
+}"""
+
+WIKIDATA_JSON = """{
+  "search": [
+    {"id": "Q1", "label": "Automated planning",
+     "description": "branch of artificial intelligence",
+     "concepturi": "http://www.wikidata.org/entity/Q1"}
+  ]
+}"""
+
+
+def test_openlibrary_parsing_keeps_author_year_and_license():
+    units = OpenLibraryGuardian(fetch=lambda url: OPENLIBRARY_JSON).search("planning", 3)
+    assert len(units) == 1
+    assert units[0].title == "Planning Algorithms"
+    assert "Steven LaValle" in units[0].summary
+    assert units[0].provenance.url == "https://openlibrary.org/works/OL1W"
+    assert units[0].provenance.retrieved_at.startswith("2006")
+
+
+def test_wikidata_parsing_keeps_entity_description():
+    units = WikidataGuardian(fetch=lambda url: WIKIDATA_JSON).search("planning", 3)
+    assert len(units) == 1
+    assert units[0].title == "Automated planning"
+    assert "artificial intelligence" in units[0].summary
+    assert units[0].provenance.url.endswith("/Q1")
+    assert units[0].provenance.license == "CC0"

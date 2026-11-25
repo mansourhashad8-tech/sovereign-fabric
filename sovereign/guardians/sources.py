@@ -546,6 +546,70 @@ class ZenodoGuardian(HttpGuardian):
 
 
 
+class OpenLibraryGuardian(HttpGuardian):
+    name = "openlibrary"
+    base_confidence = 0.55
+    min_interval = 0.2
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = f"https://openlibrary.org/search.json?q={quote(query)}&limit={limit}"
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for doc in data.get("docs", []):
+            title = doc.get("title") or ""
+            if not title.strip():
+                continue
+            authors = ", ".join(doc.get("author_name") or [])
+            year = doc.get("first_publish_year")
+            summary = authors or "Open Library record"
+            if year:
+                summary = f"{summary}. First published {year}."
+            key = doc.get("key") or ""
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=summary,
+                    url=f"https://openlibrary.org{key}" if key else "https://openlibrary.org",
+                    concepts=tuple(doc.get("subject") or ())[:4],
+                    tags=("book", "openlibrary"),
+                    license="Open Library",
+                    retrieved_at=f"{year}-01-01" if year else None,
+                )
+            )
+        return units[:limit]
+
+
+class WikidataGuardian(HttpGuardian):
+    name = "wikidata"
+    base_confidence = 0.6
+    min_interval = 0.2
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            "https://www.wikidata.org/w/api.php?action=wbsearchentities"
+            f"&search={quote(query)}&language=en&uselang=en&format=json"
+            f"&limit={limit}&type=item"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for item in data.get("search", []):
+            label = item.get("label") or ""
+            if not label.strip():
+                continue
+            qid = item.get("id") or ""
+            units.append(
+                self._unit(
+                    title=label,
+                    summary=item.get("description") or "",
+                    url=item.get("concepturi")
+                    or f"https://www.wikidata.org/wiki/{qid}",
+                    tags=("entity", "wikidata"),
+                    license="CC0",
+                )
+            )
+        return units[:limit]
+
+
 class DataCiteGuardian(HttpGuardian):
     name = "datacite"
     base_confidence = 0.65
