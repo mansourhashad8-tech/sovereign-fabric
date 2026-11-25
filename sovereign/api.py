@@ -36,6 +36,7 @@ from .loop import EvolutionLoop
 from .mastery import Mastery
 from .metrics import Metrics
 from .optimizer import Optimizer
+from .orchestration import Orchestrator, Task
 from .pathfinder import operators_from
 from .protocol import BANNED_PHRASES, DeterministicProtocol, audit_language
 from .ranking import evaluate_ranking
@@ -271,6 +272,28 @@ class WarmRequest(BaseModel):
     queries: list[str]
 
 
+class OrchestrationTaskModel(BaseModel):
+    id: str = Field(min_length=1, max_length=64)
+    capability: str = Field(min_length=1, max_length=64)
+    payload: dict[str, Any] = Field(default_factory=dict)
+    depends_on: list[str] = Field(default_factory=list, max_length=20)
+    standard: str = "schema"
+    heavy: bool = True
+    kind: str = "external"
+
+
+class OrchestrationRequest(BaseModel):
+    tasks: list[OrchestrationTaskModel] = Field(min_length=1, max_length=20)
+    max_replacements: int = Field(default=1, ge=0, le=3)
+    probe: bool = False
+
+
+class ProvisionRequest(BaseModel):
+    provider_id: str = Field(min_length=1, max_length=64)
+    resource: str = "ephemeral-runner"
+    ttl_s: int = Field(default=900, ge=60, le=3600)
+
+
 def _unit_dict(unit: KnowledgeUnit) -> dict[str, Any]:
     return {
         "id": unit.id,
@@ -301,6 +324,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     protocol = DeterministicProtocol(engine)
     loop = EvolutionLoop(engine, interval_s=60.0, immune=immune)
     hyper = HyperKernel()
+    orchestrator = Orchestrator(store)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -318,6 +342,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.protocol = protocol
     app.state.loop = loop
     app.state.hyper = hyper
+    app.state.orchestrator = orchestrator
     api_key = ApiKey()
     limiter = RateLimiter()
     metrics = Metrics()
@@ -460,6 +485,11 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /curriculum/meta",
                 "GET /contract",
                 "POST /curriculum/meta/run",
+                "GET /orchestration/providers",
+                "GET /orchestration/standards",
+                "POST /orchestration/plan",
+                "POST /orchestration/run",
+                "POST /orchestration/provision",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1341,6 +1371,31 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/remote/status")
     def remote_status() -> dict[str, Any]:
         return {"available": remote.available, "configured": bool(remote.endpoint)}
+
+    @app.get("/orchestration/providers")
+    def orchestration_providers(probe: bool = Query(default=False)) -> dict[str, Any]:
+        return orchestrator.providers(probe=probe)
+
+    @app.get("/orchestration/standards")
+    def orchestration_standards() -> dict[str, Any]:
+        return orchestrator.standards()
+
+    @app.post("/orchestration/plan")
+    def orchestration_plan(body: OrchestrationRequest) -> dict[str, Any]:
+        return orchestrator.plan([Task.from_dict(item.model_dump()) for item in body.tasks])
+
+    @app.post("/orchestration/run")
+    def orchestration_run(body: OrchestrationRequest) -> dict[str, Any]:
+        if body.probe:
+            orchestrator.providers(probe=True)
+        return orchestrator.run(
+            [Task.from_dict(item.model_dump()) for item in body.tasks],
+            max_replacements=body.max_replacements,
+        )
+
+    @app.post("/orchestration/provision")
+    def orchestration_provision(body: ProvisionRequest) -> dict[str, Any]:
+        return orchestrator.provision(body.provider_id, body.resource, body.ttl_s)
 
     def _report(
         query: str,

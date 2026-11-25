@@ -488,6 +488,34 @@ that prediction before adding the cycle's result. It reports the Brier score,
 the 0.25 baseline, a skill score, and the last rows. Small samples make this a
 diagnostic, not a guarantee; a negative skill score is shown as negative.
 
+## Sovereign orchestration of external media
+
+`GET /orchestration/providers?probe=true` probes real providers and reports one
+of `ready`, `configured`, `blocked_credits`, `expired_credential`,
+`unauthorized`, `workflow_missing`, or `unreachable`. Nothing is marked ready
+from a credential name alone.
+
+| Provider | Capability | Heavy | Honest role |
+|---|---|---:|---|
+| GitHub Actions | `compute.python`, `compute.pytest`, `compute.audit` | yes | bounded `workflow_dispatch` runner |
+| Hugging Face Hub | `hub.metadata`, `hub.models` | no | model metadata |
+| Hugging Face Inference | `inference.chat` | no | external inference, credit-gated |
+| Groq | `inference.chat` | no | external inference, key-gated |
+| Local control | `control.plan`, `control.qa` | no | planning and quality only |
+
+`POST /orchestration/plan` builds a dependency-ordered assignment. A heavy task
+is blocked if no external provider is ready; the local interpreter is never
+substituted. `POST /orchestration/run` executes bounded tasks, applies a
+declared quality standard, and reassigns a failed task once. `POST
+/orchestration/provision` can provision an ephemeral GitHub Actions run inside
+the existing account; it cannot create a new account, because provider signup
+needs a human, payment, or CAPTCHA.
+
+The quality gate implements `schema`, `reproducibility`, `ACID`,
+`ISO_25010_subset`, and `ZKP`. ISO and ACID are subset checks, not
+certifications. The ZKP gate requires a proof, public signals, and a passing
+cryptographic verifier result; a structurally plausible artifact does not pass.
+
 ## Evidence, not entailment
 
 `POST /verify_claim` retrieves units and measures how much of the claim's
@@ -702,7 +730,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **66** source files hashed with SHA-256
+- **69** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -804,7 +832,10 @@ sovereign/
   selfhood.py      functional self-model, versioned definition, bounded initiative, reality bridge
   cosmic.py        protocol generation, seeded Monte Carlo, backward closure, honest limits
   metacurriculum.py self-directed practice: weak rate + predictive uncertainty
-  contract.py      curated 26-item requirement ledger with live coverage
+  contract.py      curated requirement ledger with live coverage
+  providers.py     probed external provider discovery and selection
+  orchestration.py DAG planning, bounded execution, reassignment, provisioning
+  quality.py       schema, reproducibility, ACID, ISO subset, and ZKP gates
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
   diagnostics.py   read-only database/registry/planner/security checks
@@ -931,6 +962,11 @@ curl -s localhost:12000/redteam
 | GET | `/curriculum/meta` | rank goals by weak rate and predictive uncertainty |
 | POST | `/curriculum/meta/run` | run one bounded practice cycle and record before/after |
 | GET | `/contract` | curated requirement ledger with met/partial/false coverage |
+| GET | `/orchestration/providers` | probed provider statuses; `probe=true` performs live checks |
+| GET | `/orchestration/standards` | quality standards and their exact scope |
+| POST | `/orchestration/plan` | dependency-ordered provider assignment |
+| POST | `/orchestration/run` | bounded external execution with quality gate and reassignment |
+| POST | `/orchestration/provision` | ephemeral resource status; no fake account creation |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -993,7 +1029,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 395 tests
+python -m pytest        # 405 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
