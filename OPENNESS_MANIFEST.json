@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T23:13:13.639632+00:00",
-  "commit": "00b4c548d335e3d70cffa33bdeb69f3e47f3d6a4",
+  "generated_at": "2026-11-25T23:19:56.713171+00:00",
+  "commit": "fbf2d3d98314fe77205b41f2f56df007057f9373",
   "root": "sovereign",
-  "duration_s": 0.437,
+  "duration_s": 0.438,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -72,8 +72,8 @@
     },
     {
       "path": "sovereign/contract.py",
-      "sha256": "b6e5f7ba01cfba2ec226e2427bbbb50239a05bbf83ea1c34a4fa82e84ce6f75f",
-      "lines": 241
+      "sha256": "2df0787507840baba8a742c4c5c849f9f7bc7b79cdefb38e1edd095cf5edc2f8",
+      "lines": 254
     },
     {
       "path": "sovereign/cosmic.py",
@@ -222,8 +222,8 @@
     },
     {
       "path": "sovereign/orchestration.py",
-      "sha256": "25f692c194062b23e6d99b5a68478516daec7b9d0f256a971126bb06b84220e1",
-      "lines": 533
+      "sha256": "5af9f80ffcd8af6a97ee83a67b01fe26cc2c1f7fd5c94970d4038315d190be3b",
+      "lines": 538
     },
     {
       "path": "sovereign/pathfinder.py",

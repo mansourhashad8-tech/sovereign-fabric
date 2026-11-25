@@ -511,6 +511,12 @@ declared quality standard, and reassigns a failed task once. `POST
 the existing account; it cannot create a new account, because provider signup
 needs a human, payment, or CAPTCHA.
 
+Live evidence on 2026-11-25: GitHub Actions accepted a `workflow_dispatch`
+and completed `tests` (run 45720153329) and `audit` (run 45720322520) with
+success; the orchestrator observed both. Hugging Face Hub answered `whoami`;
+Hugging Face Inference returned `402 blocked_credits`; Groq returned `401
+expired_credential`. No account was created.
+
 The quality gate implements `schema`, `reproducibility`, `ACID`,
 `ISO_25010_subset`, and `ZKP`. ISO and ACID are subset checks, not
 certifications. The ZKP gate requires a proof, public signals, and a passing

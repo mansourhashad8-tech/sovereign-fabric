@@ -170,6 +170,19 @@ REQUIREMENTS: list[dict[str, Any]] = [
         "note": "explicit local_transform only; default local-only knowledge claims still fail",
     },
     {
+        "id": "external_media_orchestration",
+        "need": "direct professional external media instead of relying on the local environment",
+        "status": "met",
+        "evidence": [
+            "providers.py",
+            "orchestration.py",
+            "quality.py",
+            ".github/workflows/remote-task.yml",
+            "https://github.com/mansourhashad8-tech/sovereign-fabric/actions/runs/45720322520",
+        ],
+        "note": "GitHub Actions dispatch observed success; HF Hub ready; HF inference blocked by credits; Groq key expired; account creation is not automated",
+    },
+    {
         "id": "no_false_claims",
         "need": "never round a failure up to a success",
         "status": "met",
