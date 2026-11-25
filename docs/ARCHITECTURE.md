@@ -57,8 +57,9 @@ flowchart LR
    a trainable Naive Bayes intent fallback, feedback-weighted A* costs, an
    allowlisted settings kernel, a read-only context packet that joins knowledge,
    capabilities, events, graph, and settings, a functional selfhood layer
-   (versioned definition, bounded initiative, honest reality bridge), and an
-   in-process hyper kernel
+   (versioned definition, bounded initiative, honest reality bridge), a cosmic
+   protocol layer (protocol generation, seeded Monte Carlo, backward closure),
+   and an in-process hyper kernel
    (HRR memory, direct state bus, observer, monotonic clock)
    evaluation, a fixed retrieval benchmark,
    and a result-first protocol with up to five bounded

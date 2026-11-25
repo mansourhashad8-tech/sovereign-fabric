@@ -16,6 +16,7 @@ from .blueprints import BLUEPRINTS
 from .capabilities import CapabilityError
 from .collective import collective_status, export_bundle, import_bundle
 from .context import ContextFabric
+from .cosmic import CosmicProtocol
 from .curriculum import Curriculum
 from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
@@ -150,6 +151,24 @@ class BatchInvokeCall(BaseModel):
 
 class BatchInvokeRequest(BaseModel):
     calls: list[BatchInvokeCall] = Field(min_length=1, max_length=20)
+
+
+class ShapeRequest(BaseModel):
+    intent: str = Field(min_length=1, max_length=500)
+    execute: bool = False
+    budget_s: float = Field(default=5.0, ge=1.0, le=30.0)
+
+
+class PredictRequest(BaseModel):
+    goal_type: str = Field(min_length=1, max_length=64)
+    initial: list[str] = Field(default_factory=lambda: ["text"])
+    scenarios: int = Field(default=1000, ge=1, le=20000)
+    seed: int = 0
+
+
+class BackwardRequest(BaseModel):
+    goal_type: str = Field(min_length=1, max_length=64)
+    initial: list[str] = Field(default_factory=lambda: ["text"])
 
 
 class DefinitionUpdate(BaseModel):
@@ -424,6 +443,12 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /selfhood/reality",
                 "POST /selfhood/reality/translate",
                 "GET /selfhood/validate",
+                "GET /cosmic",
+                "POST /cosmic/shape",
+                "POST /cosmic/predict",
+                "POST /cosmic/backward",
+                "GET /cosmic/infrastructure",
+                "GET /cosmic/validate",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1134,6 +1159,46 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/selfhood/validate")
     def selfhood_validate() -> dict[str, Any]:
         return Selfhood(engine).validate()
+
+    @app.get("/cosmic")
+    def cosmic() -> dict[str, Any]:
+        system = CosmicProtocol(engine)
+        return {
+            "infrastructure": system.infrastructure(),
+            "validation": system.validate(),
+            "note": "bounded classical analogs; literal cosmic claims are false",
+        }
+
+    @app.post("/cosmic/shape")
+    def cosmic_shape(body: ShapeRequest) -> dict[str, Any]:
+        try:
+            return CosmicProtocol(engine).shape(body.intent, body.execute, body.budget_s)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/cosmic/predict")
+    def cosmic_predict(body: PredictRequest) -> dict[str, Any]:
+        try:
+            return CosmicProtocol(engine).predict(
+                body.goal_type, tuple(body.initial), body.scenarios, body.seed
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/cosmic/backward")
+    def cosmic_backward(body: BackwardRequest) -> dict[str, Any]:
+        try:
+            return CosmicProtocol(engine).backward(body.goal_type, tuple(body.initial))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/cosmic/infrastructure")
+    def cosmic_infrastructure() -> dict[str, Any]:
+        return CosmicProtocol(engine).infrastructure()
+
+    @app.get("/cosmic/validate")
+    def cosmic_validate() -> dict[str, Any]:
+        return CosmicProtocol(engine).validate()
 
     @app.post("/ask")
     def ask(body: AskRequest) -> dict[str, Any]:

@@ -103,6 +103,7 @@ class SelfModel:
             "The context packet is a read-only join; its candidate links are not verified relationships.",
             "Selfhood is a functional model and a bounded initiative, not consciousness, life, or a sovereign will.",
             "The physical side of the reality bridge is absent; physical intents are refused, not executed.",
+            "The cosmic module generates protocols and simulates scenarios; it does not see the future, reverse causality, or harvest cosmic energy.",
             "Self-repair restores known built-ins with broken import entries; it cannot invent missing code.",
             "External expert answers are unverified text and are never executed.",
             "Media capabilities read headers only; there is no OCR, vision, or audio transcription.",
