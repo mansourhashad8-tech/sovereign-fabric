@@ -17,6 +17,7 @@ from .capabilities import CapabilityError
 from .collective import collective_status, export_bundle, import_bundle
 from .context import ContextFabric
 from .cosmic import CosmicProtocol
+from .metacurriculum import MetaCurriculum
 from .curriculum import Curriculum
 from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
@@ -151,6 +152,12 @@ class BatchInvokeCall(BaseModel):
 
 class BatchInvokeRequest(BaseModel):
     calls: list[BatchInvokeCall] = Field(min_length=1, max_length=20)
+
+
+class MetaRunRequest(BaseModel):
+    iterations: int = Field(default=1, ge=1, le=5)
+    budget_s: float = Field(default=8.0, ge=1.0, le=30.0)
+    scenarios: int = Field(default=200, ge=1, le=20000)
 
 
 class ShapeRequest(BaseModel):
@@ -449,6 +456,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /cosmic/backward",
                 "GET /cosmic/infrastructure",
                 "GET /cosmic/validate",
+                "GET /curriculum/meta",
+                "POST /curriculum/meta/run",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1199,6 +1208,21 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/cosmic/validate")
     def cosmic_validate() -> dict[str, Any]:
         return CosmicProtocol(engine).validate()
+
+    @app.get("/curriculum/meta")
+    def meta_curriculum(
+        scenarios: int = Query(default=200, ge=1, le=20000),
+    ) -> dict[str, Any]:
+        return {
+            "rows": MetaCurriculum(engine).table(scenarios),
+            "note": "weak rate plus predictive uncertainty; not a promise of improvement",
+        }
+
+    @app.post("/curriculum/meta/run")
+    def meta_curriculum_run(body: MetaRunRequest) -> dict[str, Any]:
+        return MetaCurriculum(engine).run(
+            body.iterations, body.budget_s, body.scenarios
+        )
 
     @app.post("/ask")
     def ask(body: AskRequest) -> dict[str, Any]:
