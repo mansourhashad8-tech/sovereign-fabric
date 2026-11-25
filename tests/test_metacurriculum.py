@@ -16,6 +16,7 @@ def test_table_ranks_weak_uncertain_goals_and_is_deterministic():
         assert len(first) == 13
         assert first[0]["priority"] >= first[-1]["priority"]
         assert all("predicted_success" in row for row in first)
+        assert all("stagnation" in row for row in first)
     finally:
         store.close()
 

@@ -99,6 +99,7 @@ class EvolutionEngine:
         budget_s: float = 5.0,
         auto_extend: bool = False,
         max_attempts: int = 1,
+        local_transform: bool = False,
     ) -> EvolutionCycle:
         queries = [request]
         if max_attempts > 1:
@@ -120,6 +121,7 @@ class EvolutionEngine:
                 synthesize=synthesize if index == 0 else None,
                 budget_s=budget_s,
                 auto_extend=auto_extend,
+                local_transform=local_transform,
             )
             attempts.append(
                 {
@@ -164,6 +166,7 @@ class EvolutionEngine:
         synthesize: dict[str, Any] | None,
         budget_s: float,
         auto_extend: bool,
+        local_transform: bool,
     ) -> EvolutionCycle:
         started = time.monotonic()
 
@@ -233,7 +236,15 @@ class EvolutionEngine:
 
         duration = time.monotonic() - started
         validation = self._validate(
-            request, consultation, plan, execution, synthesis, duration, budget_s, absorbed
+            request,
+            consultation,
+            plan,
+            execution,
+            synthesis,
+            duration,
+            budget_s,
+            absorbed,
+            local_transform,
         )
         ok = bool(plan.solved and execution.get("ok") and validation.passed)
         self._record_outcome_feedback(plan, execution, bool(execution.get("ok")))
@@ -357,6 +368,7 @@ class EvolutionEngine:
         duration: float,
         budget_s: float,
         absorbed: int,
+        local_transform: bool = False,
     ) -> ValidationReport:
         claims = [f"produced a '{plan.goal}' artifact"]
         if execution.get("ok"):
@@ -413,6 +425,7 @@ class EvolutionEngine:
             "budget_s": budget_s,
             "constraints_declared": len(_DECLARED_CONSTRAINTS),
             "constraints_addressed": max(0, constraints_addressed),
+            "local_transform": bool(local_transform),
         }
         return self.validator.validate(request, claims, evidence, context)
 
@@ -420,11 +433,12 @@ class EvolutionEngine:
 def diagnose(report: ValidationReport) -> list[str]:
     remedies: list[str] = []
     scores = report.scores
-    if scores.get("guardianship", 1) == 0:
+    applicable = report.applicability or {name: True for name in scores}
+    if applicable.get("guardianship", True) and scores.get("guardianship", 1) == 0:
         remedies.append("consult external sources (network or another guardian)")
-    if scores.get("comprehensiveness", 1) < 0.5:
+    if applicable.get("comprehensiveness", True) and scores.get("comprehensiveness", 1) < 0.5:
         remedies.append("consult more sources")
-    if scores.get("recency", 1) < 0.5:
+    if applicable.get("recency", True) and scores.get("recency", 1) < 0.5:
         remedies.append("retry with a broader or more recent query")
     if scores.get("speed", 1) < 0.5:
         remedies.append("raise the time budget or reduce the work")
@@ -440,8 +454,20 @@ def diagnose(report: ValidationReport) -> list[str]:
 
 
 def _rank(cycle: EvolutionCycle) -> tuple[int, int, float]:
-    passed = sum(1 for value in cycle.validation.scores.values() if value >= 0.5)
-    return (1 if cycle.ok else 0, passed, sum(cycle.validation.scores.values()))
+    applicable = cycle.validation.applicability or {
+        name: True for name in cycle.validation.scores
+    }
+    passed = sum(
+        1
+        for name, value in cycle.validation.scores.items()
+        if applicable.get(name, True) and value >= 0.5
+    )
+    total = sum(
+        value
+        for name, value in cycle.validation.scores.items()
+        if applicable.get(name, True)
+    )
+    return (1 if cycle.ok else 0, passed, total)
 
 
 def _is_fresh(timestamp: str, max_age_days: int = 180) -> bool:

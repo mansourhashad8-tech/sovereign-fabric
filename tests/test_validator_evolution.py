@@ -118,6 +118,26 @@ def test_cycle_succeeds_with_external_guardianship():
     store.close()
 
 
+def test_explicit_local_transform_passes_without_external_sources():
+    store = FabricStore()
+    engine = EvolutionEngine(store)
+    cycle = engine.evolve(
+        "format text as markdown",
+        goal_type="markdown",
+        initial=("text",),
+        text="alpha beta gamma",
+        budget_s=5.0,
+        local_transform=True,
+    )
+    assert cycle.plan.solved is True
+    assert cycle.execution["ok"] is True
+    assert cycle.validation.applicability["guardianship"] is False
+    assert cycle.validation.applicability["recency"] is False
+    assert cycle.validation.passed is True
+    assert cycle.ok is True
+    store.close()
+
+
 def test_cycle_with_only_local_knowledge_refuses_to_claim_success():
     store = FabricStore()
     engine = EvolutionEngine(store)

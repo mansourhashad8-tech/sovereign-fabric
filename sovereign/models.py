@@ -75,6 +75,7 @@ class ValidationReport:
     subject: str
     scores: dict[str, float]
     passed: bool
+    applicability: dict[str, bool] = field(default_factory=dict)
     failures: list[str] = field(default_factory=list)
     overclaims: list[str] = field(default_factory=list)
     evidence: list[Evidence] = field(default_factory=list)

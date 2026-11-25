@@ -591,7 +591,7 @@ Endpoints: `GET /hyper/status`, `GET /hyper/benchmark`,
 auto-extension, so an unreachable goal can be acquired if a verified blueprint
 exists. The before/after tables are returned; improvement is not guaranteed.
 
-Live: `markdown` reached 3/3 after one practice run.
+Live: after the explicit local-transform fix, `markdown` reached 1/15. Before the fix it was 0/14 because recency was wrongly applied to a local formatting task.
 
 ```bash
 python -m sovereign mastery --practice 1
@@ -993,7 +993,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 394 tests
+python -m pytest        # 395 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,

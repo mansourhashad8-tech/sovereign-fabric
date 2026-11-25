@@ -104,7 +104,7 @@ class SelfModel:
             "Selfhood is a functional model and a bounded initiative, not consciousness, life, or a sovereign will.",
             "The physical side of the reality bridge is absent; physical intents are refused, not executed.",
             "The cosmic module generates protocols and simulates scenarios; it does not see the future, reverse causality, or harvest cosmic energy.",
-            "Meta-curriculum priority is a heuristic over weak rates and uncertainty; practice does not guarantee improvement.",
+            "Meta-curriculum priority is a heuristic over weak rates, uncertainty, and stagnation; practice does not guarantee improvement.",
             "The requirement contract is a curated ledger; a met item is implemented and tested, not proof of general intelligence.",
             "Self-repair restores known built-ins with broken import entries; it cannot invent missing code.",
             "External expert answers are unverified text and are never executed.",

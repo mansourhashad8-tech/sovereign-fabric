@@ -45,7 +45,8 @@ class MetaCurriculum:
             probability = float(predicted.get("probability", 0.0))
             uncertainty = 4.0 * probability * (1.0 - probability)
             exploration = 0.2 if stats["attempts"] == 0 else 0.0
-            priority = (1.0 - float(stats["rate"])) + uncertainty + exploration
+            stagnation = 0.1 * stats["attempts"] if stats["rate"] == 0.0 else 0.0
+            priority = (1.0 - float(stats["rate"])) + uncertainty + exploration + stagnation
             rows.append(
                 {
                     "goal": goal,
@@ -55,8 +56,9 @@ class MetaCurriculum:
                     "possible": bool(predicted.get("possible")),
                     "predicted_success": round(probability, 6),
                     "uncertainty": round(uncertainty, 6),
+                    "stagnation": round(stagnation, 6),
                     "priority": round(priority, 6),
-                    "reason": "weak rate plus predictive uncertainty",
+                    "reason": "weak rate, predictive uncertainty, and stagnation",
                 }
             )
         rows.sort(key=lambda row: (-row["priority"], row["goal"]))
@@ -82,6 +84,7 @@ class MetaCurriculum:
                 budget_s=budget_s,
                 auto_extend=True,
                 max_attempts=2,
+                local_transform=True,
             )
             run = {
                 "goal": choice["goal"],

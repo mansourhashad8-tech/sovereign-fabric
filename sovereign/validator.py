@@ -97,6 +97,10 @@ class HolisticValidator:
             "speed": _speed(ctx.get("duration_s"), ctx.get("budget_s")),
             "guardianship": 1.0 if ctx.get("external_sources_ok", 0) > 0 else 0.0,
         }
+        applicability = {name: True for name in scores}
+        if ctx.get("local_transform"):
+            for name in ("comprehensiveness", "recency", "guardianship"):
+                applicability[name] = False
 
         failures: list[str] = []
         notes: list[str] = []
@@ -115,6 +119,9 @@ class HolisticValidator:
             failures.append("claims presented without evidence")
 
         for name, value in scores.items():
+            if not applicability[name]:
+                notes.append(f"{name}: not applicable to an explicitly local transform")
+                continue
             if value < self.min_score:
                 failures.append(f"{name} scored {value:.2f}, below threshold {self.min_score:.2f}")
                 notes.append(_explain(name, value, ctx))
@@ -123,6 +130,7 @@ class HolisticValidator:
             subject=subject,
             scores=scores,
             passed=not failures,
+            applicability=applicability,
             failures=failures,
             overclaims=overclaims,
             evidence=list(evidence),
