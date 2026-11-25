@@ -16,6 +16,7 @@ from .blueprints import BLUEPRINTS
 from .capabilities import CapabilityError
 from .collective import collective_status, export_bundle, import_bundle
 from .context import ContextFabric
+from .contract import audit as contract_audit
 from .cosmic import CosmicProtocol
 from .metacurriculum import MetaCurriculum
 from .curriculum import Curriculum
@@ -457,6 +458,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /cosmic/infrastructure",
                 "GET /cosmic/validate",
                 "GET /curriculum/meta",
+                "GET /contract",
                 "POST /curriculum/meta/run",
                 "GET /properties",
                 "GET /security/audit",
@@ -1208,6 +1210,10 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/cosmic/validate")
     def cosmic_validate() -> dict[str, Any]:
         return CosmicProtocol(engine).validate()
+
+    @app.get("/contract")
+    def contract() -> dict[str, Any]:
+        return contract_audit(engine)
 
     @app.get("/curriculum/meta")
     def meta_curriculum(

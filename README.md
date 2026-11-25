@@ -702,7 +702,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **65** source files hashed with SHA-256
+- **66** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -804,6 +804,7 @@ sovereign/
   selfhood.py      functional self-model, versioned definition, bounded initiative, reality bridge
   cosmic.py        protocol generation, seeded Monte Carlo, backward closure, honest limits
   metacurriculum.py self-directed practice: weak rate + predictive uncertainty
+  contract.py      curated 25-item requirement ledger with live coverage
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
   diagnostics.py   read-only database/registry/planner/security checks
@@ -929,6 +930,7 @@ curl -s localhost:12000/redteam
 | GET | `/cosmic/validate` | functional analogs vs literal cosmic claims |
 | GET | `/curriculum/meta` | rank goals by weak rate and predictive uncertainty |
 | POST | `/curriculum/meta/run` | run one bounded practice cycle and record before/after |
+| GET | `/contract` | curated requirement ledger with met/partial/false coverage |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -991,7 +993,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 392 tests
+python -m pytest        # 394 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
