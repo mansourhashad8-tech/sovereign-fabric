@@ -415,7 +415,9 @@ is an RRF score, not a probability, and the API returns the mode used.
 `POST /ranking/evaluate` computes nDCG@k and MRR from an explicit ranked id list
 and relevance map. It reports the metric only. `GET /ranking/benchmark` runs
 the same 12 queries over the offline local corpus in vector, BM25, and hybrid
-modes; it is a reproducible regression check, not a public leaderboard.
+modes; it is a reproducible regression check, not a public leaderboard. The
+BM25 token statistics are cached and invalidated on every knowledge write;
+`GET /cache/stats` reports the index revision, document count, and cache state.
 On the 2026-11-24 run at k=5, vector and hybrid scored nDCG 0.883201 and
 MRR 1.0; BM25 scored nDCG 0.874322 and MRR 1.0. Hybrid did not beat vector on
 this small set, so the system does not claim that it does.

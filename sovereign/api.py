@@ -1008,7 +1008,11 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
 
     @app.get("/cache/stats")
     def cache_stats() -> dict[str, Any]:
-        return {**cache.stats_dict(), "prefetch": prefetcher.stats_dict()}
+        return {
+            **cache.stats_dict(),
+            "prefetch": prefetcher.stats_dict(),
+            "retrieval_index": store.retrieval_index_status(),
+        }
 
     @app.post("/cache/warm")
     def cache_warm(body: WarmRequest) -> dict[str, Any]:

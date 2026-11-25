@@ -108,3 +108,21 @@ def test_fixed_retrieval_benchmark_is_reproducible_and_bounded():
     assert set(body["modes"]) == {"vector", "bm25", "hybrid"}
     assert all(0.0 <= body["modes"][mode]["ndcg"] <= 1.0 for mode in body["modes"])
     assert body["best_mode"] in body["modes"]
+
+
+def test_bm25_index_is_cached_and_invalidated_on_write():
+    store = FabricStore()
+    try:
+        store.upsert_knowledge(_unit("a", "SQLite", "write-ahead logging"))
+        store.search_knowledge("sqlite", mode="bm25")
+        first = store.retrieval_index_status()
+        assert first["cached"] is True
+        assert first["documents"] == 1
+        store.upsert_knowledge(_unit("b", "Planning", "state space search"))
+        assert store.retrieval_index_status()["cached"] is False
+        store.search_knowledge("planning", mode="hybrid")
+        second = store.retrieval_index_status()
+        assert second["cached"] is True
+        assert second["documents"] == 2
+    finally:
+        store.close()

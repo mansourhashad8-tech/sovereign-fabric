@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .models import Capability, KnowledgeUnit, Provenance, utcnow
-from .ranking import bm25_scores, reciprocal_rank_fusion
+from .ranking import BM25Index, bm25_scores, reciprocal_rank_fusion
 from .vectors import cosine, embed, embed_query
 
 _SCHEMA = """
@@ -89,6 +89,9 @@ class FabricStore:
             self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
+        self._knowledge_revision = 0
+        self._bm25_revision = -1
+        self._bm25_index: BM25Index | None = None
 
     # -- lifecycle -------------------------------------------------------
     def close(self) -> None:
@@ -121,6 +124,7 @@ class FabricStore:
                 ),
             )
             self._conn.commit()
+            self._knowledge_revision += 1
         return unit
 
     def get_knowledge(self, unit_id: str) -> KnowledgeUnit | None:
@@ -129,6 +133,26 @@ class FabricStore:
                 "SELECT * FROM knowledge WHERE id=?", (unit_id,)
             ).fetchone()
         return _row_to_unit(row) if row else None
+
+    def retrieval_index_status(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "revision": self._knowledge_revision,
+                "cached_revision": self._bm25_revision,
+                "cached": self._bm25_index is not None
+                and self._bm25_revision == self._knowledge_revision,
+                "documents": len(self._bm25_index.ids) if self._bm25_index else 0,
+            }
+
+    def _bm25_scores(self, query: str, units: list[KnowledgeUnit]) -> dict[str, float]:
+        with self._lock:
+            if self._bm25_index is None or self._bm25_revision != self._knowledge_revision:
+                self._bm25_index = BM25Index(
+                    {unit.id: unit.searchable_text() for unit in units}
+                )
+                self._bm25_revision = self._knowledge_revision
+            index = self._bm25_index
+        return index.scores(query)
 
     def search_knowledge(
         self,
@@ -170,11 +194,10 @@ class FabricStore:
         if mode == "vector":
             return vector_rank()[:k]
 
-        lexical_scores = bm25_scores(
-            query, [unit.searchable_text() for unit in units]
-        )
+        lexical_scores = self._bm25_scores(query, units)
+        by_id = {unit.id: unit for unit in units}
         lexical = sorted(
-            zip(units, lexical_scores),
+            ((by_id[item], score) for item, score in lexical_scores.items()),
             key=lambda pair: (-pair[1], pair[0].id),
         )
         if mode == "bm25":
@@ -184,7 +207,6 @@ class FabricStore:
         fused = reciprocal_rank_fusion(
             [[unit.id for unit, _ in vector], [unit.id for unit, _ in lexical]]
         )
-        by_id = {unit.id: unit for unit in units}
         ranked = sorted(
             ((by_id[unit_id], score) for unit_id, score in fused.items()),
             key=lambda pair: (-pair[1], pair[0].id),

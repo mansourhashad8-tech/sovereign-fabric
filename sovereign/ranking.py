@@ -21,6 +21,53 @@ def ranking_tokens(text: str) -> list[str]:
     return _TOKEN.findall(normalize_arabic(text).casefold())
 
 
+class BM25Index:
+    """Reusable BM25 statistics over an id-keyed document map."""
+
+    def __init__(
+        self, documents: dict[str, str], *, k1: float = 1.5, b: float = 0.75
+    ) -> None:
+        self.k1 = k1
+        self.b = b
+        self.ids = list(documents)
+        self.tokenized = [ranking_tokens(documents[item]) for item in self.ids]
+        self.frequencies = [Counter(tokens) for tokens in self.tokenized]
+        self.lengths = [len(tokens) for tokens in self.tokenized]
+        self.average_length = (
+            sum(self.lengths) / len(self.lengths) if self.lengths else 1.0
+        ) or 1.0
+        self.document_frequency: Counter[str] = Counter()
+        for tokens in self.tokenized:
+            self.document_frequency.update(set(tokens))
+        count = len(self.ids)
+        self.idf = {
+            term: math.log(1.0 + (count - frequency + 0.5) / (frequency + 0.5))
+            for term, frequency in self.document_frequency.items()
+        }
+
+    def scores(self, query: str) -> dict[str, float]:
+        query_terms = ranking_tokens(query)
+        if not query_terms or not self.ids:
+            return {item: 0.0 for item in self.ids}
+        result: dict[str, float] = {}
+        for item, frequencies, length in zip(
+            self.ids, self.frequencies, self.lengths
+        ):
+            score = 0.0
+            for term in query_terms:
+                frequency = frequencies.get(term, 0)
+                if not frequency:
+                    continue
+                denominator = frequency + self.k1 * (
+                    1.0 - self.b + self.b * (length / self.average_length)
+                )
+                score += self.idf.get(term, 0.0) * (
+                    frequency * (self.k1 + 1.0)
+                ) / denominator
+            result[item] = score
+        return result
+
+
 def bm25_scores(
     query: str,
     documents: list[str],
@@ -29,34 +76,13 @@ def bm25_scores(
     b: float = 0.75,
 ) -> list[float]:
     """Okapi BM25 over an explicit, bounded document list."""
-    query_terms = ranking_tokens(query)
-    tokenized = [ranking_tokens(document) for document in documents]
-    count = len(tokenized)
-    if not query_terms or count == 0:
-        return [0.0] * count
-    average_length = sum(len(tokens) for tokens in tokenized) / count or 1.0
-    document_frequency: Counter[str] = Counter()
-    for tokens in tokenized:
-        document_frequency.update(set(tokens))
-    idf = {
-        term: math.log(1.0 + (count - frequency + 0.5) / (frequency + 0.5))
-        for term, frequency in document_frequency.items()
-    }
-    scores: list[float] = []
-    for tokens in tokenized:
-        frequencies = Counter(tokens)
-        length = len(tokens)
-        score = 0.0
-        for term in query_terms:
-            frequency = frequencies.get(term, 0)
-            if not frequency:
-                continue
-            denominator = frequency + k1 * (
-                1.0 - b + b * (length / average_length)
-            )
-            score += idf.get(term, 0.0) * (frequency * (k1 + 1.0)) / denominator
-        scores.append(score)
-    return scores
+    index = BM25Index(
+        {str(position): document for position, document in enumerate(documents)},
+        k1=k1,
+        b=b,
+    )
+    scores = index.scores(query)
+    return [scores[str(position)] for position in range(len(documents))]
 
 
 def reciprocal_rank_fusion(

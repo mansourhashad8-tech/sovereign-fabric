@@ -171,6 +171,12 @@ DASHBOARD_HTML = """<!doctype html>
   </div>
 
   <div class="panel" style="margin-top:14px">
+    <h3>Retrieval benchmark <span id="retrievalStamp" style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400"></span></h3>
+    <div class="actions" style="margin-bottom:10px"><button onclick="loadRetrieval()">Run benchmark</button></div>
+    <div class="limits" id="retrievalOut">not run yet — 12 fixed queries across vector, BM25, and hybrid</div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
     <h3>Capabilities</h3>
     <div class="caps" id="caps"></div>
   </div>
@@ -402,6 +408,23 @@ async function loadSelf() {
 
 setInterval(loadSelf, 15000);
 loadSelf();
+
+async function loadRetrieval() {
+  $('retrievalOut').textContent = 'running the fixed benchmark…';
+  try {
+    const b = await get('/ranking/benchmark');
+    const chips = Object.entries(b.modes).map(([mode, row]) =>
+      `<span class="cap ${mode === b.best_mode ? 'admitted' : ''}">${esc(mode)} · nDCG ${num(row.ndcg, 3)} · MRR ${num(row.mrr, 3)}</span>`
+    ).join('');
+    $('retrievalOut').innerHTML = chips +
+      `<div style="margin-top:8px">best: <strong>${esc(b.best_mode)}</strong> · ${b.queries} queries · k=${b.k}</div>`;
+    $('retrievalStamp').textContent = '· ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    $('retrievalOut').textContent = String(e);
+  }
+}
+
+loadRetrieval();
 
 async function loadBase() {
   try {

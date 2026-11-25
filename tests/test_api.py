@@ -322,6 +322,12 @@ def test_security_report_endpoint_is_markdown():
     assert "# Security & Openness Disclosure" in text
 
 
+def test_dashboard_shows_retrieval_benchmark_panel():
+    text = _client().get("/dashboard").text
+    assert "Retrieval benchmark" in text
+    assert "/ranking/benchmark" in text
+
+
 def test_dashboard_shows_openness_panel():
     text = _client().get("/dashboard").text
     assert "Openness &amp; security" in text
