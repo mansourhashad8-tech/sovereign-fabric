@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T13:04:42.756007+00:00",
-  "commit": "65842dd0d02e9a885d5c5f4982b4b5928ee5faf0",
+  "generated_at": "2026-11-25T13:13:26.321387+00:00",
+  "commit": "d94484be96f28b25db58e5347203c70e7cc3c09d",
   "root": "sovereign",
-  "duration_s": 0.381,
+  "duration_s": 0.374,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "b3d1ef5b8db83459407cbd2a9dfd01eb1f88ae307dcdb5a659fb13a18bcebdd0",
-      "lines": 1104
+      "sha256": "a6f7301bd6ac22c7c19b6062283a1168cde796117f3dfd5cbf703fa300e92494",
+      "lines": 1122
     },
     {
       "path": "sovereign/arabic.py",
@@ -42,8 +42,8 @@
     },
     {
       "path": "sovereign/blueprints.py",
-      "sha256": "a6f68ce2b5201f8d3769ab35e5b05944e8ef745a500ef0b557af75ff2a2d3219",
-      "lines": 213
+      "sha256": "4cbf2b24f99d4347b78e2259247ab2c52dc0f11d529688c825e40f0084cc6e17",
+      "lines": 493
     },
     {
       "path": "sovereign/brief.py",
