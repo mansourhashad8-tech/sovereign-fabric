@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T12:45:23.096879+00:00",
-  "commit": "cc111310b4428dac660687554bcdedaaa69ebe62",
+  "generated_at": "2026-11-25T13:04:42.756007+00:00",
+  "commit": "65842dd0d02e9a885d5c5f4982b4b5928ee5faf0",
   "root": "sovereign",
-  "duration_s": 0.458,
+  "duration_s": 0.381,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "9c5e36ae792b9bba61dbc0a4957b736b919843667d00151555fa4d78cdce8af5",
-      "lines": 1100
+      "sha256": "b3d1ef5b8db83459407cbd2a9dfd01eb1f88ae307dcdb5a659fb13a18bcebdd0",
+      "lines": 1104
     },
     {
       "path": "sovereign/arabic.py",
@@ -72,8 +72,8 @@
     },
     {
       "path": "sovereign/dashboard.py",
-      "sha256": "2d18b19847e4f29be62bfe89353196b71cf0c4ec4644fa985d9ffd6861b4569f",
-      "lines": 425
+      "sha256": "31b498fbcdb47961f9015ce3265d194b80f1c6314f2b92d360ca73b361d3f3a7",
+      "lines": 448
     },
     {
       "path": "sovereign/decisions.py",
@@ -222,8 +222,8 @@
     },
     {
       "path": "sovereign/ranking.py",
-      "sha256": "74aaca507013cd79cdfd904efef91766414b39a126bf4dd739bc71c05205f683",
-      "lines": 104
+      "sha256": "fdce302863eeaef09300adcaec779ce41b1d5f87349e23acb78b72a35afa6388",
+      "lines": 130
     },
     {
       "path": "sovereign/redteam.py",
@@ -262,8 +262,8 @@
     },
     {
       "path": "sovereign/store.py",
-      "sha256": "38565acd336abb2d499666ef8f37afd27cdddbecacedbb3501dbf8eac241513d",
-      "lines": 444
+      "sha256": "b24e65c15e2b44f52a52a96232f0426dbf88674bf0a1d3a6f07c39d258910ac8",
+      "lines": 466
     },
     {
       "path": "sovereign/synthesis.py",
