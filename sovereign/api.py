@@ -46,6 +46,7 @@ from .properties import check_capabilities
 from .report import render_report, system_report
 from .security import audit as security_audit, cyclonedx_sbom, disclosure_markdown
 from .selfmodel import SelfModel
+from .selfhood import Selfhood
 from .settings import Settings
 from .store import FabricStore
 from .vectors import cosine, embed
@@ -149,6 +150,21 @@ class BatchInvokeCall(BaseModel):
 
 class BatchInvokeRequest(BaseModel):
     calls: list[BatchInvokeCall] = Field(min_length=1, max_length=20)
+
+
+class DefinitionUpdate(BaseModel):
+    field: str = Field(min_length=1, max_length=50)
+    value: Any
+    reason: str = Field(default="", max_length=300)
+
+
+class InitiativeRequest(BaseModel):
+    execute: bool = False
+    budget_s: float = Field(default=8.0, ge=1.0, le=30.0)
+
+
+class RealityIntent(BaseModel):
+    intent: str = Field(min_length=1, max_length=500)
 
 
 class SettingUpdate(BaseModel):
@@ -401,6 +417,13 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /settings/history",
                 "POST /settings/tune",
                 "GET /context",
+                "GET /selfhood",
+                "GET /selfhood/reflection",
+                "POST /selfhood/initiative",
+                "GET/POST /selfhood/definition",
+                "GET /selfhood/reality",
+                "POST /selfhood/reality/translate",
+                "GET /selfhood/validate",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1068,6 +1091,49 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             return ContextFabric(engine).build(q, k)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/selfhood")
+    def selfhood() -> dict[str, Any]:
+        system = Selfhood(engine)
+        return {
+            "identity": system.identity(),
+            "reality": system.reality(),
+            "validation": system.validate(),
+        }
+
+    @app.get("/selfhood/reflection")
+    def selfhood_reflection() -> dict[str, Any]:
+        return Selfhood(engine).reflection()
+
+    @app.post("/selfhood/initiative")
+    def selfhood_initiative(body: InitiativeRequest) -> dict[str, Any]:
+        return Selfhood(engine).initiative(body.execute, body.budget_s)
+
+    @app.get("/selfhood/definition")
+    def selfhood_definition() -> dict[str, Any]:
+        return Selfhood(engine).identity()["definition"]
+
+    @app.post("/selfhood/definition")
+    def selfhood_update(body: DefinitionUpdate) -> dict[str, Any]:
+        try:
+            return Selfhood(engine).update_definition(body.field, body.value, body.reason)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/selfhood/reality")
+    def selfhood_reality() -> dict[str, Any]:
+        return Selfhood(engine).reality()
+
+    @app.post("/selfhood/reality/translate")
+    def selfhood_translate(body: RealityIntent) -> dict[str, Any]:
+        try:
+            return Selfhood(engine).translate(body.intent)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/selfhood/validate")
+    def selfhood_validate() -> dict[str, Any]:
+        return Selfhood(engine).validate()
 
     @app.post("/ask")
     def ask(body: AskRequest) -> dict[str, Any]:

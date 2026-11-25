@@ -702,7 +702,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **62** source files hashed with SHA-256
+- **63** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -801,6 +801,7 @@ sovereign/
   feedback.py      smoothed outcome votes; reorder search and weight planner costs
   settings.py      allowlisted settings, bounds, audit, reset, bounded tune
   context.py       one read-only packet: knowledge, capabilities, events, graph, settings
+  selfhood.py      functional self-model, versioned definition, bounded initiative, reality bridge
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
   diagnostics.py   read-only database/registry/planner/security checks
@@ -911,6 +912,13 @@ curl -s localhost:12000/redteam
 | GET | `/settings/history` | append-only settings change log |
 | POST | `/settings/tune` | bounded heuristic tune from cycle skill |
 | GET | `/context` | join knowledge, capabilities, events, graph, and settings |
+| GET | `/selfhood` | functional identity, reality bridge, and validation |
+| GET | `/selfhood/reflection` | event-derived observations and safe priorities |
+| POST | `/selfhood/initiative` | one bounded internal practice action |
+| GET/POST | `/selfhood/definition` | versioned self-description; invariants fixed |
+| GET | `/selfhood/reality` | digital interfaces and absent physical interfaces |
+| POST | `/selfhood/reality/translate` | map an intent to a digital plan or refuse physical action |
+| GET | `/selfhood/validate` | functional analogs vs literal claims |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -973,7 +981,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 378 tests
+python -m pytest        # 384 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,

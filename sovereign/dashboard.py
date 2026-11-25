@@ -159,6 +159,12 @@ DASHBOARD_HTML = """<!doctype html>
   </div>
 
   <div class="panel" style="margin-top:14px">
+    <h3>Functional selfhood <span id="selfhoodStamp" style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400"></span></h3>
+    <div class="caps" id="selfhoodOut"></div>
+    <div style="margin-top:10px"><button onclick="runInitiative()">Run bounded initiative</button></div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
     <h3>Research brief</h3>
     <div class="caps" style="margin-bottom:10px">
       <input id="briefQuery" value="retrieval augmented generation"
@@ -450,6 +456,31 @@ async function tuneSettings() {
 
 loadSettings();
 setInterval(loadSettings, 30000);
+
+async function loadSelfhood() {
+  try {
+    const packet = await get('/selfhood');
+    const validation = packet.validation;
+    $('selfhoodOut').innerHTML =
+      `<span class="cap admitted">self-model</span>` +
+      `<span class="cap quarantined">consciousness: false</span>` +
+      `<span class="cap quarantined">physical: false</span>` +
+      `<span class="cap ${validation.passed ? 'admitted' : 'quarantined'}">${validation.met}/${validation.total} functional claims</span>`;
+    $('selfhoodStamp').textContent = '· ' + packet.identity.definition.role;
+  } catch (e) {}
+}
+
+async function runInitiative() {
+  try {
+    const result = await postJson('/selfhood/initiative', { execute: true, budget_s: 8 });
+    $('selfhoodOut').insertAdjacentHTML('afterbegin',
+      `<span class="cap admitted">initiative: ${esc(result.action)} · external effect false</span>`);
+    await loadSelfhood();
+  } catch (e) {}
+}
+
+loadSelfhood();
+setInterval(loadSelfhood, 30000);
 
 async function runContext() {
   const query = $('contextQuery').value.trim();
