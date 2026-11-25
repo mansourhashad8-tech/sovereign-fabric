@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T15:15:56.577541+00:00",
-  "commit": "060e216997b3269695617f2ce90ef1d620d2cbeb",
+  "generated_at": "2026-11-25T15:38:12.497997+00:00",
+  "commit": "752643ef9c0aa90f366cd73073a57668e6cfb292",
   "root": "sovereign",
-  "duration_s": 0.401,
+  "duration_s": 0.383,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "1ccea22153f3b56b7f3f43fc247005eef3f0886a7e1498d04f17031d28c89d6a",
-      "lines": 1196
+      "sha256": "324d9c7aedc7e61737342685bb0d128e2630180a7d094de6a723552a8c9f3431",
+      "lines": 1201
     },
     {
       "path": "sovereign/arabic.py",
@@ -72,8 +72,8 @@
     },
     {
       "path": "sovereign/dashboard.py",
-      "sha256": "31b498fbcdb47961f9015ce3265d194b80f1c6314f2b92d360ca73b361d3f3a7",
-      "lines": 448
+      "sha256": "0ee0d1598483ca2a969bad9e00a88a33f3b6ed1c560a411cce69c9636ee89cc3",
+      "lines": 451
     },
     {
       "path": "sovereign/decisions.py",
@@ -92,8 +92,8 @@
     },
     {
       "path": "sovereign/evolution.py",
-      "sha256": "5b401b782d6cd2ea1d0dabaf8a33c23f3a4b286955f04d41a4d2a8aac8b56088",
-      "lines": 379
+      "sha256": "70130411b1f0b14427bd304c1f26a9ccfc9f9d6ae68ba7285ac9c8f7d0d366a1",
+      "lines": 420
     },
     {
       "path": "sovereign/execution.py",
@@ -202,8 +202,8 @@
     },
     {
       "path": "sovereign/pathfinder.py",
-      "sha256": "d7baaa2166f3caacc4390fc759ecdf9c99aeacd75053ecfb2349cbe48920f3cb",
-      "lines": 194
+      "sha256": "0176497dbde24dacc401c528e8f618f9372641289fc8147d6a76751a38171816",
+      "lines": 207
     },
     {
       "path": "sovereign/pipeline.py",
@@ -262,8 +262,8 @@
     },
     {
       "path": "sovereign/selfmodel.py",
-      "sha256": "7e1a07459eff33daa7ddfce7674f7d92d669393f19c2811f0dca822af5933f92",
-      "lines": 174
+      "sha256": "702276027422b1cd8e250e03a6a72ed549b3aa78bec91178f80a9d4e8e26edce",
+      "lines": 219
     },
     {
       "path": "sovereign/semantic.py",
