@@ -332,3 +332,10 @@ def test_dashboard_shows_openness_panel():
     text = _client().get("/dashboard").text
     assert "Openness &amp; security" in text
     assert "loadSecurity" in text
+
+
+def test_blueprints_endpoint_lists_the_self_extension_library():
+    body = _client().get("/blueprints").json()
+    assert body["count"] >= 20
+    names = {item["name"] for item in body["blueprints"]}
+    assert {"text.arabic_normalized", "list.unique", "json.flatten"} <= names

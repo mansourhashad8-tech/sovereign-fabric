@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from .absorption import absorb
 from .autonomy import assess, reward_ledger
+from .blueprints import BLUEPRINTS
 from .capabilities import CapabilityError
 from .collective import collective_status, export_bundle, import_bundle
 from .curriculum import Curriculum
@@ -335,6 +336,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /diagnostics",
                 "GET /dashboard",
                 "GET /guardians",
+                "GET /blueprints",
                 "POST /consult",
                 "POST /absorb",
                 "GET /knowledge/search",
@@ -401,6 +403,22 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/guardians")
     def guardians() -> dict[str, Any]:
         return {"guardians": engine.guardians.names()}
+
+    @app.get("/blueprints")
+    def blueprints_endpoint() -> dict[str, Any]:
+        return {
+            "count": len(BLUEPRINTS),
+            "blueprints": [
+                {
+                    "name": bp.name,
+                    "description": bp.description,
+                    "inputs": list(bp.inputs),
+                    "outputs": list(bp.outputs),
+                    "examples": len(bp.examples),
+                }
+                for bp in BLUEPRINTS
+            ],
+        }
 
     @app.post("/consult")
     def consult(body: ConsultRequest) -> dict[str, Any]:

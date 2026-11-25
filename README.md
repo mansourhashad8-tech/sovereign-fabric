@@ -48,8 +48,10 @@ every push.
 - **A capability registry** with versioning, hot-swap, quarantine and rollback.
 - **Autonomous acquisition**: when planning is blocked, the system looks for a
   blueprint whose inputs are already reachable and whose outputs add something
-  new, synthesises it through the gate, and re-plans. It can chain several such
-  acquisitions to build a multi-step bridge.
+  new, synthesises it through the gate, and re-plans. The bounded library has
+  **24 blueprints** across text, Arabic normalization, lists, numbers, JSON and
+  hashing; bridge blueprints let it go from text to lists or JSON and then to a
+  second capability. It can chain several acquisitions into a multi-step bridge.
 - **A bounded repair loop**: a cycle that fails a criterion retries with a
   broader query, keeps the best attempt, records every attempt, and returns an
   actionable diagnosis.
@@ -202,7 +204,7 @@ The registry carries 129 admitted capabilities. Five are the original chain
 | Area | Capabilities |
 | --- | --- |
 | Text | `text.clean`, `text.sentences`, `sentences.stats`, `text.stats`, `text.langdetect`, `text.keywords`, `text.ngrams`, `text.entities`, `text.redact`, `tokens.top`, `text.similarity`, `text.stopwords`, `text.unique_lines`, `text.excerpt`, `text.diff` |
-| Arabic | `text.arabic_normalize`, `text.arabic_digits`, `text.arabic_stem` |
+| Arabic | `text.arabic_normalized`, `text.arabic_digits`, `text.arabic_stem` |
 | Data | `json.validate`, `json.pretty`, `json.get`, `json.minify`, `csv.parse`, `csv.to_json`, `table.sort`, `table.filter`, `table.aggregate`, `markdown.table`, `toml.parse`, `ini.parse` |
 | Markup | `html.text`, `html.links`, `markdown.headings` |
 | Exact work | `math.eval` (whitelisted AST arithmetic), `math.stats`, `date.diff`, `date.add`, `date.weekday`, `url.parse`, `url.query` |
@@ -781,6 +783,7 @@ curl -s localhost:12000/redteam
 | GET | `/knowledge/search` | vector, BM25, or hybrid retrieval (`mode=`) |
 | POST | `/ranking/evaluate` | nDCG@k and MRR for a ranked id list and relevance map |
 | GET | `/ranking/benchmark` | fixed 12-query internal retrieval benchmark for all three modes |
+| GET | `/blueprints` | the bounded self-extension library (inputs, outputs, examples) |
 | GET | `/knowledge/graph` | traverse the concept graph |
 | POST | `/synthesize` | spec -> verified capability |
 | POST | `/acquire` | ask external experts for a verified capability |
@@ -860,16 +863,16 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 185 tests
+python -m pytest        # 348 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
-store/graph/versioning, all ten guardian parsers against recorded fixtures,
+store/graph/versioning, all 22 guardian parsers against recorded fixtures,
 cache and graceful degradation, absorption and graph linking, built-in and
 sandboxed invocation, secret stripping, the synthesis gate
 (accept/reject/quarantine), A* correctness, memoisation and alternative routes,
-autonomous blueprint acquisition (single-step, multi-step bridge, unmet inputs,
-quarantine), external-expert acquisition (accept, reject, iterative repair,
+autonomous blueprint acquisition (24 blueprints, single-step, multi-step bridge,
+Arabic normalization, text-to-list/JSON bridges, unmet inputs, quarantine), external-expert acquisition (accept, reject, iterative repair,
 no-expert honesty), enumerative program synthesis (string and number shapes,
 gate verification, no-fit honesty), measured self-optimization (verified
 equivalence, kept win, no-gain honesty, event log, confidence intervals), the

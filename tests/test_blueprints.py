@@ -109,3 +109,42 @@ def test_autonomous_extend_builds_a_two_step_bridge():
     assert [s.capability for s in plan.steps] == ["text.numbers", "list.total"]
     assert len(attempts) == 2
     store.close()
+
+
+def test_every_blueprint_reproduces_its_own_examples():
+    store, registry, synth, _ = _engine()
+    try:
+        for bp in BLUEPRINTS:
+            result = synth.verify(synth.source_for(dict(bp.spec)), list(bp.examples))
+            assert result.admitted, f"{bp.name}: {result.reason}"
+    finally:
+        store.close()
+
+
+def test_autonomous_extend_builds_an_arabic_pipeline():
+    store, registry, synth, pf = _engine()
+    plan, added, _ = autonomous_extend(registry, synth, pf, ("text",), "arabic")
+    assert plan.solved is True
+    assert added == ["text.arabic_normalized"]
+    assert registry.invoke("text.arabic_normalized", {"value": "أَكْتُبُ"}) == {
+        "value": "اكتب"
+    }
+    store.close()
+
+
+def test_autonomous_extend_bridges_text_to_list_and_json():
+    store, registry, synth, pf = _engine()
+    plan, added, _ = autonomous_extend(registry, synth, pf, ("text",), "unique")
+    assert plan.solved is True
+    assert added == ["text.tokens", "list.unique"]
+    assert registry.invoke("list.unique", {"value": [1, 2, 1]}) == {"value": [1, 2]}
+    store.close()
+
+    store, registry, synth, pf = _engine()
+    plan, added, _ = autonomous_extend(registry, synth, pf, ("text",), "flat")
+    assert plan.solved is True
+    assert added == ["text.json", "json.flatten"]
+    assert registry.invoke("json.flatten", {"value": {"a": {"b": 1}}}) == {
+        "value": {"a.b": 1}
+    }
+    store.close()

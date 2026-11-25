@@ -50,7 +50,7 @@ flowchart LR
    capability versions, an append-only event log, a source cache, a failure memo,
    a capability-demand ledger fed by protocol escalations, and decision memory.
 4. **Planning and synthesis**: reachability proof plus A* over capability types,
-   bounded capability pipelines, blueprint acquisition, enumerative program
+   bounded capability pipelines, a 24-blueprint self-extension library, enumerative program
    synthesis, a subprocess gate, a 71-function deterministic toolbox, hybrid
    vector/BM25 retrieval with a write-invalidated BM25 index cache, nDCG@k/MRR
    evaluation, a fixed retrieval benchmark,
