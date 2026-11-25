@@ -105,7 +105,7 @@ def test_fixed_retrieval_benchmark_is_reproducible_and_bounded():
     assert response.status_code == 200
     body = response.json()
     assert body["queries"] == 12
-    assert set(body["modes"]) == {"vector", "bm25", "hybrid"}
+    assert set(body["modes"]) == {"vector", "bm25", "hybrid", "semantic"}
     assert all(0.0 <= body["modes"][mode]["ndcg"] <= 1.0 for mode in body["modes"])
     assert body["best_mode"] in body["modes"]
 
@@ -118,11 +118,16 @@ def test_bm25_index_is_cached_and_invalidated_on_write():
         first = store.retrieval_index_status()
         assert first["cached"] is True
         assert first["documents"] == 1
+        store.search_knowledge("sqlite", mode="semantic")
+        assert store.retrieval_index_status()["semantic_cached"] is True
         store.upsert_knowledge(_unit("b", "Planning", "state space search"))
         assert store.retrieval_index_status()["cached"] is False
+        assert store.retrieval_index_status()["semantic_cached"] is False
         store.search_knowledge("planning", mode="hybrid")
         second = store.retrieval_index_status()
         assert second["cached"] is True
         assert second["documents"] == 2
+        store.search_knowledge("planning", mode="semantic")
+        assert store.retrieval_index_status()["semantic_documents"] == 2
     finally:
         store.close()

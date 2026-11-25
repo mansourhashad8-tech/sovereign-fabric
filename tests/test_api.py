@@ -339,3 +339,26 @@ def test_blueprints_endpoint_lists_the_self_extension_library():
     assert body["count"] >= 20
     names = {item["name"] for item in body["blueprints"]}
     assert {"text.arabic_normalized", "list.unique", "json.flatten"} <= names
+
+
+def test_semantic_search_mode_is_exposed():
+    response = _client().get("/knowledge/search", params={"q": "planning", "mode": "semantic"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["mode"] == "semantic"
+    assert isinstance(body["hits"], list)
+
+
+def test_intent_classifier_endpoints():
+    client = _client()
+    body = client.get("/intent/classify", params={"q": "detect the language"}).json()
+    assert body["label"] == "language"
+    assert 0.0 <= body["confidence"] <= 1.0
+    status = client.get("/intent/model").json()
+    assert status["documents"] >= 60
+    learned = client.post(
+        "/intent/learn",
+        json={"text": "please produce a concise summary", "label": "summary"},
+    ).json()
+    assert learned["learned"] is True
+    assert learned["status"]["documents"] == status["documents"] + 1

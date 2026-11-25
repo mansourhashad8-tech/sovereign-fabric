@@ -18,6 +18,7 @@ from typing import Any
 
 from .models import Capability, KnowledgeUnit, Provenance, utcnow
 from .ranking import BM25Index, bm25_scores, reciprocal_rank_fusion
+from .semantic import SemanticIndex
 from .vectors import cosine, embed, embed_query
 
 _SCHEMA = """
@@ -92,6 +93,8 @@ class FabricStore:
         self._knowledge_revision = 0
         self._bm25_revision = -1
         self._bm25_index: BM25Index | None = None
+        self._semantic_revision = -1
+        self._semantic_index: SemanticIndex | None = None
 
     # -- lifecycle -------------------------------------------------------
     def close(self) -> None:
@@ -142,6 +145,11 @@ class FabricStore:
                 "cached": self._bm25_index is not None
                 and self._bm25_revision == self._knowledge_revision,
                 "documents": len(self._bm25_index.ids) if self._bm25_index else 0,
+                "semantic_cached": self._semantic_index is not None
+                and self._semantic_revision == self._knowledge_revision,
+                "semantic_documents": len(self._semantic_index.ids)
+                if self._semantic_index
+                else 0,
             }
 
     def _bm25_scores(self, query: str, units: list[KnowledgeUnit]) -> dict[str, float]:
@@ -154,6 +162,16 @@ class FabricStore:
             index = self._bm25_index
         return index.scores(query)
 
+    def _semantic_scores(self, query: str, units: list[KnowledgeUnit]) -> dict[str, float]:
+        with self._lock:
+            if self._semantic_index is None or self._semantic_revision != self._knowledge_revision:
+                self._semantic_index = SemanticIndex(
+                    {unit.id: unit.searchable_text() for unit in units}
+                )
+                self._semantic_revision = self._knowledge_revision
+            index = self._semantic_index
+        return index.scores(query)
+
     def search_knowledge(
         self,
         query: str,
@@ -161,17 +179,18 @@ class FabricStore:
         qvec=None,
         mode: str = "vector",
     ) -> list[tuple[KnowledgeUnit, float]]:
-        """Rank knowledge by vector, BM25, or fused hybrid retrieval.
+        """Rank knowledge by vector, BM25, semantic, or fused hybrid retrieval.
 
         ``vector`` preserves the historical score (embedding + authority +
-        recency). ``bm25`` ranks exact terms. ``hybrid`` fuses the two ranked
+        recency). ``bm25`` ranks exact terms. ``semantic`` uses corpus-derived
+        PPMI random-index vectors. ``hybrid`` fuses vector and BM25 ranked
         lists with reciprocal rank fusion; its score is an RRF score, not a
         probability.
         """
         mode = (mode or "vector").lower()
-        if mode not in {"vector", "bm25", "hybrid"}:
-            raise ValueError("mode must be vector, bm25, or hybrid")
-        if qvec is None:
+        if mode not in {"vector", "bm25", "hybrid", "semantic"}:
+            raise ValueError("mode must be vector, bm25, hybrid, or semantic")
+        if qvec is None and mode in {"vector", "hybrid"}:
             qvec = embed_query(query)
         with self._lock:
             rows = self._conn.execute("SELECT * FROM knowledge").fetchall()
@@ -193,6 +212,14 @@ class FabricStore:
 
         if mode == "vector":
             return vector_rank()[:k]
+        if mode == "semantic":
+            semantic_scores = self._semantic_scores(query, units)
+            by_id = {unit.id: unit for unit in units}
+            ranked = sorted(
+                ((by_id[item], score) for item, score in semantic_scores.items()),
+                key=lambda pair: (-pair[1], pair[0].id),
+            )
+            return ranked[:k]
 
         lexical_scores = self._bm25_scores(query, units)
         by_id = {unit.id: unit for unit in units}

@@ -68,7 +68,7 @@ def payload_text(request: str) -> str:
     return text
 
 
-def parse_intent(request: str) -> dict[str, object]:
+def parse_intent(request: str, *, use_model: bool = True) -> dict[str, object]:
     text = request.strip()
     lowered = text.lower()
     matches: list[tuple[int, int, str, str]] = []
@@ -81,6 +81,16 @@ def parse_intent(request: str) -> dict[str, object]:
         _, _, raw_goal, word = min(matches)
     else:
         raw_goal, word = "markdown", ""
+        if use_model:
+            from .intent_model import default_model
+
+            result = default_model().classify(text)
+            top = result.get("top") or []
+            confidence = float(result.get("confidence") or 0.0)
+            runner_up = float(top[1]["confidence"]) if len(top) > 1 else 0.0
+            if result.get("label") and confidence >= 0.8 and confidence - runner_up >= 0.4:
+                raw_goal = str(result["label"])
+                word = f"model:{raw_goal}"
     goal = _GOAL.get(raw_goal, raw_goal)
     return {
         "goal_type": goal,

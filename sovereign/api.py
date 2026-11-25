@@ -73,6 +73,11 @@ class RollbackRequest(BaseModel):
     name: str
 
 
+class IntentLearnRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=500)
+    label: str = Field(min_length=1, max_length=64)
+
+
 class EvolveRequest(BaseModel):
     request: str = Field(min_length=1, max_length=2000)
     goal_type: str = "markdown"
@@ -337,6 +342,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /dashboard",
                 "GET /guardians",
                 "GET /blueprints",
+                "GET /intent/classify",
+                "GET /intent/model",
+                "POST /intent/learn",
                 "POST /consult",
                 "POST /absorb",
                 "GET /knowledge/search",
@@ -420,6 +428,27 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             ],
         }
 
+    @app.get("/intent/classify")
+    def intent_classify(q: str = Query(min_length=1, max_length=500)) -> dict[str, Any]:
+        from .intent_model import default_model
+
+        model = default_model()
+        return {"query": q, **model.classify(q), "status": model.status()}
+
+    @app.get("/intent/model")
+    def intent_model_status() -> dict[str, Any]:
+        from .intent_model import default_model
+
+        return default_model().status()
+
+    @app.post("/intent/learn")
+    def intent_learn(body: IntentLearnRequest) -> dict[str, Any]:
+        from .intent_model import default_model
+
+        model = default_model()
+        learned = model.learn(body.text, body.label)
+        return {"learned": learned, "status": model.status()}
+
     @app.post("/consult")
     def consult(body: ConsultRequest) -> dict[str, Any]:
         result = engine.guardians.consult(body.query, body.limit, body.sources)
@@ -439,7 +468,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     def search(
         q: str,
         k: int = 5,
-        mode: str = Query(default="hybrid", pattern="^(vector|bm25|hybrid)$"),
+        mode: str = Query(default="hybrid", pattern="^(vector|bm25|hybrid|semantic)$"),
     ) -> dict[str, Any]:
         cache_key = ("search", q, k, mode)
         hits = cache.get(cache_key)

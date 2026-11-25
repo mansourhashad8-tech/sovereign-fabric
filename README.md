@@ -186,7 +186,7 @@ retrieve Arabic knowledge at all.
 
 Document vectors stay exact. A query mixes its exact vector with a light-stem
 variant, so `الكتابات` can reach `كتاب` without re-embedding the store. This is
-query expansion, not a semantic model; the stemmer is a short prefix/suffix
+query expansion, not a neural model; the stemmer is a short prefix/suffix
 list.
 
 ```python
@@ -408,21 +408,23 @@ is evidence for the next capability; it is not a capability by itself.
 
 ## Hybrid retrieval
 
-`GET /knowledge/search` now accepts `mode=vector`, `mode=bm25`, or
-`mode=hybrid` (default). Vector retrieval is the original deterministic
-embedding plus authority and recency. BM25 preserves rare exact terms. Hybrid
-uses reciprocal rank fusion (RRF, k=60) over both ranked lists. The hybrid score
-is an RRF score, not a probability, and the API returns the mode used.
+`GET /knowledge/search` now accepts `mode=vector`, `mode=bm25`,
+`mode=semantic`, or `mode=hybrid` (default). Vector retrieval is the original
+deterministic embedding plus authority and recency. BM25 preserves rare exact
+terms. Semantic retrieval learns PPMI co-occurrence vectors from the current
+corpus with deterministic random indexing; it is distributional, not neural.
+Hybrid uses reciprocal rank fusion (RRF, k=60) over vector and BM25. The hybrid
+score is an RRF score, not a probability, and the API returns the mode used.
 
 `POST /ranking/evaluate` computes nDCG@k and MRR from an explicit ranked id list
 and relevance map. It reports the metric only. `GET /ranking/benchmark` runs
-the same 12 queries over the offline local corpus in vector, BM25, and hybrid
-modes; it is a reproducible regression check, not a public leaderboard. The
+the same 12 queries over the offline local corpus in vector, BM25, semantic,
+and hybrid modes; it is a reproducible regression check, not a public leaderboard. The
 BM25 token statistics are cached and invalidated on every knowledge write;
 `GET /cache/stats` reports the index revision, document count, and cache state.
 On the 2026-11-24 run at k=5, vector and hybrid scored nDCG 0.883201 and
-MRR 1.0; BM25 scored nDCG 0.874322 and MRR 1.0. Hybrid did not beat vector on
-this small set, so the system does not claim that it does.
+MRR 1.0; BM25 and semantic scored nDCG 0.874322 and MRR 1.0. Neither hybrid nor
+semantic beat vector on this small set, so the system does not claim that they do.
 
 ## Decision memory
 
@@ -460,7 +462,7 @@ supporting units, and `entails: false`. An unrelated claim is refused.
 curl -s -X POST localhost:12000/verify_claim   -H 'Content-Type: application/json'   -d '{"claim":"retrieval augmented generation improves factuality"}'
 ```
 
-This is lexical support over the current fabric. It is not a semantic
+This is lexical and distributional support over the current fabric. It is not a neural
 entailment engine, and it does not pretend to be one.
 
 ## Property checks
@@ -492,6 +494,19 @@ curl -s -X POST localhost:12000/brief \
   -H 'Content-Type: application/json' \
   -d '{"query":"retrieval augmented generation","limit":5,"lang":"ar"}'
 ```
+
+## Intent learning
+
+`GET /intent/classify` runs a small multinomial Naive Bayes classifier over
+word and character n-gram features. `GET /intent/model` reports its label,
+document, feature and update counts; `POST /intent/learn` adds one labelled
+example at runtime. The deterministic keyword router still runs first. The
+model is only a fallback when no keyword matches, confidence is at least 0.80,
+and the margin over the runner-up is at least 0.40; otherwise the request stays
+a markdown default. The seed set has 66 examples over 22 labels. On a
+hand-written 10-example held-out check it scored 9/10 (0.90). That is a small
+internal check, not a public benchmark. Updates are bounded at 5,000 and are
+session-local: the model is not retrained from the event log on restart.
 
 ## Mastery: practise the weakest goal
 
@@ -611,7 +626,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **57** source files hashed with SHA-256
+- **59** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -671,7 +686,7 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | Pillar | Implementation | Honest limit |
 | --- | --- | --- |
 | 1. External guardianship | `sovereign/guardians/` — protocol, parallel registry, cache, rate limits, per-source status | A dead source degrades the result; it does not fail the run |
-| 2. Unified cognitive/executive fabric | `store.py` — knowledge, graph, capabilities, events in one DB | Lexical hashed embeddings, not a semantic model |
+| 2. Unified cognitive/executive fabric | `store.py` — knowledge, graph, capabilities, events in one DB | Hashed and PPMI embeddings, not a neural model |
 | 3. Accelerated self-engineering | `synthesis.py` + `programs.py` + `optimizer.py` + `capabilities.py` — enumerate, verify, benchmark, admit, roll back | Narrow expression language; the examples are the spec; only measured wins are kept |
 | 4. Constraint transcendence | `pathfinder.py` — retry alternate routes, reframe goals, prune dead ends | Constraints are engineering problems, not magic |
 | 5. Hyper-accelerated determinism | deterministic embeddings, deterministic search, memoised failures, retry loop, measured batch speedup, measured self-optimization | 2.36x on 4 cores for CPU-heavy work; 4.3x on one function; no universal acceleration |
@@ -719,7 +734,8 @@ sovereign/
                    -> validate; plus a bounded repair loop and diagnosis
   optimizer.py     measured self-optimization with 95% confidence intervals
   loop.py          bounded continuous loop (start/stop/status/tick)
-  intent.py        Arabic/English keyword router
+  intent.py        Arabic/English keyword router + learned fallback
+  intent_model.py  trainable Naive Bayes intent classifier
   selfmodel.py     evidence-derived self-assessment, can/cannot, limits
   evidence.py      lexical claim support (not entailment)
   properties.py    randomized invariants over native capabilities
@@ -780,10 +796,13 @@ curl -s localhost:12000/redteam
 | GET | `/health` | status and source list |
 | POST | `/consult` | query guardians, return provenance |
 | POST | `/absorb` | consult and index into the fabric |
-| GET | `/knowledge/search` | vector, BM25, or hybrid retrieval (`mode=`) |
+| GET | `/knowledge/search` | vector, BM25, semantic, or hybrid retrieval (`mode=`) |
 | POST | `/ranking/evaluate` | nDCG@k and MRR for a ranked id list and relevance map |
-| GET | `/ranking/benchmark` | fixed 12-query internal retrieval benchmark for all three modes |
+| GET | `/ranking/benchmark` | fixed 12-query internal retrieval benchmark for all four modes |
 | GET | `/blueprints` | the bounded self-extension library (inputs, outputs, examples) |
+| GET | `/intent/classify` | learned intent label with confidence and top three |
+| GET | `/intent/model` | classifier labels, documents, features, and update count |
+| POST | `/intent/learn` | add one labelled example (bounded, session-local) |
 | GET | `/knowledge/graph` | traverse the concept graph |
 | POST | `/synthesize` | spec -> verified capability |
 | POST | `/acquire` | ask external experts for a verified capability |
@@ -863,7 +882,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 348 tests
+python -m pytest        # 357 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -877,7 +896,7 @@ no-expert honesty), enumerative program synthesis (string and number shapes,
 gate verification, no-fit honesty), measured self-optimization (verified
 equivalence, kept win, no-gain honesty, event log, confidence intervals), the
 bounded continuous loop (tick, start/stop, optimization inside a tick), Arabic
-and English intent routing, the evidence-derived self-model, lexical claim
+and English intent routing (rules plus learned fallback), the evidence-derived self-model, lexical claim
 support and refusal, randomized property checks (including a deliberately
 broken implementation), cited briefs in English and Arabic, mastery
 tracking/practice, Arabic normalization, security scanner (dynamic code,

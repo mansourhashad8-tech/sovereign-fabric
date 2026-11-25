@@ -86,7 +86,7 @@ def run_benchmark(k: int = 5) -> dict[str, Any]:
         for unit in LocalGuardian().units:
             store.upsert_knowledge(unit)
         modes: dict[str, Any] = {}
-        for mode in ("vector", "bm25", "hybrid"):
+        for mode in ("vector", "bm25", "hybrid", "semantic"):
             rows = []
             for item in QUERIES:
                 hits = store.search_knowledge(item["query"], k=k, mode=mode)
