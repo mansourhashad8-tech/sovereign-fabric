@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T16:24:34.791796+00:00",
-  "commit": "f893f5efe024e762f84884432aaedfb4aa96dc64",
+  "generated_at": "2026-11-25T16:37:07.391007+00:00",
+  "commit": "2494876886328f56cfd2fe227e56579a5b62ff7c",
   "root": "sovereign",
-  "duration_s": 0.476,
+  "duration_s": 0.396,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "a2fcffe4c12ba9cf8ba32e781196276efc1f43ede7ebc4b3e9a2f67e1555fb71",
-      "lines": 1328
+      "sha256": "3a9e08ab371a7dc4d0aaf7628a9f8e8242659e59c869e31aca4ffe0e1de111da",
+      "lines": 1393
     },
     {
       "path": "sovereign/arabic.py",
@@ -69,6 +69,11 @@
       "path": "sovereign/context.py",
       "sha256": "3a4a97a9f31e4fdb42cc149c91000b2bc7b70d9242ec3ade1d9943cea809d9fa",
       "lines": 173
+    },
+    {
+      "path": "sovereign/cosmic.py",
+      "sha256": "e56deabe541faa18a734ddc2fc99c9816c8248c6b3763c2f645c8452116bbc27",
+      "lines": 255
     },
     {
       "path": "sovereign/curriculum.py",
@@ -272,8 +277,8 @@
     },
     {
       "path": "sovereign/selfmodel.py",
-      "sha256": "fe9b5065e8676307fe0d6015e69d36258495f3f9a8aab17c98486d0b422c141a",
-      "lines": 223
+      "sha256": "90f252b5d4404f980824dbea5bd24f45d804be8c11a3e5cdf9038eee3da1abef",
+      "lines": 224
     },
     {
       "path": "sovereign/semantic.py",
