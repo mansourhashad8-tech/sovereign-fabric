@@ -100,6 +100,7 @@ class SelfModel:
             "Feedback is a smoothed vote that reorders search and weights planner costs; it does not train a model.",
             "Automatic outcome feedback rewards executed steps, so it can reinforce a route that runs but is not useful.",
             "Runtime settings are allowlisted and bounded; validation thresholds and security invariants are not settable.",
+            "The context packet is a read-only join; its candidate links are not verified relationships.",
             "Self-repair restores known built-ins with broken import entries; it cannot invent missing code.",
             "External expert answers are unverified text and are never executed.",
             "Media capabilities read headers only; there is no OCR, vision, or audio transcription.",

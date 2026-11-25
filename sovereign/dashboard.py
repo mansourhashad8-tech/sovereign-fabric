@@ -149,6 +149,16 @@ DASHBOARD_HTML = """<!doctype html>
   </div>
 
   <div class="panel" style="margin-top:14px">
+    <h3>Context packet</h3>
+    <div class="caps" style="margin-bottom:10px">
+      <input id="contextQuery" value="planning graph"
+             style="flex:1;min-width:220px;background:#0b1220;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit">
+      <button onclick="runContext()">Build</button>
+    </div>
+    <pre id="contextOut" class="limits" style="white-space:pre-wrap;max-height:260px;overflow:auto"></pre>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
     <h3>Research brief</h3>
     <div class="caps" style="margin-bottom:10px">
       <input id="briefQuery" value="retrieval augmented generation"
@@ -440,6 +450,22 @@ async function tuneSettings() {
 
 loadSettings();
 setInterval(loadSettings, 30000);
+
+async function runContext() {
+  const query = $('contextQuery').value.trim();
+  if (!query) return;
+  $('contextOut').textContent = 'joining…';
+  try {
+    const packet = await get('/context?q=' + encodeURIComponent(query) + '&k=5');
+    const titles = packet.knowledge.map(item => item.title).slice(0, 3).join(' · ');
+    $('contextOut').textContent =
+      `knowledge ${packet.knowledge.length} · capabilities ${packet.capabilities.length} · ` +
+      `events ${packet.events.length} · graph ${packet.graph.nodes.length} nodes · ` +
+      `links ${packet.links.length}\n${titles}`;
+  } catch (e) {
+    $('contextOut').textContent = String(e);
+  }
+}
 
 async function loadRetrieval() {
   $('retrievalOut').textContent = 'running the fixed benchmark…';

@@ -15,6 +15,7 @@ from .autonomy import assess, reward_ledger
 from .blueprints import BLUEPRINTS
 from .capabilities import CapabilityError
 from .collective import collective_status, export_bundle, import_bundle
+from .context import ContextFabric
 from .curriculum import Curriculum
 from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
@@ -399,6 +400,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /settings/reset",
                 "GET /settings/history",
                 "POST /settings/tune",
+                "GET /context",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1056,6 +1058,16 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.post("/settings/tune")
     def settings_tune() -> dict[str, Any]:
         return settings.tune()
+
+    @app.get("/context")
+    def context_packet(
+        q: str = Query(min_length=1, max_length=300),
+        k: int = Query(default=5, ge=1, le=20),
+    ) -> dict[str, Any]:
+        try:
+            return ContextFabric(engine).build(q, k)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/ask")
     def ask(body: AskRequest) -> dict[str, Any]:
