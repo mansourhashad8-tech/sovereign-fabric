@@ -104,6 +104,8 @@ class SelfModel:
             "The immune system is an online statistical detector, not deep learning; its state is in-process.",
             "Collective memory is a manual anonymized JSON exchange, not federated learning or a global brain.",
             "The autonomy gate checks operational evidence, not life or consciousness.",
+            "The deterministic protocol tries bounded routes; escalation_required means no route passed all six criteria, not a verified result.",
+            "Freshness is counted within a 180-day window; older knowledge is not scored as recent.",
         ]
         if not self.engine.experts:
             limits.insert(

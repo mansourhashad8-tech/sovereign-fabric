@@ -26,6 +26,9 @@ flowchart LR
   IM --> CO[Anonymized collective lessons]
   CO --> F
   API --> AU[Autonomy gate + reward ledger]
+  API --> PR[Result-first protocol]
+  PR --> P
+  PR --> V
   GUARD --> SEC[Security and openness audit]
   SEC --> D[Disclosure report + SBOM]
 ```
@@ -43,10 +46,11 @@ flowchart LR
    memo.
 4. **Planning and synthesis**: reachability proof plus A* over capability types,
    bounded capability pipelines, blueprint acquisition, enumerative program
-   synthesis, and a subprocess gate.
+   synthesis, a subprocess gate, and a result-first protocol with four bounded
+   escalating routes.
 5. **Execution and validation**: serial/thread/process execution with measured
-   speedup, bounded media header readers, and graph path/rank; six scores and an
-   overclaim detector.
+   speedup, bounded media header readers, and graph path/rank; six scores, a
+   180-day recency window, and an overclaim detector.
 6. **Introspection**: a self-model that plans its own claims, lexical claim
    support, randomized property checks, confidence intervals, outcome feedback,
    and a self-repair path for broken built-in entries.

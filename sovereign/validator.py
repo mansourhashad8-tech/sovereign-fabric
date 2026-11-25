@@ -3,7 +3,7 @@ to pass anything that overclaims.
 
 Criteria (each scored 0..1):
   comprehensiveness  - how many consulted sources responded
-  recency            - share of absorbed knowledge that is recent
+  recency            - share of absorbed knowledge within the last 180 days
   constraint_transcendence - share of declared constraints actually handled
   determinism        - was the run reproducible by construction
   speed              - measured against a budget (unmeasured speed scores 0)

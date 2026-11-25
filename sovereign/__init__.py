@@ -29,6 +29,7 @@ from .immunity import ImmuneSystem
 from .pathfinder import Operator, PathFinder, operators_from
 from .media import image_info, wav_info
 from .pipeline import run_pipeline
+from .protocol import DeterministicProtocol, audit_language
 from .quantum import grover_search, simulate_circuit
 from .repair import repair
 from .store import FabricStore
@@ -46,6 +47,8 @@ __all__ = [
     "collective_status",
     "export_bundle",
     "import_bundle",
+    "DeterministicProtocol",
+    "audit_language",
     "CapabilityRegistry",
     "bootstrap_native",
     "bootstrap_extras",

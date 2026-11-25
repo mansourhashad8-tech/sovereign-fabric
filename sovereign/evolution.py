@@ -365,7 +365,7 @@ def _rank(cycle: EvolutionCycle) -> tuple[int, int, float]:
     return (1 if cycle.ok else 0, passed, sum(cycle.validation.scores.values()))
 
 
-def _is_fresh(timestamp: str, max_age_days: int = 730) -> bool:
+def _is_fresh(timestamp: str, max_age_days: int = 180) -> bool:
     try:
         parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
     except (ValueError, AttributeError):

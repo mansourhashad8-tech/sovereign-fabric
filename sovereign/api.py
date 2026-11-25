@@ -29,6 +29,7 @@ from .mastery import Mastery
 from .metrics import Metrics
 from .optimizer import Optimizer
 from .pathfinder import operators_from
+from .protocol import BANNED_PHRASES, DeterministicProtocol, audit_language
 from .pipeline import run_pipeline
 from .repair import repair
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
@@ -154,6 +155,21 @@ class AskRequest(BaseModel):
     auto_extend: bool = True
 
 
+class ProtocolRequest(BaseModel):
+    request: str = Field(min_length=1, max_length=2000)
+    goal_type: str | None = None
+    initial: list[str] | None = None
+    text: str | None = Field(default=None, max_length=20000)
+    sources: list[str] | None = None
+    synthesize: dict[str, Any] | None = None
+    budget_s: float = Field(default=5.0, gt=0, le=60)
+    max_alternatives: int = Field(default=4, ge=1, le=4)
+
+
+class LanguageRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+
+
 class CurriculumRequest(BaseModel):
     iterations: int = 3
     sources: list[str] | None = None
@@ -198,6 +214,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     remote = RemoteExecutor()
     optimizer = Optimizer(engine.registry)
     immune = ImmuneSystem(store)
+    protocol = DeterministicProtocol(engine)
     loop = EvolutionLoop(engine, interval_s=60.0, immune=immune)
 
     @asynccontextmanager
@@ -212,6 +229,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.cache = cache
     app.state.optimizer = optimizer
     app.state.immune = immune
+    app.state.protocol = protocol
     app.state.loop = loop
     api_key = ApiKey()
     limiter = RateLimiter()
@@ -348,6 +366,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /collective/import",
                 "GET /autonomy",
                 "GET /evolution/reward",
+                "GET /protocol",
+                "POST /protocol/execute",
+                "POST /protocol/language",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -710,6 +731,51 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/evolution/reward")
     def evolution_reward() -> dict[str, Any]:
         return reward_ledger(store)
+
+    @app.get("/protocol")
+    def protocol_status() -> dict[str, Any]:
+        return {
+            "protocol": "sovereign-deterministic/v1",
+            "routes": [
+                route.__dict__
+                for route in protocol.routes("markdown", ("text",), None)
+            ],
+            "banned_phrases": len(BANNED_PHRASES),
+            "freshness_window_days": 180,
+            "language_policy": (
+                "report a verified result and its mechanism, or report the exact "
+                "gap and the next executable action"
+            ),
+            "verified_definition": (
+                "all six validator criteria pass and execution succeeds"
+            ),
+            "limits": [
+                "verified is not a semantic proof of intent",
+                "the route search is bounded",
+                "open-ended goals still require relevant sources or a synthesis specification",
+            ],
+        }
+
+    @app.post("/protocol/execute")
+    def protocol_execute(body: ProtocolRequest) -> dict[str, Any]:
+        return protocol.execute(
+            body.request,
+            goal_type=body.goal_type,
+            initial=tuple(body.initial) if body.initial else None,
+            text=body.text,
+            sources=body.sources,
+            synthesize=body.synthesize,
+            budget_s=body.budget_s,
+            max_alternatives=body.max_alternatives,
+        )
+
+    @app.post("/protocol/language")
+    def protocol_language(body: LanguageRequest) -> dict[str, Any]:
+        return {
+            "compliant": audit_language(body.text).compliant,
+            "violations": audit_language(body.text).violations,
+            "policy": audit_language(body.text).policy,
+        }
 
     @app.get("/metrics")
     def metrics_endpoint() -> PlainTextResponse:

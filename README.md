@@ -341,6 +341,41 @@ It returns `passed: false` and names the failed checks; it is not proof of life
 or consciousness. `GET /evolution/reward` is a transparent event ledger, not
 reinforcement learning.
 
+## Deterministic execution protocol
+
+`POST /protocol/execute` starts from the requested result, not from a capability
+inventory. It runs a fixed escalation sequence:
+
+1. `direct`: the current capability graph with one retrieval pass.
+2. `broader_retrieval`: the same graph with a broader second query.
+3. `autonomous_extension`: acquire or synthesize a missing blueprint, then re-plan.
+4. `supplied_synthesis`: verified synthesis from a caller-supplied specification.
+
+It stops at the first route where execution succeeds and all six validator
+criteria pass. The response is `verified` only then. Otherwise it returns
+`escalation_required`, the exact failed criteria, the best route, and concrete
+`next_actions`; it does not return a candidate value as if it were verified.
+
+```bash
+curl -s -X POST localhost:12000/protocol/execute \
+  -H 'content-type: application/json' \
+  -d '{"request":"planning search text","text":"a b a","sources":["local"],"budget_s":1,"max_alternatives":2}'
+
+curl -s localhost:12000/protocol
+curl -s -X POST localhost:12000/protocol/language \
+  -H 'content-type: application/json' -d '{"text":"..."}'
+```
+
+`POST /protocol/language` audits text against the five Arabic prohibited
+expressions and their English equivalents, and returns `compliant` plus exact
+positions. Every protocol message is passed through this audit, and the
+response includes the result.
+
+Limits: `verified` means the six-criterion validator passed; it is not a
+semantic proof of intent. The route search is bounded at four routes. Open-ended
+goals still require relevant sources or a synthesis specification. Freshness
+is scored inside a 180-day window; older knowledge is not counted as recent.
+
 ## A self-model that plans its own claims
 
 `GET /self` does not describe itself from a script. It asks the planner whether
@@ -353,7 +388,7 @@ Live shape:
 ```text
 Precise self-assessment: 58 active capabilities (58 builtin, 0 synthesized),
 N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
-passed every criterion. Property checks: 40/40 passed. 15 limits are declared (16 without an expert).
+passed every criterion. Property checks: 40/40 passed. 17 limits are declared (18 without an expert).
 I am not conscious, not quantum, and not a million-fold accelerator.
 ```
 
@@ -520,7 +555,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **50** source files hashed with SHA-256
+- **51** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -552,6 +587,7 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | "A deep-learning immune system" | The detector is online statistics and fixed scan signatures. It has no neural network and its state is in-process. |
 | "Federated learning / a global brain" | Collective memory is a manual anonymized JSON exchange. There is no network transport, no model averaging, and no global peer. |
 | "Self-healing every vulnerability" | Self-repair only quarantines broken built-in entries and restores known names; it cannot patch the OS or invent missing code. |
+| "An absolute guarantee for any request" | The protocol runs four bounded routes. When none passes all six criteria it returns `escalation_required` with exact gaps and next actions, not a fabricated success. |
 | "A million times faster" | No such speedup exists here. Speed is *measured* against a budget; unmeasured speed scores zero. |
 | "Quantum pathfinding" | The planner is classical A*. A quantum *simulator* gives no speedup over the algorithm it simulates; only real quantum hardware might, and none is used. |
 | "Never fails" | It retries, degrades gracefully and reports honestly. If it cannot meet a criterion, it says so and returns `ok: false`. |
@@ -607,6 +643,7 @@ sovereign/
   immunity.py      online statistical anomaly score + short quarantine
   collective.py    anonymized lesson export/import, strict schema
   autonomy.py      four-check autonomy gate + transparent reward ledger
+  protocol.py      result-first bounded escalation + language audit
   pipeline.py      bounded composition of any capabilities
   feedback.py      smoothed outcome votes that reorder capability search
   repair.py        quarantine broken built-ins and restore known names
@@ -726,6 +763,9 @@ curl -s localhost:12000/redteam
 | POST | `/collective/import` | strict import of an anonymized lesson bundle |
 | GET | `/autonomy` | four-check autonomy gate, with named failures |
 | GET | `/evolution/reward` | transparent event ledger (not RL) |
+| GET | `/protocol` | routes, verification definition, and limits |
+| POST | `/protocol/execute` | result-first bounded escalation; `verified` or `escalation_required` |
+| POST | `/protocol/language` | detect prohibited expressions and return exact positions |
 | GET | `/ready` | database, capabilities, guardians, and planner readiness |
 | GET | `/metrics` | Prometheus text counters and gauges |
 | GET | `/diagnostics` | read-only database, entry, planner, and security checks |
