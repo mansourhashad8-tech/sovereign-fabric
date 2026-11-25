@@ -197,3 +197,24 @@ def test_alternatives_finds_distinct_routes():
     assert len(alternatives) >= 2
     assert [s.capability for s in alternatives[0].steps] == ["direct_md"]
     assert [s.capability for s in alternatives[1].steps] == ["to_tokens", "tokens_md"]
+
+
+def test_feedback_weights_choose_the_higher_quality_route():
+    from sovereign.pathfinder import Operator, PathFinder
+
+    ops = [
+        Operator("a1", frozenset({"text"}), frozenset({"a"})),
+        Operator("a2", frozenset({"a"}), frozenset({"goal"})),
+        Operator("b1", frozenset({"text"}), frozenset({"b"})),
+        Operator("b2", frozenset({"b"}), frozenset({"goal"})),
+    ]
+    finder = PathFinder()
+    baseline = finder.plan(("text",), "goal", ops)
+    assert [step.capability for step in baseline.steps] == ["a1", "a2"]
+    weighted = finder.plan(
+        ("text",),
+        "goal",
+        ops,
+        weights={"a1": -1.0, "a2": -1.0, "b1": 1.0, "b2": 1.0},
+    )
+    assert [step.capability for step in weighted.steps] == ["b1", "b2"]

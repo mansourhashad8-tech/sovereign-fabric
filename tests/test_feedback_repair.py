@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sovereign.api import create_app
 from sovereign.capabilities import CapabilityRegistry, bootstrap_native
 from sovereign.evolution import EvolutionEngine
-from sovereign.feedback import record_feedback
+from sovereign.feedback import feedback_scores, record_feedback
 from sovereign.guardians import GuardianRegistry, LocalGuardian
 from sovereign.repair import repair
 from sovereign.store import FabricStore
@@ -81,3 +81,18 @@ def test_native_bootstrap_restores_only_missing_names():
     bootstrap_native(registry)
     assert registry.active("text.tokenize").version == version
     store.close()
+
+
+def test_execution_success_feeds_back_into_the_planner():
+    engine = _engine()
+    cycle = engine.evolve(
+        "planning search text",
+        goal_type="tokens",
+        initial=("text",),
+        text="alpha beta alpha",
+        sources=["local"],
+        budget_s=5.0,
+    )
+    assert cycle.execution["ok"] is True
+    scores = feedback_scores(engine.store)
+    assert scores.get("text.tokenize", 0.0) > 0

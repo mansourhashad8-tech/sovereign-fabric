@@ -31,6 +31,12 @@ class Operator:
     version: int = 1
 
 
+def _operator_cost(operator: Operator, weights: dict[str, float] | None) -> float:
+    if not weights:
+        return 1.0
+    return max(0.5, min(1.5, 1.0 - 0.25 * float(weights.get(operator.name, 0.0))))
+
+
 def operators_from(capabilities: list[Capability]) -> list[Operator]:
     ops = [
         Operator(
@@ -54,6 +60,7 @@ class PathFinder:
         goal: str,
         operators: list[Operator],
         max_expansions: int = 5000,
+        weights: dict[str, float] | None = None,
     ) -> Plan:
         start = frozenset(available)
         if goal in start:
@@ -75,14 +82,19 @@ class PathFinder:
             return Plan(goal=goal, steps=[], solved=False, explored=0, reason=reason)
 
         counter = itertools.count()
-        heap: list[tuple[int, int, int, frozenset[str], tuple[Operator, ...]]] = []
+        heap: list[tuple[float, float, int, frozenset[str], tuple[Operator, ...]]] = []
+        minimum_step = (
+            min(_operator_cost(operator, weights) for operator in operators)
+            if weights and operators
+            else 1.0
+        )
 
-        def push(state: frozenset[str], cost: int, path: tuple[Operator, ...]) -> None:
-            heuristic = 0 if goal in state else 1
+        def push(state: frozenset[str], cost: float, path: tuple[Operator, ...]) -> None:
+            heuristic = 0.0 if goal in state else minimum_step
             heapq.heappush(heap, (cost + heuristic, cost, next(counter), state, path))
 
-        push(start, 0, ())
-        best: dict[frozenset[str], int] = {start: 0}
+        push(start, 0.0, ())
+        best: dict[frozenset[str], float] = {start: 0.0}
         explored = 0
         exhausted = True
 
@@ -117,7 +129,7 @@ class PathFinder:
                 new_state = state | op.outputs
                 if new_state == state:
                     continue
-                new_cost = cost + 1
+                new_cost = cost + _operator_cost(op, weights)
                 if new_cost < best.get(new_state, new_cost + 1):
                     best[new_state] = new_cost
                     push(new_state, new_cost, path + (op,))
@@ -134,6 +146,7 @@ class PathFinder:
         operators: list[Operator],
         k: int = 3,
         max_expansions: int = 5000,
+        weights: dict[str, float] | None = None,
     ) -> list[Plan]:
         """Distinct routes, found by banning the last step of the previous one."""
         plans: list[Plan] = []
@@ -141,7 +154,7 @@ class PathFinder:
         banned: set[str] = set()
         for _ in range(max(1, k)):
             usable = [op for op in operators if op.name not in banned]
-            plan = self.plan(available, goal, usable, max_expansions)
+            plan = self.plan(available, goal, usable, max_expansions, weights)
             if not plan.solved:
                 break
             signature = tuple(step.capability for step in plan.steps)

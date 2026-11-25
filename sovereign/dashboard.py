@@ -398,9 +398,12 @@ async function loadSelf() {
     $('selfCan').innerHTML = Object.values(model.can).map(c =>
       `<span class="cap ${c.possible ? 'admitted' : 'quarantined'}">${c.possible ? '✓' : '×'} ${esc(c.goal)}${c.plan.length ? ' · ' + esc(c.plan.join(' → ')) : ''}</span>`
     ).join('');
-    $('selfProps').textContent = model.properties
+    const calibration = model.calibration;
+    $('selfProps').textContent = (model.properties
       ? `Property checks: ${model.properties.checks - model.properties.failed}/${model.properties.checks} passed.`
-      : '';
+      : '') + (calibration
+      ? ` Calibration: Brier ${num(calibration.brier, 3)} vs 0.25 baseline, skill ${num(calibration.skill, 3)} over ${calibration.cycles} cycles.`
+      : '');
     $('selfLimits').innerHTML = model.limits.map(x => `<li>${esc(x)}</li>`).join('');
     $('selfStamp').textContent = '· ' + new Date(model.generated_at).toLocaleTimeString();
   } catch (e) {}

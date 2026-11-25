@@ -271,7 +271,13 @@ curl -s -X POST localhost:12000/invoke/batch \
 `POST /feedback` records `-1`, `0`, or `1` for a capability, optionally with a
 note and request ID. `GET /feedback/summary` returns counts and a smoothed score
 `(positive - negative) / (count + 5)`. `GET /capabilities/search` adds
-`0.05 * score` to each hit, so useful capabilities rise and unhelpful ones fall.
+`0.05 * score` to each hit. The planner also uses the score as a bounded cost
+multiplier, `1 - 0.25 * score` clamped to `[0.5, 1.5]`, so a route with
+positive outcomes is preferred over an otherwise equivalent route. A successful
+execution records `+1` for each executed step; a failed execution records `-1`
+for the failed step. Automatic events are marked `auto:...` and remain visible
+in the event log. This self-generated signal can reinforce a route that executes
+correctly but is not useful; it is a preference signal, not external truth.
 
 ```bash
 curl -s -X POST localhost:12000/feedback \
@@ -280,8 +286,8 @@ curl -s -X POST localhost:12000/feedback \
 curl -s localhost:12000/feedback/summary
 ```
 
-This is a vote, not training. One rating is smoothed by a prior of five, and
-the score is visible in every search hit.
+This is a bounded online preference signal, not gradient training. One rating
+is smoothed by a prior of five, and the score is visible in every search hit.
 
 ## External expert consultation
 
@@ -451,6 +457,12 @@ I am not conscious, not quantum, and not a million-fold accelerator.
 ```
 
 `python -m sovereign self` prints the same assessment with its evidence.
+
+`GET /self/calibration` scores the self-model's own predictions. For each
+recorded cycle it predicts success from the goal's prior outcomes, then scores
+that prediction before adding the cycle's result. It reports the Brier score,
+the 0.25 baseline, a skill score, and the last rows. Small samples make this a
+diagnostic, not a guarantee; a negative skill score is shown as negative.
 
 ## Evidence, not entailment
 
@@ -762,7 +774,7 @@ sovereign/
   toolbox_ext.py   36 compression/statistics/number-theory/date/geo/graph/JSON capabilities
   gaps.py          capability-demand ledger from protocol escalations
   pipeline.py      bounded composition of any capabilities
-  feedback.py      smoothed outcome votes that reorder capability search
+  feedback.py      smoothed outcome votes; reorder search and weight planner costs
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
   diagnostics.py   read-only database/registry/planner/security checks
@@ -777,7 +789,7 @@ sovereign/
   intent.py        Arabic/English keyword router + learned fallback
   intent_model.py  trainable Naive Bayes intent classifier
   hyper.py         HRR memory, direct state bus, inner observer, internal clock
-  selfmodel.py     evidence-derived self-assessment, can/cannot, limits
+  selfmodel.py     evidence-derived self-assessment, can/cannot, limits, calibration
   evidence.py      lexical claim support (not entailment)
   properties.py    randomized invariants over native capabilities
   brief.py         cited, extractive brief for any topic (EN/AR headings)
@@ -866,6 +878,7 @@ curl -s localhost:12000/redteam
 | GET | `/report.md` | the same report as Markdown |
 | GET | `/dashboard` | one-page live dashboard |
 | GET | `/self` | evidence-derived self-assessment, can/cannot, limits |
+| GET | `/self/calibration` | prequential Brier score, skill, and per-goal rows |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -928,7 +941,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 366 tests
+python -m pytest        # 369 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,

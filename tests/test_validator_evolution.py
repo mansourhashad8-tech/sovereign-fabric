@@ -196,3 +196,22 @@ def test_auto_extend_solves_a_goal_it_could_not_plan():
     assert cycle.extensions and cycle.extensions[0]["admitted"] is True
     assert cycle.ok is True
     store.close()
+
+
+def test_self_calibration_is_prequential_and_honest():
+    from sovereign.selfmodel import SelfModel
+
+    store = FabricStore()
+    engine = EvolutionEngine(
+        store, guardians=GuardianRegistry([LocalGuardian()]), experts=[]
+    )
+    for ok in (True, True, False):
+        engine.store.record_event(
+            "cycle", {"goal_type": "tokens", "ok": ok, "duration_s": 0.01}
+        )
+    report = SelfModel(engine).calibration()
+    assert report["cycles"] == 3
+    assert report["rows"][0]["predicted"] == 0.5
+    assert report["rows"][1]["predicted"] > report["rows"][0]["predicted"]
+    assert "diagnostic" in report["note"]
+    store.close()

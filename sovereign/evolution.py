@@ -22,6 +22,7 @@ from .blueprints import autonomous_extend
 from .capabilities import CapabilityError, CapabilityRegistry, bootstrap_native
 from .expert import Expert, default_experts
 from .extras import bootstrap_extras
+from .feedback import feedback_scores
 from .guardians import ConsultationResult, GuardianRegistry, default_registry
 from .models import Evidence, Plan, ValidationReport
 from .pathfinder import PathFinder, operators_from
@@ -171,13 +172,20 @@ class EvolutionEngine:
 
         synthesis: SynthesisResult | None = None
         extensions: list[dict[str, Any]] = []
+        weights = feedback_scores(self.store)
         plan = self.pathfinder.plan(
-            initial, goal_type, operators_from(self.registry.list_active())
+            initial,
+            goal_type,
+            operators_from(self.registry.list_active()),
+            weights=weights,
         )
         if not plan.solved and synthesize is not None:
             synthesis = self.synthesizer.synthesize(**synthesize)
             plan = self.pathfinder.plan(
-                initial, goal_type, operators_from(self.registry.list_active())
+                initial,
+                goal_type,
+                operators_from(self.registry.list_active()),
+                weights=weights,
             )
         if not plan.solved and auto_extend:
             plan, added, ext_attempts = autonomous_extend(
@@ -197,13 +205,14 @@ class EvolutionEngine:
             source_text = text if text is not None else request
             execution = self._execute(plan, source_text)
             if not execution.get("ok"):
-                execution = self._try_alternatives(plan, initial, goal_type, source_text, execution)
+                execution = self._try_alternatives(plan, initial, goal_type, source_text, execution, weights)
 
         duration = time.monotonic() - started
         validation = self._validate(
             request, consultation, plan, execution, synthesis, duration, budget_s, absorbed
         )
         ok = bool(plan.solved and execution.get("ok") and validation.passed)
+        self._record_outcome_feedback(plan, execution, bool(execution.get("ok")))
 
         cycle = EvolutionCycle(
             request=request,
@@ -235,6 +244,35 @@ class EvolutionEngine:
         )
         return cycle
 
+    def _record_outcome_feedback(
+        self, plan: Plan, execution: dict[str, Any], execution_ok: bool
+    ) -> None:
+        if not plan.steps:
+            return
+        if execution_ok:
+            for step in plan.steps:
+                self.store.record_event(
+                    "feedback",
+                    {
+                        "capability": step.capability,
+                        "rating": 1,
+                        "note": "auto:successful cycle",
+                        "request_id": "auto",
+                    },
+                )
+            return
+        completed = len(execution.get("trace", []))
+        index = min(completed, len(plan.steps) - 1)
+        self.store.record_event(
+            "feedback",
+            {
+                "capability": plan.steps[index].capability,
+                "rating": -1,
+                "note": "auto:failed cycle",
+                "request_id": "auto",
+            },
+        )
+
     def _execute(self, plan: Plan, text: str) -> dict[str, Any]:
         payload: dict[str, Any] = {"value": text}
         trace: list[dict[str, Any]] = []
@@ -254,9 +292,12 @@ class EvolutionEngine:
         goal_type: str,
         text: str,
         failed: dict[str, Any],
+        weights: dict[str, float] | None = None,
     ) -> dict[str, Any]:
         operators = operators_from(self.registry.list_active())
-        alternatives = self.pathfinder.alternatives(initial, goal_type, operators, k=3)
+        alternatives = self.pathfinder.alternatives(
+            initial, goal_type, operators, k=3, weights=weights
+        )
         original = [step.capability for step in plan.steps]
         tried = 0
         for alternative in alternatives:

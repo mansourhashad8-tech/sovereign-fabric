@@ -379,6 +379,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /cache/warm",
                 "GET /remote/status",
                 "GET /self",
+                "GET /self/calibration",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1002,6 +1003,10 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/self")
     def self_model() -> dict[str, Any]:
         return SelfModel(engine).assess()
+
+    @app.get("/self/calibration")
+    def self_calibration() -> dict[str, Any]:
+        return SelfModel(engine).calibration()
 
     @app.post("/ask")
     def ask(body: AskRequest) -> dict[str, Any]:

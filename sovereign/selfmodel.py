@@ -97,7 +97,8 @@ class SelfModel:
             "No quantum hardware and no HPC endpoint are configured.",
             "The validator is auditable and tested, but it can still be wrong.",
             "The Arabic stemmer is a light prefix/suffix rule set, not morphology.",
-            "Feedback is a smoothed vote that reorders search; it does not train a model.",
+            "Feedback is a smoothed vote that reorders search and weights planner costs; it does not train a model.",
+            "Automatic outcome feedback rewards executed steps, so it can reinforce a route that runs but is not useful.",
             "Self-repair restores known built-ins with broken import entries; it cannot invent missing code.",
             "External expert answers are unverified text and are never executed.",
             "Media capabilities read headers only; there is no OCR, vision, or audio transcription.",
@@ -153,6 +154,49 @@ class SelfModel:
             "I am not conscious, not quantum, and not a million-fold accelerator."
         )
 
+    def calibration(self) -> dict[str, Any]:
+        cycles = list(reversed(self.engine.store.list_events("cycle", 500)))
+        history: dict[str, list[int]] = {}
+        brier_terms: list[float] = []
+        rows: list[dict[str, Any]] = []
+        for event in cycles:
+            payload = event.get("payload", {})
+            goal = str(payload.get("goal_type", "unknown"))
+            actual = 1 if payload.get("ok") else 0
+            passed, total = history.get(goal, [0, 0])
+            predicted = (passed + 1.0) / (total + 2.0)
+            term = (predicted - actual) ** 2
+            brier_terms.append(term)
+            rows.append(
+                {
+                    "goal": goal,
+                    "predicted": round(predicted, 6),
+                    "actual": actual,
+                    "brier": round(term, 6),
+                }
+            )
+            history[goal] = [passed + actual, total + 1]
+        brier = sum(brier_terms) / len(brier_terms) if brier_terms else 0.0
+        baseline = 0.25 if brier_terms else 0.0
+        by_goal = {
+            goal: {
+                "cycles": total,
+                "passed": passed,
+                "rate": round(passed / total, 6) if total else 0.0,
+            }
+            for goal, (passed, total) in sorted(history.items())
+        }
+        return {
+            "cycles": len(rows),
+            "brier": round(brier, 6),
+            "baseline_brier": baseline,
+            "skill": round(1.0 - brier / baseline, 6) if baseline else 0.0,
+            "by_goal": by_goal,
+            "rows": rows[-20:],
+            "method": "prequential Laplace prediction; each cycle is scored before its outcome is added",
+            "note": "small samples make this a diagnostic, not a guarantee",
+        }
+
     def assess(self) -> dict[str, Any]:
         profile = self.profile()
         can = {goal: self.can(goal) for goal in _GOALS}
@@ -170,5 +214,6 @@ class SelfModel:
                 "failed": sum(item["failed"] for item in properties["capabilities"]),
             },
             "overclaims": self.engine.validator.detect_overclaims(verdict),
+            "calibration": self.calibration(),
             "generated_at": utcnow(),
         }
