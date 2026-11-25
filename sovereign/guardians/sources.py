@@ -546,6 +546,167 @@ class ZenodoGuardian(HttpGuardian):
 
 
 
+class GitLabGuardian(HttpGuardian):
+    name = "gitlab"
+    base_confidence = 0.55
+    min_interval = 0.5
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            f"https://gitlab.com/api/v4/projects?search={quote(query)}"
+            f"&per_page={limit}&order_by=star_count&sort=desc"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for project in data if isinstance(data, list) else []:
+            name = project.get("name_with_namespace") or project.get("name") or ""
+            if not name:
+                continue
+            stars = int(project.get("star_count") or 0)
+            units.append(
+                self._unit(
+                    title=name,
+                    summary=project.get("description") or "",
+                    url=project.get("web_url") or "",
+                    concepts=tuple(project.get("topics") or ())[:6],
+                    tags=("code", "gitlab"),
+                    confidence=min(0.85, 0.4 + math.log10(stars + 1) / 10),
+                    license="GitLab",
+                )
+            )
+        return units[:limit]
+
+
+class WorldBankGuardian(HttpGuardian):
+    name = "worldbank"
+    base_confidence = 0.6
+    min_interval = 0.3
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        data = json.loads(
+            self._get("https://api.worldbank.org/v2/country?format=json&per_page=400")
+        )
+        rows = data[1] if isinstance(data, list) and len(data) > 1 else []
+        terms = [term for term in query.casefold().split() if len(term) > 2]
+        units: list[KnowledgeUnit] = []
+        for row in rows:
+            name = row.get("name") or ""
+            if not name:
+                continue
+            region = (row.get("region") or {}).get("value") or "World"
+            income = (row.get("incomeLevel") or {}).get("value") or "unclassified"
+            haystack = " ".join(
+                (name, row.get("iso2Code") or "", row.get("capitalCity") or "", region, income)
+            ).casefold()
+            if terms and not any(term in haystack for term in terms):
+                continue
+            units.append(
+                self._unit(
+                    title=name,
+                    summary=f"{region}; {income}; capital {row.get('capitalCity') or 'n/a'}",
+                    url=f"https://data.worldbank.org/country/{row.get('iso2Code', '')}",
+                    concepts=(region, income),
+                    tags=("country", "worldbank"),
+                    license="CC BY 4.0",
+                )
+            )
+        return units[:limit]
+
+
+class WiktionaryGuardian(HttpGuardian):
+    name = "wiktionary"
+    base_confidence = 0.55
+    min_interval = 0.1
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            "https://en.wiktionary.org/w/api.php?action=query&list=search"
+            f"&srsearch={quote(query)}&srlimit={limit}&format=json&utf8=1"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for item in (data.get("query") or {}).get("search") or []:
+            title = item.get("title") or ""
+            if not title.strip():
+                continue
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=_plain(item.get("snippet") or ""),
+                    url="https://en.wiktionary.org/wiki/" + quote(title.replace(" ", "_")),
+                    tags=("dictionary", "wiktionary"),
+                    license="CC BY-SA 4.0",
+                )
+            )
+        return units[:limit]
+
+
+class NominatimGuardian(HttpGuardian):
+    name = "nominatim"
+    base_confidence = 0.5
+    min_interval = 1.0
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            f"https://nominatim.openstreetmap.org/search?q={quote(query)}"
+            f"&format=jsonv2&limit={limit}"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for place in data if isinstance(data, list) else []:
+            name = place.get("display_name") or ""
+            if not name.strip():
+                continue
+            osm_type = place.get("osm_type") or "node"
+            osm_id = place.get("osm_id") or ""
+            units.append(
+                self._unit(
+                    title=name.split(",")[0].strip() or name,
+                    summary=name,
+                    url=f"https://www.openstreetmap.org/{osm_type}/{osm_id}",
+                    concepts=(place.get("type") or "place",),
+                    tags=("place", "openstreetmap"),
+                    license="ODbL",
+                )
+            )
+        return units[:limit]
+
+
+class DOAJGuardian(HttpGuardian):
+    name = "doaj"
+    base_confidence = 0.65
+    min_interval = 0.3
+
+    def search(self, query: str, limit: int = 5) -> list[KnowledgeUnit]:
+        url = (
+            f"https://doaj.org/api/v2/search/articles/{quote(query)}"
+            f"?pageSize={limit}"
+        )
+        data = json.loads(self._get(url))
+        units: list[KnowledgeUnit] = []
+        for item in data.get("results", []):
+            bib = item.get("bibjson") or {}
+            title = bib.get("title") or ""
+            if not title.strip():
+                continue
+            journal = (bib.get("journal") or {}).get("title") or "DOAJ"
+            links = bib.get("link") or []
+            link = links[0].get("url") if links and isinstance(links[0], dict) else ""
+            year = bib.get("year")
+            units.append(
+                self._unit(
+                    title=title,
+                    summary=bib.get("abstract") or "",
+                    url=link or f"https://doaj.org/article/{item.get('id', '')}",
+                    concepts=(journal, *tuple(bib.get("keywords") or ())[:3]),
+                    tags=("paper", "doaj"),
+                    license="DOAJ",
+                    retrieved_at=f"{year}-01-01" if year else None,
+                )
+            )
+        return units[:limit]
+
+
 class OpenLibraryGuardian(HttpGuardian):
     name = "openlibrary"
     base_confidence = 0.55

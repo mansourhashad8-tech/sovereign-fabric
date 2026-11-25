@@ -17,7 +17,7 @@ def test_metrics_and_rate_limit_headers():
     text = client.get("/metrics").text
     assert "sovereign_requests_total" in text
     assert 'sovereign_requests_by_status{status="200"}' in text
-    assert "sovereign_capabilities 93" in text
+    assert "sovereign_capabilities 129" in text
     assert "sovereign_knowledge_units" in text
 
 

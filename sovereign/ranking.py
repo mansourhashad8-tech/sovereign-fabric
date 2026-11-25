@@ -68,3 +68,37 @@ def reciprocal_rank_fusion(
         for rank, item in enumerate(ranking, 1):
             fused[item] = fused.get(item, 0.0) + 1.0 / (k + rank)
     return fused
+
+
+def ndcg_at_k(ranked: list[str], relevance: dict[str, float], *, k: int = 10) -> float:
+    """Normalised discounted cumulative gain with binary or graded relevance."""
+    k = max(1, min(int(k), 100))
+    gains = {str(key): max(0.0, float(value)) for key, value in relevance.items()}
+    dcg = 0.0
+    for rank, item in enumerate(ranked[:k], 1):
+        gain = gains.get(str(item), 0.0)
+        if gain:
+            dcg += (2**gain - 1) / math.log2(rank + 1)
+    ideal = sorted(gains.values(), reverse=True)[:k]
+    idcg = sum((2**gain - 1) / math.log2(rank + 1) for rank, gain in enumerate(ideal, 1))
+    return dcg / idcg if idcg else 0.0
+
+
+def mrr(ranked: list[str], relevant: set[str]) -> float:
+    """Reciprocal rank of the first relevant item; zero if none is present."""
+    wanted = {str(item) for item in relevant}
+    for rank, item in enumerate(ranked, 1):
+        if str(item) in wanted:
+            return 1.0 / rank
+    return 0.0
+
+
+def evaluate_ranking(
+    ranked: list[str], relevance: dict[str, float], *, k: int = 10
+) -> dict[str, float]:
+    relevant = {key for key, value in relevance.items() if float(value) > 0}
+    return {
+        "ndcg": round(ndcg_at_k(ranked, relevance, k=k), 12),
+        "mrr": round(mrr(ranked, relevant), 12),
+        "k": max(1, min(int(k), 100)),
+    }

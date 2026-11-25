@@ -34,6 +34,7 @@ from .quantum import grover_search, simulate_circuit
 from .repair import repair
 from .store import FabricStore
 from .toolbox import TOOLBOX, bootstrap_toolbox
+from .toolbox_ext import TOOLBOX_EXT, bootstrap_toolbox_ext
 from .synthesis import SynthesisResult, Synthesizer
 from .validator import HolisticValidator
 
@@ -50,7 +51,9 @@ __all__ = [
     "import_bundle",
     "DeterministicProtocol",
     "TOOLBOX",
+    "TOOLBOX_EXT",
     "bootstrap_toolbox",
+    "bootstrap_toolbox_ext",
     "audit_language",
     "CapabilityRegistry",
     "bootstrap_native",

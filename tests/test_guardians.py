@@ -1,9 +1,12 @@
 from sovereign.guardians import (
     ArxivGuardian,
     DataCiteGuardian,
+    DOAJGuardian,
+    GitLabGuardian,
     GithubGuardian,
     HackerNewsGuardian,
     LocalGuardian,
+    NominatimGuardian,
     OpenAlexGuardian,
     OpenLibraryGuardian,
     PubMedGuardian,
@@ -11,6 +14,8 @@ from sovereign.guardians import (
     StackExchangeGuardian,
     WikidataGuardian,
     WikipediaGuardian,
+    WiktionaryGuardian,
+    WorldBankGuardian,
     ZenodoGuardian,
 )
 from sovereign.guardians.base import GuardianRegistry
@@ -233,14 +238,15 @@ def test_npm_parsing():
     assert "planning" in units[0].concepts
 
 
-def test_default_registry_has_seventeen_sources():
+def test_default_registry_has_twenty_two_sources():
     from sovereign.guardians import default_registry
     names = default_registry().names()
-    assert len(names) == 17
+    assert len(names) == 22
     assert {"arxiv", "openalex", "semanticscholar", "crossref", "github",
             "hackernews", "huggingface", "pypi", "npm", "local",
             "wikipedia", "stackexchange", "zenodo", "datacite", "pubmed",
-            "openlibrary", "wikidata"} == set(names)
+            "openlibrary", "wikidata", "gitlab", "worldbank", "wiktionary",
+            "nominatim", "doaj"} == set(names)
 
 
 def test_datacite_parsing():
@@ -404,3 +410,63 @@ def test_wikidata_parsing_keeps_entity_description():
     assert "artificial intelligence" in units[0].summary
     assert units[0].provenance.url.endswith("/Q1")
     assert units[0].provenance.license == "CC0"
+
+
+GITLAB_JSON = """[{"name_with_namespace":"acme/planner","description":"Plan things",
+ "web_url":"https://gitlab.com/acme/planner","star_count":100,
+ "topics":["planning","search"]}]"""
+
+WORLDBANK_JSON = """[{"page":1,"pages":1},[{"name":"France","iso2Code":"FR",
+ "capitalCity":"Paris","region":{"value":"Europe & Central Asia"},
+ "incomeLevel":{"value":"High income"}}]]"""
+
+WIKTIONARY_JSON = """{"query":{"search":[{"title":"planning",
+ "snippet":"The <span>planning</span> of an action."}]}}"""
+
+NOMINATIM_JSON = """[{"display_name":"London, England, United Kingdom",
+ "lat":"51.5","lon":"-0.1","type":"city","osm_type":"relation","osm_id":"65606"}]"""
+
+DOAJ_JSON = """{"results":[{"id":"abc","bibjson":{"title":"Planning Review",
+ "abstract":"A review.","year":2026,"keywords":["planning","search"],
+ "journal":{"title":"Journal of Planning"},"link":[{"url":"https://doaj.org/article/abc"}]}}]}"""
+
+
+def test_gitlab_parsing_keeps_stars_and_topics():
+    units = GitLabGuardian(fetch=lambda url: GITLAB_JSON).search("planning", 3)
+    assert len(units) == 1
+    assert units[0].title == "acme/planner"
+    assert units[0].provenance.confidence > 0.5
+    assert "planning" in units[0].concepts
+
+
+def test_worldbank_parsing_keeps_region_and_capital():
+    units = WorldBankGuardian(fetch=lambda url: WORLDBANK_JSON).search("France", 3)
+    assert len(units) == 1
+    assert units[0].title == "France"
+    assert "Europe" in units[0].summary
+    assert units[0].provenance.url.endswith("/FR")
+    assert units[0].provenance.license == "CC BY 4.0"
+
+
+def test_wiktionary_parsing_strips_markup():
+    units = WiktionaryGuardian(fetch=lambda url: WIKTIONARY_JSON).search("planning", 3)
+    assert len(units) == 1
+    assert units[0].title == "planning"
+    assert "<span" not in units[0].summary
+    assert units[0].provenance.url.endswith("/planning")
+
+
+def test_nominatim_parsing_keeps_osm_link():
+    units = NominatimGuardian(fetch=lambda url: NOMINATIM_JSON).search("London", 3)
+    assert len(units) == 1
+    assert units[0].title == "London"
+    assert units[0].provenance.url.endswith("/relation/65606")
+    assert units[0].provenance.license == "ODbL"
+
+
+def test_doaj_parsing_keeps_journal_and_link():
+    units = DOAJGuardian(fetch=lambda url: DOAJ_JSON).search("planning", 3)
+    assert len(units) == 1
+    assert units[0].title == "Planning Review"
+    assert "Journal of Planning" in units[0].concepts
+    assert units[0].provenance.url.endswith("/abc")

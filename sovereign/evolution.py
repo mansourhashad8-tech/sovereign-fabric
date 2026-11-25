@@ -28,6 +28,7 @@ from .pathfinder import PathFinder, operators_from
 from .store import FabricStore
 from .synthesis import SynthesisResult, Synthesizer
 from .toolbox import bootstrap_toolbox
+from .toolbox_ext import bootstrap_toolbox_ext
 from .validator import HolisticValidator
 
 _DECLARED_CONSTRAINTS = (
@@ -73,6 +74,7 @@ class EvolutionEngine:
         bootstrap_native(self.registry)
         bootstrap_extras(self.registry)
         bootstrap_toolbox(self.registry)
+        bootstrap_toolbox_ext(self.registry)
         self.guardians = guardians or default_registry(store)
         self.pathfinder = pathfinder or PathFinder(store)
         self.validator = validator or HolisticValidator()

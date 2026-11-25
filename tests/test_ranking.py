@@ -3,7 +3,14 @@ from fastapi.testclient import TestClient
 
 from sovereign.api import create_app
 from sovereign.models import KnowledgeUnit, Provenance, utcnow
-from sovereign.ranking import bm25_scores, ranking_tokens, reciprocal_rank_fusion
+from sovereign.ranking import (
+    bm25_scores,
+    evaluate_ranking,
+    mrr,
+    ndcg_at_k,
+    ranking_tokens,
+    reciprocal_rank_fusion,
+)
 from sovereign.store import FabricStore
 
 
@@ -67,3 +74,26 @@ def test_knowledge_search_api_exposes_mode_and_rejects_unknown_mode():
     assert ok.json()["mode"] == "bm25"
     bad = client.get("/knowledge/search", params={"q": "planning", "mode": "bogus"})
     assert bad.status_code == 422
+
+
+def test_ndcg_and_mrr_reward_early_relevant_items():
+    relevance = {"a": 2.0, "b": 1.0}
+    assert ndcg_at_k(["a", "x", "b"], relevance, k=3) > ndcg_at_k(["x", "b", "a"], relevance, k=3)
+    assert ndcg_at_k(["a", "b"], relevance, k=2) == 1.0
+    assert mrr(["x", "b", "a"], {"a", "b"}) == 0.5
+    assert mrr(["x"], {"a"}) == 0.0
+
+
+def test_evaluate_ranking_returns_ndcg_mrr_and_k():
+    result = evaluate_ranking(["a", "b"], {"a": 1.0}, k=2)
+    assert result == {"ndcg": 1.0, "mrr": 1.0, "k": 2}
+
+
+def test_ranking_evaluation_api():
+    client = TestClient(create_app())
+    response = client.post(
+        "/ranking/evaluate",
+        json={"ranked": ["a", "b"], "relevance": {"a": 1.0}, "k": 2},
+    )
+    assert response.status_code == 200
+    assert response.json()["ndcg"] == 1.0

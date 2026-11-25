@@ -9,6 +9,8 @@ from .sources import (
     ArxivGuardian,
     CrossrefGuardian,
     DataCiteGuardian,
+    DOAJGuardian,
+    GitLabGuardian,
     GithubGuardian,
     HackerNewsGuardian,
     HuggingFaceGuardian,
@@ -19,9 +21,12 @@ from .sources import (
     OpenAlexGuardian,
     PyPIGuardian,
     SemanticScholarGuardian,
+    NominatimGuardian,
     StackExchangeGuardian,
     WikidataGuardian,
     WikipediaGuardian,
+    WiktionaryGuardian,
+    WorldBankGuardian,
     ZenodoGuardian,
 )
 
@@ -34,10 +39,13 @@ __all__ = [
     "ArxivGuardian",
     "CrossrefGuardian",
     "DataCiteGuardian",
+    "DOAJGuardian",
+    "GitLabGuardian",
     "GithubGuardian",
     "HackerNewsGuardian",
     "HuggingFaceGuardian",
     "LocalGuardian",
+    "NominatimGuardian",
     "NpmGuardian",
     "OpenLibraryGuardian",
     "PubMedGuardian",
@@ -47,12 +55,14 @@ __all__ = [
     "StackExchangeGuardian",
     "WikidataGuardian",
     "WikipediaGuardian",
+    "WiktionaryGuardian",
+    "WorldBankGuardian",
     "ZenodoGuardian",
 ]
 
 
 def default_registry(store=None) -> GuardianRegistry:
-    """Seventeen sources, including an offline corpus. A dead network still answers."""
+    """Twenty-two sources, including an offline corpus. A dead network still answers."""
     return GuardianRegistry(
         [
             ArxivGuardian(store=store),
@@ -71,6 +81,11 @@ def default_registry(store=None) -> GuardianRegistry:
             PubMedGuardian(store=store),
             OpenLibraryGuardian(store=store),
             WikidataGuardian(store=store),
+            GitLabGuardian(store=store),
+            WorldBankGuardian(store=store),
+            WiktionaryGuardian(store=store),
+            NominatimGuardian(store=store),
+            DOAJGuardian(store=store),
             LocalGuardian(),
         ]
     )

@@ -32,6 +32,7 @@ from .metrics import Metrics
 from .optimizer import Optimizer
 from .pathfinder import operators_from
 from .protocol import BANNED_PHRASES, DeterministicProtocol, audit_language
+from .ranking import evaluate_ranking
 from .pipeline import run_pipeline
 from .repair import repair
 from .execution import ExecutionEngine, HotCache, Prefetcher, RemoteExecutor, benchmark
@@ -170,6 +171,12 @@ class ProtocolRequest(BaseModel):
 
 class LanguageRequest(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
+
+
+class RankingEvalRequest(BaseModel):
+    ranked: list[str] = Field(min_length=1, max_length=100)
+    relevance: dict[str, float] = Field(default_factory=dict)
+    k: int = Field(default=10, ge=1, le=100)
 
 
 class CurriculumRequest(BaseModel):
@@ -375,6 +382,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /gaps",
                 "GET /decisions",
                 "GET /decisions/{request_hash}",
+                "POST /ranking/evaluate",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -795,6 +803,10 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/gaps")
     def gaps_endpoint(limit: int = Query(default=100, ge=1, le=500)) -> dict[str, Any]:
         return gap_summary(store, limit=limit)
+
+    @app.post("/ranking/evaluate")
+    def ranking_evaluate_endpoint(body: RankingEvalRequest) -> dict[str, Any]:
+        return evaluate_ranking(body.ranked, body.relevance, k=body.k)
 
     @app.get("/decisions")
     def decisions_endpoint(limit: int = Query(default=50, ge=1, le=200)) -> dict[str, Any]:
