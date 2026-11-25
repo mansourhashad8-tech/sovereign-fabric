@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-25T00:46:20.451177+00:00",
-  "commit": "e2301b1decbff8dd00a08d4499ed662070678b23",
+  "generated_at": "2026-11-25T11:27:12.903660+00:00",
+  "commit": "e5450227ac81eb3d7815367455433b354bf9b381",
   "root": "sovereign",
-  "duration_s": 0.337,
+  "duration_s": 0.334,
   "license_file": "LICENSE",
   "source_files": [
     {
       "path": "sovereign/__init__.py",
-      "sha256": "f2d4e51f4ee2736de0f352e88e4c65593175b660b93456d5fef88f6ab79b4c7e",
-      "lines": 81
+      "sha256": "251801671d86845f9cdb6e79ae9574d6b0ce2ae7831dc4d94cde370f3d2324be",
+      "lines": 84
     },
     {
       "path": "sovereign/__main__.py",
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "82990625df0c7bb9ae4eeae81588e977c26e884a614211037eaf126e1aa00437",
-      "lines": 984
+      "sha256": "a36cf88b63f128c0e5a45e4ffc60bde3766f0a295034fb806b585d818e026d31",
+      "lines": 1050
     },
     {
       "path": "sovereign/arabic.py",
@@ -87,7 +87,7 @@
     },
     {
       "path": "sovereign/evolution.py",
-      "sha256": "eb5b8057880653f056eb510f7bce128cd3e4bd6ccd1d5b4ac471d6afca80d511",
+      "sha256": "327b01bdf1784cd7914436bf3bb0a8f61ecc2fb43c8e1a3afc0e23c8a43ab7c8",
       "lines": 375
     },
     {
@@ -201,6 +201,11 @@
       "lines": 117
     },
     {
+      "path": "sovereign/protocol.py",
+      "sha256": "024dabe39b84e3372ca8bd5cf0f2ed84e7b3dedf9369feaee2b770a23c821c4d",
+      "lines": 297
+    },
+    {
       "path": "sovereign/quantum.py",
       "sha256": "00921267c69d6fe9e5ad2fe00de2236891d83ffc21d84d38f79fbc5ea2f75242",
       "lines": 156
@@ -227,8 +232,8 @@
     },
     {
       "path": "sovereign/selfmodel.py",
-      "sha256": "d9babf0ece919d2d06fbd0bf24c6bbe14562a45bef8a95116b6fc9306735d599",
-      "lines": 172
+      "sha256": "7e1a07459eff33daa7ddfce7674f7d92d669393f19c2811f0dca822af5933f92",
+      "lines": 174
     },
     {
       "path": "sovereign/stats.py",
@@ -247,7 +252,7 @@
     },
     {
       "path": "sovereign/validator.py",
-      "sha256": "74d21aa4230b5a96e01b6b920f2862072b556651b344eb4c80950ef0461a3b82",
+      "sha256": "4345801d480d9a822f8db4e961b4eb5ac16ed2e21ae60cbb212be7e341eec5da",
       "lines": 189
     },
     {
