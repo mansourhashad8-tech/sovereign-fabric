@@ -34,7 +34,9 @@ def record_feedback(
     return payload
 
 
-def feedback_summary(store: FabricStore, limit: int = MAX_EVENTS) -> list[dict[str, Any]]:
+def feedback_summary(
+    store: FabricStore, limit: int = MAX_EVENTS, prior: float = PRIOR
+) -> list[dict[str, Any]]:
     buckets: dict[str, dict[str, Any]] = {}
     for event in store.list_events("feedback", limit):
         payload = event["payload"]
@@ -59,7 +61,7 @@ def feedback_summary(store: FabricStore, limit: int = MAX_EVENTS) -> list[dict[s
                 **bucket,
                 "score": round(
                     (bucket["positive"] - bucket["negative"])
-                    / (bucket["count"] + PRIOR),
+                    / (bucket["count"] + max(1.0, float(prior))),
                     6,
                 ),
             }
@@ -68,5 +70,10 @@ def feedback_summary(store: FabricStore, limit: int = MAX_EVENTS) -> list[dict[s
     return rows
 
 
-def feedback_scores(store: FabricStore, limit: int = MAX_EVENTS) -> dict[str, float]:
-    return {row["capability"]: row["score"] for row in feedback_summary(store, limit)}
+def feedback_scores(
+    store: FabricStore, limit: int = MAX_EVENTS, prior: float = PRIOR
+) -> dict[str, float]:
+    return {
+        row["capability"]: row["score"]
+        for row in feedback_summary(store, limit, prior)
+    }

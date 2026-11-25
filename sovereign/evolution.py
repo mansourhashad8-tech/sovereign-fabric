@@ -26,6 +26,7 @@ from .feedback import feedback_scores
 from .guardians import ConsultationResult, GuardianRegistry, default_registry
 from .models import Evidence, Plan, ValidationReport
 from .pathfinder import PathFinder, operators_from
+from .settings import Settings
 from .store import FabricStore
 from .synthesis import SynthesisResult, Synthesizer
 from .toolbox import bootstrap_toolbox
@@ -69,8 +70,10 @@ class EvolutionEngine:
         pathfinder: PathFinder | None = None,
         validator: HolisticValidator | None = None,
         experts: list[Expert] | None = None,
+        settings: Settings | None = None,
     ) -> None:
         self.store = store
+        self.settings = settings or Settings(store)
         self.registry = registry or CapabilityRegistry(store)
         bootstrap_native(self.registry)
         bootstrap_extras(self.registry)
@@ -172,12 +175,20 @@ class EvolutionEngine:
 
         synthesis: SynthesisResult | None = None
         extensions: list[dict[str, Any]] = []
-        weights = feedback_scores(self.store)
+        feedback_scale = float(self.settings.get("planner.feedback_scale"))
+        cost_floor = float(self.settings.get("planner.cost_floor"))
+        cost_ceiling = float(self.settings.get("planner.cost_ceiling"))
+        weights = feedback_scores(
+            self.store, prior=float(self.settings.get("feedback.prior"))
+        )
         plan = self.pathfinder.plan(
             initial,
             goal_type,
             operators_from(self.registry.list_active()),
             weights=weights,
+            feedback_scale=feedback_scale,
+            cost_floor=cost_floor,
+            cost_ceiling=cost_ceiling,
         )
         if not plan.solved and synthesize is not None:
             synthesis = self.synthesizer.synthesize(**synthesize)
@@ -186,6 +197,9 @@ class EvolutionEngine:
                 goal_type,
                 operators_from(self.registry.list_active()),
                 weights=weights,
+                feedback_scale=feedback_scale,
+                cost_floor=cost_floor,
+                cost_ceiling=cost_ceiling,
             )
         if not plan.solved and auto_extend:
             plan, added, ext_attempts = autonomous_extend(
@@ -205,7 +219,17 @@ class EvolutionEngine:
             source_text = text if text is not None else request
             execution = self._execute(plan, source_text)
             if not execution.get("ok"):
-                execution = self._try_alternatives(plan, initial, goal_type, source_text, execution, weights)
+                execution = self._try_alternatives(
+                    plan,
+                    initial,
+                    goal_type,
+                    source_text,
+                    execution,
+                    weights,
+                    feedback_scale,
+                    cost_floor,
+                    cost_ceiling,
+                )
 
         duration = time.monotonic() - started
         validation = self._validate(
@@ -247,7 +271,7 @@ class EvolutionEngine:
     def _record_outcome_feedback(
         self, plan: Plan, execution: dict[str, Any], execution_ok: bool
     ) -> None:
-        if not plan.steps:
+        if not plan.steps or not self.settings.get("auto_feedback.enabled"):
             return
         if execution_ok:
             for step in plan.steps:
@@ -293,10 +317,20 @@ class EvolutionEngine:
         text: str,
         failed: dict[str, Any],
         weights: dict[str, float] | None = None,
+        feedback_scale: float = 0.25,
+        cost_floor: float = 0.5,
+        cost_ceiling: float = 1.5,
     ) -> dict[str, Any]:
         operators = operators_from(self.registry.list_active())
         alternatives = self.pathfinder.alternatives(
-            initial, goal_type, operators, k=3, weights=weights
+            initial,
+            goal_type,
+            operators,
+            k=3,
+            weights=weights,
+            feedback_scale=feedback_scale,
+            cost_floor=cost_floor,
+            cost_ceiling=cost_ceiling,
         )
         original = [step.capability for step in plan.steps]
         tried = 0

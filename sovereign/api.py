@@ -45,6 +45,7 @@ from .properties import check_capabilities
 from .report import render_report, system_report
 from .security import audit as security_audit, cyclonedx_sbom, disclosure_markdown
 from .selfmodel import SelfModel
+from .settings import Settings
 from .store import FabricStore
 from .vectors import cosine, embed
 
@@ -149,6 +150,17 @@ class BatchInvokeRequest(BaseModel):
     calls: list[BatchInvokeCall] = Field(min_length=1, max_length=20)
 
 
+class SettingUpdate(BaseModel):
+    key: str = Field(min_length=1, max_length=100)
+    value: Any
+    reason: str = Field(default="", max_length=300)
+
+
+class SettingsResetRequest(BaseModel):
+    key: str | None = Field(default=None, max_length=100)
+    reason: str = Field(default="", max_length=300)
+
+
 class FeedbackRequest(BaseModel):
     capability: str = Field(min_length=1, max_length=100)
     rating: int = Field(ge=-1, le=1)
@@ -234,7 +246,8 @@ def _unit_dict(unit: KnowledgeUnit) -> dict[str, Any]:
 
 def create_app(store_path: str = ":memory:") -> FastAPI:
     store = FabricStore(store_path)
-    engine = EvolutionEngine(store)
+    settings = Settings(store)
+    engine = EvolutionEngine(store, settings=settings)
     execution = ExecutionEngine()
     cache = HotCache()
     prefetcher = Prefetcher(cache)
@@ -252,6 +265,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
 
     app = FastAPI(title="Sovereign Fabric", version="0.1.0", lifespan=lifespan)
     app.state.store = store
+    app.state.settings = settings
     app.state.engine = engine
     app.state.execution = execution
     app.state.cache = cache
@@ -380,6 +394,11 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /remote/status",
                 "GET /self",
                 "GET /self/calibration",
+                "GET /settings",
+                "POST /settings",
+                "POST /settings/reset",
+                "GET /settings/history",
+                "POST /settings/tune",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -602,7 +621,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
 
     @app.get("/feedback/summary")
     def feedback_summary_endpoint() -> dict[str, Any]:
-        return {"rows": feedback_summary(store)}
+        return {"rows": feedback_summary(store, prior=float(settings.get("feedback.prior")))}
 
     @app.post("/self/repair")
     def self_repair_endpoint() -> dict[str, Any]:
@@ -621,7 +640,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         k: int = Query(default=5, ge=1, le=50),
     ) -> dict[str, Any]:
         qvec = embed(q)
-        scores = feedback_scores(store)
+        scores = feedback_scores(store, prior=float(settings.get("feedback.prior")))
         hits = []
         for cap in engine.registry.list_active():
             text = " ".join(
@@ -1007,6 +1026,36 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.get("/self/calibration")
     def self_calibration() -> dict[str, Any]:
         return SelfModel(engine).calibration()
+
+    @app.get("/settings")
+    def settings_snapshot() -> dict[str, Any]:
+        return settings.snapshot()
+
+    @app.post("/settings")
+    def settings_update(body: SettingUpdate) -> dict[str, Any]:
+        try:
+            return settings.set(body.key, body.value, body.reason)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/settings/reset")
+    def settings_reset(body: SettingsResetRequest) -> dict[str, Any]:
+        try:
+            return settings.reset(body.key, body.reason)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.get("/settings/history")
+    def settings_history(
+        limit: int = Query(default=50, ge=1, le=500),
+    ) -> dict[str, Any]:
+        return {"events": settings.history(limit)}
+
+    @app.post("/settings/tune")
+    def settings_tune() -> dict[str, Any]:
+        return settings.tune()
 
     @app.post("/ask")
     def ask(body: AskRequest) -> dict[str, Any]:

@@ -48,12 +48,14 @@ flowchart LR
    text candidates; they are never executed and never receive the store.
 3. **Fabric**: one SQLite store for knowledge units, the concept graph,
    capability versions, an append-only event log, a source cache, a failure memo,
-   a capability-demand ledger fed by protocol escalations, and decision memory.
+   a capability-demand ledger fed by protocol escalations, decision memory, and an
+   allowlisted runtime-settings table with an audit trail.
 4. **Planning and synthesis**: reachability proof plus A* over capability types,
    bounded capability pipelines, a 24-blueprint self-extension library, enumerative program
    synthesis, a subprocess gate, a 71-function deterministic toolbox, hybrid
    vector/BM25/PPMI-semantic retrieval with write-invalidated index caches, nDCG@k/MRR,
-   a trainable Naive Bayes intent fallback, feedback-weighted A* costs, and an in-process hyper kernel
+   a trainable Naive Bayes intent fallback, feedback-weighted A* costs, an
+   allowlisted settings kernel, and an in-process hyper kernel
    (HRR memory, direct state bus, observer, monotonic clock)
    evaluation, a fixed retrieval benchmark,
    and a result-first protocol with up to five bounded

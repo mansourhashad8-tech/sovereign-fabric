@@ -143,6 +143,12 @@ DASHBOARD_HTML = """<!doctype html>
   </div>
 
   <div class="panel" style="margin-top:14px">
+    <h3>Runtime settings <span id="settingsStamp" style="text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400"></span></h3>
+    <div class="caps" id="settingsOut"></div>
+    <div style="margin-top:10px"><button onclick="tuneSettings()">Tune from self-skill</button></div>
+  </div>
+
+  <div class="panel" style="margin-top:14px">
     <h3>Research brief</h3>
     <div class="caps" style="margin-bottom:10px">
       <input id="briefQuery" value="retrieval augmented generation"
@@ -411,6 +417,29 @@ async function loadSelf() {
 
 setInterval(loadSelf, 15000);
 loadSelf();
+
+async function loadSettings() {
+  try {
+    const snapshot = await get('/settings');
+    const entries = Object.entries(snapshot.settings);
+    $('settingsOut').innerHTML = entries.map(([key, item]) =>
+      `<span class="cap ${item.modified ? 'admitted' : ''}" title="${esc(item.description)}">${esc(key)} = ${esc(item.value)}${item.minimum !== null ? ` [${item.minimum}..${item.maximum}]` : ''}</span>`
+    ).join('');
+    $('settingsStamp').textContent = `· revision ${snapshot.revision}`;
+  } catch (e) {}
+}
+
+async function tuneSettings() {
+  try {
+    const result = await post('/settings/tune');
+    $('settingsOut').insertAdjacentHTML('afterbegin',
+      `<span class="cap ${result.changed ? 'admitted' : 'quarantined'}">${result.changed ? 'tuned' : 'no change'} · ${esc(result.reason)}</span>`);
+    await loadSettings();
+  } catch (e) {}
+}
+
+loadSettings();
+setInterval(loadSettings, 30000);
 
 async function loadRetrieval() {
   $('retrievalOut').textContent = 'running the fixed benchmark…';

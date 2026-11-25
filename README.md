@@ -289,6 +289,30 @@ curl -s localhost:12000/feedback/summary
 This is a bounded online preference signal, not gradient training. One rating
 is smoothed by a prior of five, and the score is visible in every search hit.
 
+## Runtime settings that cannot lower the bar
+
+`GET /settings` exposes five allowlisted parameters: the planner feedback scale,
+the planner cost floor and ceiling, the feedback prior, and whether automatic
+outcome feedback is enabled. Every value has a hard range. Validation
+thresholds, security invariants, and capability admission rules are not in the
+allowlist, so a settings call cannot lower the system's own standards.
+
+```bash
+curl -s localhost:12000/settings
+curl -s -X POST localhost:12000/settings \
+  -H 'Content-Type: application/json' \
+  -d '{"key":"planner.feedback_scale","value":0.3,"reason":"measured tune"}'
+curl -s -X POST localhost:12000/settings/reset \
+  -H 'Content-Type: application/json' -d '{"key":"planner.feedback_scale"}'
+curl -s localhost:12000/settings/history
+```
+
+Every change is recorded with the old value, new value, and reason. `POST
+/settings/tune` is a bounded heuristic: with at least 20 cycles, it raises the
+feedback scale when the self-model's prequential skill is above 0.1 and lowers
+it when skill is below zero. It reports its inputs and never claims that the
+change is an improvement.
+
 ## External expert consultation
 
 `POST /expert/ask` asks a configured OpenAI-compatible expert (Groq or OpenAI)
@@ -678,7 +702,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **60** source files hashed with SHA-256
+- **61** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -775,6 +799,7 @@ sovereign/
   gaps.py          capability-demand ledger from protocol escalations
   pipeline.py      bounded composition of any capabilities
   feedback.py      smoothed outcome votes; reorder search and weight planner costs
+  settings.py      allowlisted settings, bounds, audit, reset, bounded tune
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
   diagnostics.py   read-only database/registry/planner/security checks
@@ -879,6 +904,11 @@ curl -s localhost:12000/redteam
 | GET | `/dashboard` | one-page live dashboard |
 | GET | `/self` | evidence-derived self-assessment, can/cannot, limits |
 | GET | `/self/calibration` | prequential Brier score, skill, and per-goal rows |
+| GET | `/settings` | allowlisted settings, values, defaults, and bounds |
+| POST | `/settings` | set one allowlisted value with a reason |
+| POST | `/settings/reset` | reset one or all values to defaults |
+| GET | `/settings/history` | append-only settings change log |
+| POST | `/settings/tune` | bounded heuristic tune from cycle skill |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -941,7 +971,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 369 tests
+python -m pytest        # 376 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,

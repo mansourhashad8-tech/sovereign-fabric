@@ -74,6 +74,11 @@ CREATE TABLE IF NOT EXISTS failure_memo (
     count INTEGER NOT NULL,
     last_ts TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 
@@ -100,6 +105,36 @@ class FabricStore:
     def close(self) -> None:
         with self._lock:
             self._conn.close()
+
+    # -- settings --------------------------------------------------------
+    def get_setting(self, key: str) -> Any | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT value FROM settings WHERE key=?", (key,)
+            ).fetchone()
+        return json.loads(row["value"]) if row else None
+
+    def set_setting(self, key: str, value: Any, updated_at: str) -> None:
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO settings (key, value, updated_at) VALUES (?,?,?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value, "
+                "updated_at=excluded.updated_at",
+                (key, json.dumps(value), updated_at),
+            )
+            self._conn.commit()
+
+    def delete_setting(self, key: str) -> None:
+        with self._lock:
+            self._conn.execute("DELETE FROM settings WHERE key=?", (key,))
+            self._conn.commit()
+
+    def all_settings(self) -> dict[str, Any]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT key, value FROM settings ORDER BY key"
+            ).fetchall()
+        return {row["key"]: json.loads(row["value"]) for row in rows}
 
     # -- knowledge -------------------------------------------------------
     def upsert_knowledge(self, unit: KnowledgeUnit) -> KnowledgeUnit:
