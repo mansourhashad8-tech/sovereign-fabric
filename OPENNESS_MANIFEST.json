@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T23:19:56.713171+00:00",
-  "commit": "fbf2d3d98314fe77205b41f2f56df007057f9373",
+  "generated_at": "2026-11-25T23:22:17.631314+00:00",
+  "commit": "b44f2a0406bbd85c492c5a82146a23067622cbdb",
   "root": "sovereign",
-  "duration_s": 0.438,
+  "duration_s": 0.443,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -222,8 +222,8 @@
     },
     {
       "path": "sovereign/orchestration.py",
-      "sha256": "5af9f80ffcd8af6a97ee83a67b01fe26cc2c1f7fd5c94970d4038315d190be3b",
-      "lines": 538
+      "sha256": "952140463c2e921ae6eceab772ecda53e7da39ab99c9a7e6c2cd0524447e3d98",
+      "lines": 557
     },
     {
       "path": "sovereign/pathfinder.py",

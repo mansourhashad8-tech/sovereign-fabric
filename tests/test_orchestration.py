@@ -200,6 +200,24 @@ def test_orchestrator_reassigns_after_a_failed_provider():
     store.close()
 
 
+def test_local_control_runs_light_tasks_and_refuses_heavy_ones():
+    registry = ProviderRegistry(
+        providers=[_provider("local-control", ["control.plan", "compute.python"], heavy=False)]
+    )
+    store = FabricStore()
+    orchestrator = Orchestrator(store, registry=registry)
+    light = orchestrator.run(
+        [Task(id="plan", capability="control.plan", heavy=False)]
+    )
+    assert light["status"] == "ok"
+    assert light["results"][0]["provider"] == "local-control"
+    heavy = orchestrator.run(
+        [Task(id="heavy", capability="compute.python", heavy=True)]
+    )
+    assert heavy["status"] == "blocked"
+    store.close()
+
+
 def test_provisioning_is_honest_about_account_creation():
     registry = ProviderRegistry(
         providers=[

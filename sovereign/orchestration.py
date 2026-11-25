@@ -347,6 +347,24 @@ class GroqAdapter:
         }
 
 
+class LocalControlAdapter:
+    id = "local-control"
+
+    def run(self, task: Task) -> dict[str, Any]:
+        return {
+            "task_id": task.id,
+            "provider": self.id,
+            "status": "ok",
+            "conclusion": "success",
+            "evidence": {
+                "control": task.capability,
+                "heavy": False,
+                "note": "local control plane only; no heavy computation was claimed",
+            },
+            "command": f"control:{task.capability}",
+        }
+
+
 class Orchestrator:
     def __init__(
         self,
@@ -363,6 +381,7 @@ class Orchestrator:
             "huggingface-hub": HuggingFaceAdapter(),
             "huggingface-inference": HuggingFaceAdapter(),
             "groq": GroqAdapter(),
+            "local-control": LocalControlAdapter(),
         }
 
     def providers(self, probe: bool = False) -> dict[str, Any]:

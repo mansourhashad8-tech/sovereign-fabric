@@ -1035,7 +1035,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 405 tests
+python -m pytest        # 406 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
