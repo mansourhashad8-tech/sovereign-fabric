@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T16:07:44.133193+00:00",
-  "commit": "1b33cd0adaa1826bf98980f06a5276b26bd01744",
+  "generated_at": "2026-11-25T16:12:01.493331+00:00",
+  "commit": "1abe1a17be92801c6f04ff50c1f21eef4c3ce565",
   "root": "sovereign",
-  "duration_s": 0.393,
+  "duration_s": 0.431,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "3d74875e6b075e8fbb88435024065197d5c634a48f2fb8721c9b6d4891b986e4",
-      "lines": 1250
+      "sha256": "e4ae32fe8f147242d3c8142fba7520bbe3f84827139321359c1b812389c6d2b6",
+      "lines": 1262
     },
     {
       "path": "sovereign/arabic.py",
@@ -66,14 +66,19 @@
       "lines": 233
     },
     {
+      "path": "sovereign/context.py",
+      "sha256": "3a4a97a9f31e4fdb42cc149c91000b2bc7b70d9242ec3ade1d9943cea809d9fa",
+      "lines": 173
+    },
+    {
       "path": "sovereign/curriculum.py",
       "sha256": "8d66f5cab577dfd87d137d74e8e9d8d32b168c1cdffd24db164775f0d3c05c56",
       "lines": 72
     },
     {
       "path": "sovereign/dashboard.py",
-      "sha256": "7756b84ef90c686778c9294c61ce1bc006e7bad1c538c9bad027b45056ba9dd6",
-      "lines": 480
+      "sha256": "638ad37a6044097021768b13bbdb70469f9492ce2861bfd72e72ecf5f4662525",
+      "lines": 506
     },
     {
       "path": "sovereign/decisions.py",
@@ -262,8 +267,8 @@
     },
     {
       "path": "sovereign/selfmodel.py",
-      "sha256": "167701b302e634e8b3706961d71073d3e1b5469b0ff20dc8e0c4ca279a3d3e5e",
-      "lines": 220
+      "sha256": "c7a510b59bd53c7c1c478c09657219648133ad9f9ad11787d9828eb1864cb083",
+      "lines": 221
     },
     {
       "path": "sovereign/semantic.py",
