@@ -235,9 +235,10 @@ def test_orchestration_api_exposes_plan_and_standards():
             "tasks": [
                 {
                     "id": "remote-tests",
-                    "capability": "compute.python",
-                    "payload": {"task": "tests"},
-                    "standard": "reproducibility",
+                    "capability": "control.plan",
+                    "payload": {"task": "plan"},
+                    "standard": "schema",
+                    "heavy": False,
                 }
             ]
         },
