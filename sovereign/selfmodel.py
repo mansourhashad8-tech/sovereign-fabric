@@ -101,6 +101,9 @@ class SelfModel:
             "Self-repair restores known built-ins with broken import entries; it cannot invent missing code.",
             "External expert answers are unverified text and are never executed.",
             "Media capabilities read headers only; there is no OCR, vision, or audio transcription.",
+            "The immune system is an online statistical detector, not deep learning; its state is in-process.",
+            "Collective memory is a manual anonymized JSON exchange, not federated learning or a global brain.",
+            "The autonomy gate checks operational evidence, not life or consciousness.",
         ]
         if not self.engine.experts:
             limits.insert(

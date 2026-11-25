@@ -21,6 +21,11 @@ flowchart LR
   API --> EX[External expert, optional]
   API --> FB[Feedback + self-repair]
   FB --> F
+  API --> IM[Immune detector + quarantine]
+  IM --> F
+  IM --> CO[Anonymized collective lessons]
+  CO --> F
+  API --> AU[Autonomy gate + reward ledger]
   GUARD --> SEC[Security and openness audit]
   SEC --> D[Disclosure report + SBOM]
 ```
@@ -45,9 +50,15 @@ flowchart LR
 6. **Introspection**: a self-model that plans its own claims, lexical claim
    support, randomized property checks, confidence intervals, outcome feedback,
    and a self-repair path for broken built-in entries.
-7. **Openness and operations**: a static scanner, licence inventory, OSV lookup,
+7. **Immunity and collective memory**: an online statistical anomaly score with
+   a bounded quarantine and in-memory learned path hashes, plus a strict
+   anonymized lesson export/import format.
+   The autonomy gate checks autonomy, continuity, safety, and collective
+   contribution; the reward ledger is an inspectable event score, not RL.
+8. **Openness and operations**: a static scanner, licence inventory, OSV lookup,
    CycloneDX SBOM, a public disclosure report, and a threat model. API guards add
-   an optional key, a per-client rate limit, a body cap, and security headers;
+   an optional key, a per-client rate limit, a body cap, security headers, and a
+   short immune quarantine;
    `/metrics`, `/ready`, and `/diagnostics` expose process health without secrets.
 
 ## Data flow

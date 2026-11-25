@@ -11,7 +11,9 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from .absorption import absorb
+from .autonomy import assess, reward_ledger
 from .capabilities import CapabilityError
+from .collective import collective_status, export_bundle, import_bundle
 from .curriculum import Curriculum
 from .brief import build_brief
 from .dashboard import DASHBOARD_HTML
@@ -20,6 +22,7 @@ from .evidence import verify_claim
 from .feedback import feedback_scores, feedback_summary, record_feedback
 from .evolution import EvolutionEngine
 from .guard import ApiKey, RateLimiter, max_body_bytes, security_headers
+from .immunity import ImmuneSystem
 from .intent import parse_intent
 from .loop import EvolutionLoop
 from .mastery import Mastery
@@ -194,7 +197,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     prefetcher = Prefetcher(cache)
     remote = RemoteExecutor()
     optimizer = Optimizer(engine.registry)
-    loop = EvolutionLoop(engine, interval_s=60.0)
+    immune = ImmuneSystem(store)
+    loop = EvolutionLoop(engine, interval_s=60.0, immune=immune)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -207,6 +211,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.execution = execution
     app.state.cache = cache
     app.state.optimizer = optimizer
+    app.state.immune = immune
     app.state.loop = loop
     api_key = ApiKey()
     limiter = RateLimiter()
@@ -257,17 +262,36 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                     "X-RateLimit-Remaining": "0",
                 },
             )
+        if request.url.path != "/immunity/reset":
+            immune_verdict = immune.pre_check(client, request.url.path)
+        else:
+            immune_verdict = None
+        if immune_verdict is not None and not immune_verdict.allowed:
+            return deny(
+                403,
+                "client is temporarily quarantined by the immune system",
+                "immune",
+                {"Retry-After": str(immune_verdict.retry_after)},
+            )
         try:
             response = await call_next(request)
         except Exception:
             metrics.observe(500, time.perf_counter() - started)
             raise
         metrics.observe(response.status_code, time.perf_counter() - started)
+        immune_result = immune.observe(
+            client,
+            request.url.path,
+            response.status_code,
+            time.perf_counter() - started,
+            request.method,
+        )
         for name, value in security_headers().items():
             response.headers.setdefault(name, value)
         response.headers["X-RateLimit-Limit"] = str(limiter.limit)
         response.headers["X-RateLimit-Remaining"] = str(decision.remaining)
         response.headers["X-Request-ID"] = request_id
+        response.headers["X-Immune-Score"] = str(immune_result["score"])
         return response
 
     @app.get("/")
@@ -315,6 +339,15 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /feedback/summary",
                 "POST /self/repair",
                 "POST /expert/ask",
+                "GET /immunity/status",
+                "GET /immunity/incidents",
+                "POST /immunity/scan",
+                "POST /immunity/reset",
+                "GET /collective/status",
+                "GET /collective/export",
+                "POST /collective/import",
+                "GET /autonomy",
+                "GET /evolution/reward",
                 "POST /optimize",
                 "GET /loop/status",
                 "POST /loop/start",
@@ -637,8 +670,50 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             {"ok": ok, "checks": checks}, status_code=200 if ok else 503
         )
 
+    @app.get("/immunity/status")
+    def immunity_status() -> dict[str, Any]:
+        return immune.status()
+
+    @app.get("/immunity/incidents")
+    def immunity_incidents(limit: int = Query(default=20, ge=1, le=100)) -> dict[str, Any]:
+        return {"incidents": immune.incidents(limit), "status": immune.status()}
+
+    @app.post("/immunity/scan")
+    def immunity_scan() -> dict[str, Any]:
+        return immune.scan()
+
+    @app.post("/immunity/reset")
+    def immunity_reset(clear_history: bool = True) -> dict[str, Any]:
+        return immune.reset(clear_history=clear_history)
+
+    @app.get("/collective/status")
+    def collective_status_endpoint() -> dict[str, Any]:
+        return collective_status(store)
+
+    @app.get("/collective/export")
+    def collective_export(limit: int = Query(default=200, ge=1, le=500)) -> dict[str, Any]:
+        return export_bundle(store, limit=limit)
+
+    @app.post("/collective/import")
+    def collective_import(bundle: dict[str, Any]) -> dict[str, Any]:
+        return import_bundle(store, bundle)
+
+    @app.get("/autonomy")
+    def autonomy_endpoint() -> dict[str, Any]:
+        return assess(
+            engine,
+            loop_status=loop.status(),
+            immune_status=immune.status(),
+            collective=collective_status(store),
+        )
+
+    @app.get("/evolution/reward")
+    def evolution_reward() -> dict[str, Any]:
+        return reward_ledger(store)
+
     @app.get("/metrics")
     def metrics_endpoint() -> PlainTextResponse:
+        immune_status = immune.status()
         return PlainTextResponse(
             metrics.render(
                 {
@@ -647,6 +722,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                     "cycles": len(store.list_events("cycle")),
                     "optimizations": len(store.list_events("capability.optimized")),
                     "feedback": len(store.list_events("feedback", 5000)),
+                    "immune_observations": immune_status["observations"],
+                    "immune_quarantines": immune_status["quarantines_total"],
+                    "collective_lessons": collective_status(store)["lessons"],
                 }
             )
         )
@@ -666,6 +744,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             "knowledge_units": store.count_knowledge(),
             "api_key_required": api_key.enabled,
             "rate_limit_per_window": limiter.limit,
+            "immune_quarantined": immune.status()["quarantined"],
+            "collective_lessons": collective_status(store)["lessons"],
         }
 
     @app.get("/security/audit")

@@ -7,7 +7,9 @@ result the validator has not passed.
 """
 
 from .absorption import absorb, propose_capabilities
+from .autonomy import assess, reward_ledger
 from .capabilities import CapabilityRegistry, bootstrap_native
+from .collective import collective_status, export_bundle, import_bundle
 from .diagnostics import diagnose
 from .extras import bootstrap_extras
 from .feedback import feedback_scores, feedback_summary, record_feedback
@@ -23,6 +25,7 @@ from .models import (
     ValidationReport,
 )
 from .graphalg import pagerank, shortest_path
+from .immunity import ImmuneSystem
 from .pathfinder import Operator, PathFinder, operators_from
 from .media import image_info, wav_info
 from .pipeline import run_pipeline
@@ -37,6 +40,12 @@ __version__ = "0.1.0"
 __all__ = [
     "absorb",
     "propose_capabilities",
+    "ImmuneSystem",
+    "assess",
+    "reward_ledger",
+    "collective_status",
+    "export_bundle",
+    "import_bundle",
     "CapabilityRegistry",
     "bootstrap_native",
     "bootstrap_extras",

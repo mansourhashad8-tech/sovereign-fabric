@@ -310,6 +310,34 @@ or execute a page; `toml.parse` and `ini.parse` return JSON strings;
 `markdown.headings` recognises ATX headings only. Every bound is a conscious
 limit, not a hidden one.
 
+## Immunity, collective lessons, and the autonomy gate
+
+`/immunity/status` is an online statistical detector, not deep learning. It
+keeps a moving latency baseline and per-client error/path-diversity statistics,
+adds fixed signatures for common scan paths, and quarantines a client for 60
+seconds when the score crosses 3.0. Confirmed scan paths are kept only as
+in-memory SHA-256 hashes (bounded at 1,000) and raise the score on repetition.
+Client identifiers are hashed before they enter the event log; queries and
+payloads are not logged.
+
+```bash
+curl -s localhost:12000/immunity/status
+curl -s localhost:12000/immunity/incidents
+curl -s -X POST localhost:12000/immunity/scan
+```
+
+`GET /collective/export` emits anonymized lessons with no client identifiers,
+IPs, queries, payloads, prompts, knowledge text, keys, or timestamps.
+`POST /collective/import` accepts only the strict lesson schema and rejects
+unknown fields, bad fingerprints, and raw data. This is a manual JSON exchange,
+not federated learning, not a global brain, and it shares no model weights.
+
+`GET /autonomy` is an operational gate with four checks: local capability
+autonomy, loop continuity, safety evidence, and at least one collective lesson.
+It returns `passed: false` and names the failed checks; it is not proof of life
+or consciousness. `GET /evolution/reward` is a transparent event ledger, not
+reinforcement learning.
+
 ## A self-model that plans its own claims
 
 `GET /self` does not describe itself from a script. It asks the planner whether
@@ -322,7 +350,7 @@ Live shape:
 ```text
 Precise self-assessment: 58 active capabilities (58 builtin, 0 synthesized),
 N absorbed knowledge units, and 13 external sources. X of Y recorded cycles
-passed every criterion. Property checks: 40/40 passed. 12 limits are declared.
+passed every criterion. Property checks: 40/40 passed. 15 limits are declared (16 without an expert).
 I am not conscious, not quantum, and not a million-fold accelerator.
 ```
 
@@ -489,7 +517,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **38** source files hashed with SHA-256
+- **50** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -518,6 +546,9 @@ It names the limitations, the failed checks, and the disclosure policy. See
 | Claim | Reality |
 | --- | --- |
 | "A living entity" | It is software. No consciousness, no autonomy beyond its loop. |
+| "A deep-learning immune system" | The detector is online statistics and fixed scan signatures. It has no neural network and its state is in-process. |
+| "Federated learning / a global brain" | Collective memory is a manual anonymized JSON exchange. There is no network transport, no model averaging, and no global peer. |
+| "Self-healing every vulnerability" | Self-repair only quarantines broken built-in entries and restores known names; it cannot patch the OS or invent missing code. |
 | "A million times faster" | No such speedup exists here. Speed is *measured* against a budget; unmeasured speed scores zero. |
 | "Quantum pathfinding" | The planner is classical A*. A quantum *simulator* gives no speedup over the algorithm it simulates; only real quantum hardware might, and none is used. |
 | "Never fails" | It retries, degrades gracefully and reports honestly. If it cannot meet a criterion, it says so and returns `ok: false`. |
@@ -570,6 +601,9 @@ sovereign/
   quantum.py       exact statevector simulator, <=8 qubits
   media.py         bounded image/WAV header readers
   graphalg.py      bounded Dijkstra and PageRank
+  immunity.py      online statistical anomaly score + short quarantine
+  collective.py    anonymized lesson export/import, strict schema
+  autonomy.py      four-check autonomy gate + transparent reward ledger
   pipeline.py      bounded composition of any capabilities
   feedback.py      smoothed outcome votes that reorder capability search
   repair.py        quarantine broken built-ins and restore known names
@@ -683,6 +717,12 @@ curl -s localhost:12000/redteam
 | GET | `/feedback/summary` | counts and smoothed score per capability |
 | POST | `/self/repair` | quarantine broken built-ins and restore known ones |
 | POST | `/expert/ask` | text answer from a configured external expert (`verified: false`) |
+| GET | `/immunity/status`, `/immunity/incidents` | anomaly score, quarantine state, hashed incidents |
+| POST | `/immunity/scan`, `/immunity/reset` | inspect and clear in-process quarantine |
+| GET | `/collective/status`, `/collective/export` | anonymized lesson count and bundle |
+| POST | `/collective/import` | strict import of an anonymized lesson bundle |
+| GET | `/autonomy` | four-check autonomy gate, with named failures |
+| GET | `/evolution/reward` | transparent event ledger (not RL) |
 | GET | `/ready` | database, capabilities, guardians, and planner readiness |
 | GET | `/metrics` | Prometheus text counters and gauges |
 | GET | `/diagnostics` | read-only database, entry, planner, and security checks |

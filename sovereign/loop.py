@@ -12,6 +12,8 @@ from collections import deque
 from typing import Any
 
 from .absorption import absorb
+from .autonomy import assess
+from .collective import collective_status
 from .models import utcnow
 from .optimizer import Optimizer
 
@@ -33,12 +35,14 @@ class EvolutionLoop:
         topics: list[str] | None = None,
         sources: list[str] | None = None,
         optimize: bool = True,
+        immune=None,
     ) -> None:
         self.engine = engine
         self.interval_s = max(0.05, float(interval_s))
         self.topics = list(topics or DEFAULT_TOPICS)
         self.sources = sources
         self.optimize_enabled = optimize
+        self.immune = immune
         self.optimizer = Optimizer(engine.registry)
         self.generation = 0
         self.history: deque[dict[str, Any]] = deque(maxlen=20)
@@ -61,6 +65,7 @@ class EvolutionLoop:
             names = [n for n in ("tokens.count", "counts.summarize") if self.engine.registry.active(n)]
             if names:
                 optimization = self.optimizer.optimize(names[self.generation % len(names)], repeats=5)
+        immunity = self.immune.status() if self.immune is not None else None
         with self._lock:
             self.generation += 1
             summary = {
@@ -70,8 +75,18 @@ class EvolutionLoop:
                 "absorbed": absorbed,
                 "sources": consultation.sources,
                 "optimization": optimization,
+                "immunity": immunity,
                 "at": utcnow(),
             }
+            status = self.status()
+        summary["autonomy"] = assess(
+            self.engine,
+            loop_status=status,
+            immune_status=immunity,
+            collective=collective_status(self.engine.store),
+            include_security=False,
+        )
+        with self._lock:
             self.last = summary
             self.history.append(summary)
         self.engine.store.record_event("loop.tick", summary)

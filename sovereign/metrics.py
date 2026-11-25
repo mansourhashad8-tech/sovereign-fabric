@@ -68,14 +68,23 @@ class Metrics:
             "# TYPE sovereign_request_duration_seconds_max gauge",
             f"sovereign_request_duration_seconds_max {data['duration_max']:.6f}",
         ]
-        for kind in ("rate_limit", "body_limit", "auth"):
+        for kind in ("rate_limit", "body_limit", "auth", "immune"):
             value = data["rejections"].get(kind, 0)
             lines += [
                 f"# HELP sovereign_{kind}_rejections_total Rejected {kind} requests",
                 f"# TYPE sovereign_{kind}_rejections_total counter",
                 f"sovereign_{kind}_rejections_total {value}",
             ]
-        for key in ("capabilities", "knowledge_units", "cycles", "optimizations", "feedback"):
+        for key in (
+            "capabilities",
+            "knowledge_units",
+            "cycles",
+            "optimizations",
+            "feedback",
+            "immune_observations",
+            "immune_quarantines",
+            "collective_lessons",
+        ):
             if key in data:
                 lines += [
                     f"# HELP sovereign_{key} Current {key}",

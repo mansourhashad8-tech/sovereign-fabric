@@ -81,7 +81,12 @@ class CapabilityRegistry:
         return None
 
     def list_active(self) -> list[Capability]:
-        return self.store.list_capabilities(status="admitted")
+        latest: dict[str, Capability] = {}
+        for cap in self.store.list_capabilities(status="admitted"):
+            current = latest.get(cap.name)
+            if current is None or cap.version > current.version:
+                latest[cap.name] = cap
+        return [latest[name] for name in sorted(latest)]
 
     def quarantine(self, name: str, version: int) -> bool:
         return self.store.set_capability_status(name, version, "quarantined")
