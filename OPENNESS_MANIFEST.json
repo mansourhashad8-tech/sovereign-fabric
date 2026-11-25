@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T16:12:01.493331+00:00",
-  "commit": "1abe1a17be92801c6f04ff50c1f21eef4c3ce565",
+  "generated_at": "2026-11-25T16:24:34.791796+00:00",
+  "commit": "f893f5efe024e762f84884432aaedfb4aa96dc64",
   "root": "sovereign",
-  "duration_s": 0.431,
+  "duration_s": 0.476,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "e4ae32fe8f147242d3c8142fba7520bbe3f84827139321359c1b812389c6d2b6",
-      "lines": 1262
+      "sha256": "a2fcffe4c12ba9cf8ba32e781196276efc1f43ede7ebc4b3e9a2f67e1555fb71",
+      "lines": 1328
     },
     {
       "path": "sovereign/arabic.py",
@@ -77,8 +77,8 @@
     },
     {
       "path": "sovereign/dashboard.py",
-      "sha256": "638ad37a6044097021768b13bbdb70469f9492ce2861bfd72e72ecf5f4662525",
-      "lines": 506
+      "sha256": "0817af703e11dd8e163bb7572585589a6626af23022af8a1bf4922b622936d14",
+      "lines": 537
     },
     {
       "path": "sovereign/decisions.py",
@@ -266,9 +266,14 @@
       "lines": 542
     },
     {
+      "path": "sovereign/selfhood.py",
+      "sha256": "81c97ddb69c82f2b0304b3b9e7b21e561e6266fced9c9c7519567aa1d3cec90d",
+      "lines": 292
+    },
+    {
       "path": "sovereign/selfmodel.py",
-      "sha256": "c7a510b59bd53c7c1c478c09657219648133ad9f9ad11787d9828eb1864cb083",
-      "lines": 221
+      "sha256": "fe9b5065e8676307fe0d6015e69d36258495f3f9a8aab17c98486d0b422c141a",
+      "lines": 223
     },
     {
       "path": "sovereign/semantic.py",
