@@ -362,3 +362,21 @@ def test_intent_classifier_endpoints():
     ).json()
     assert learned["learned"] is True
     assert learned["status"]["documents"] == status["documents"] + 1
+
+
+def test_hyper_memory_and_benchmark_endpoints():
+    client = _client()
+    status = client.get("/hyper/status").json()
+    assert status["limits"]["quantum_hardware"] is False
+    remembered = client.post(
+        "/hyper/memory/remember",
+        json={"key": "sqlite", "value": "write ahead logging"},
+    ).json()
+    assert remembered["remembered"] is True
+    recalled = client.post(
+        "/hyper/memory/recall", json={"query": "sqlite", "k": 1}
+    ).json()
+    assert recalled["results"][0]["value"] == "write ahead logging"
+    benchmark = client.get("/hyper/benchmark", params={"iterations": 5}).json()
+    assert benchmark["iterations"] == 5
+    assert benchmark["bus_put_get_ns"]["p50"] > 0

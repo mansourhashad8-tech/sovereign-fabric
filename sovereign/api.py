@@ -24,6 +24,7 @@ from .decisions import decision_summary, lookup_decisions
 from .feedback import feedback_scores, feedback_summary, record_feedback
 from .gaps import gap_summary, protocol_history
 from .evolution import EvolutionEngine
+from .hyper import HyperKernel
 from .guard import ApiKey, RateLimiter, max_body_bytes, security_headers
 from .immunity import ImmuneSystem
 from .intent import parse_intent
@@ -76,6 +77,16 @@ class RollbackRequest(BaseModel):
 class IntentLearnRequest(BaseModel):
     text: str = Field(min_length=1, max_length=500)
     label: str = Field(min_length=1, max_length=64)
+
+
+class MemoryRememberRequest(BaseModel):
+    key: str = Field(min_length=1, max_length=500)
+    value: str = Field(min_length=1, max_length=5000)
+
+
+class MemoryRecallRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=500)
+    k: int = Field(default=3, ge=1, le=20)
 
 
 class EvolveRequest(BaseModel):
@@ -232,6 +243,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     immune = ImmuneSystem(store)
     protocol = DeterministicProtocol(engine)
     loop = EvolutionLoop(engine, interval_s=60.0, immune=immune)
+    hyper = HyperKernel()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -247,6 +259,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.immune = immune
     app.state.protocol = protocol
     app.state.loop = loop
+    app.state.hyper = hyper
     api_key = ApiKey()
     limiter = RateLimiter()
     metrics = Metrics()
@@ -345,6 +358,11 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /intent/classify",
                 "GET /intent/model",
                 "POST /intent/learn",
+                "GET /hyper/status",
+                "GET /hyper/benchmark",
+                "POST /hyper/memory/remember",
+                "POST /hyper/memory/recall",
+                "GET /hyper/memory",
                 "POST /consult",
                 "POST /absorb",
                 "GET /knowledge/search",
@@ -448,6 +466,30 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         model = default_model()
         learned = model.learn(body.text, body.label)
         return {"learned": learned, "status": model.status()}
+
+    @app.get("/hyper/status")
+    def hyper_status() -> dict[str, Any]:
+        return hyper.status()
+
+    @app.get("/hyper/benchmark")
+    def hyper_benchmark(iterations: int = Query(default=100, ge=5, le=500)) -> dict[str, Any]:
+        return hyper.benchmark(iterations)
+
+    @app.get("/hyper/memory")
+    def hyper_memory_status() -> dict[str, Any]:
+        return hyper.memory.status()
+
+    @app.post("/hyper/memory/remember")
+    def hyper_memory_remember(body: MemoryRememberRequest) -> dict[str, Any]:
+        try:
+            items = hyper.memory.remember(body.key, body.value)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"remembered": True, "items": items, "memory": hyper.memory.status()}
+
+    @app.post("/hyper/memory/recall")
+    def hyper_memory_recall(body: MemoryRecallRequest) -> dict[str, Any]:
+        return {"query": body.query, "results": hyper.memory.recall(body.query, body.k)}
 
     @app.post("/consult")
     def consult(body: ConsultRequest) -> dict[str, Any]:
@@ -669,6 +711,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.post("/evolve")
     def evolve(body: EvolveRequest) -> dict[str, Any]:
         prefetcher.prefetch(body.request)
+        started_ns = hyper.clock.now_ns()
         cycle = engine.evolve(
             body.request,
             goal_type=body.goal_type,
@@ -681,6 +724,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             auto_extend=body.auto_extend,
             max_attempts=body.max_attempts,
         )
+        hyper.bus.put("last_cycle", cycle)
+        hyper.observer.observe("evolve", hyper.clock.now_ns() - started_ns, ok=cycle.ok)
         return {
             "request": cycle.request,
             "ok": cycle.ok,

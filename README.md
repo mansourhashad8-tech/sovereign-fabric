@@ -508,6 +508,46 @@ hand-written 10-example held-out check it scored 9/10 (0.90). That is a small
 internal check, not a public benchmark. Updates are bounded at 5,000 and are
 session-local: the model is not retrained from the event log on restart.
 
+## Hyper kernel
+
+`sovereign/hyper.py` adds four in-process mechanisms:
+
+- **Holographic memory**: keys and values are bound with circular convolution
+  and superposed into one vector. Recall unbinds the query and ranks stored
+  values. It is a classical HRR, not quantum hardware and not a quantum
+  speedup.
+- **State bus**: components publish and read Python object references in the
+  same process. There is no serialization and no HTTP/gRPC hop on this path.
+- **Inner observer**: a bounded ring buffer records component latency and
+  errors, flags outliers, and can invoke a registered healer. Its overhead is
+  measured, not zero.
+- **Internal clock**: monotonic `perf_counter_ns` ticks, a measured resolution,
+  and a threaded barrier that reports arrival skew. It does not claim
+  picosecond precision.
+
+One live run on this host with 50 benchmark iterations:
+
+| Mechanism | Measured p50 |
+|---|---:|
+| Bus put + get | 2.60 µs |
+| Memory remember + recall (50 items) | 1.76 ms |
+| Observer observe | 2.89 µs |
+| Clock tick | 0.93 µs |
+| Clock resolution | 120 ns |
+
+The memory is capped at 10,000 items and the bus at 2,000 keys. Recall is
+O(items × dim) for the value comparison plus the FFT unbind; it is not
+constant-time. A corrupted superposition can be rebuilt from the stored
+bindings by the observer's healer. `/evolve` publishes its last cycle object on
+the direct bus and records the cycle duration with the observer.
+These are engineering bounds; they are not "millions at once", near-light
+signalling, or picosecond synchronisation. The API reports those limits
+explicitly.
+
+Endpoints: `GET /hyper/status`, `GET /hyper/benchmark`,
+`POST /hyper/memory/remember`, `POST /hyper/memory/recall`,
+`GET /hyper/memory`.
+
 ## Mastery: practise the weakest goal
 
 `GET /mastery` builds a pass-rate table from recorded cycles.
@@ -626,7 +666,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **59** source files hashed with SHA-256
+- **60** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -736,6 +776,7 @@ sovereign/
   loop.py          bounded continuous loop (start/stop/status/tick)
   intent.py        Arabic/English keyword router + learned fallback
   intent_model.py  trainable Naive Bayes intent classifier
+  hyper.py         HRR memory, direct state bus, inner observer, internal clock
   selfmodel.py     evidence-derived self-assessment, can/cannot, limits
   evidence.py      lexical claim support (not entailment)
   properties.py    randomized invariants over native capabilities
@@ -803,6 +844,11 @@ curl -s localhost:12000/redteam
 | GET | `/intent/classify` | learned intent label with confidence and top three |
 | GET | `/intent/model` | classifier labels, documents, features, and update count |
 | POST | `/intent/learn` | add one labelled example (bounded, session-local) |
+| GET | `/hyper/status` | memory, bus, observer, clock, and explicit limits |
+| GET | `/hyper/benchmark` | measured in-process latencies (bounded iterations) |
+| POST | `/hyper/memory/remember` | bind one key/value pair into the superposition |
+| POST | `/hyper/memory/recall` | unbind and rank stored values |
+| GET | `/hyper/memory` | item count, norm, capacity, and byte estimate |
 | GET | `/knowledge/graph` | traverse the concept graph |
 | POST | `/synthesize` | spec -> verified capability |
 | POST | `/acquire` | ask external experts for a verified capability |
@@ -882,7 +928,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 357 tests
+python -m pytest        # 366 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
@@ -896,7 +942,9 @@ no-expert honesty), enumerative program synthesis (string and number shapes,
 gate verification, no-fit honesty), measured self-optimization (verified
 equivalence, kept win, no-gain honesty, event log, confidence intervals), the
 bounded continuous loop (tick, start/stop, optimization inside a tick), Arabic
-and English intent routing (rules plus learned fallback), the evidence-derived self-model, lexical claim
+and English intent routing (rules plus learned fallback), the hyper kernel
+(memory superposition, direct bus, observer/healer, clock/barrier), the
+evidence-derived self-model, lexical claim
 support and refusal, randomized property checks (including a deliberately
 broken implementation), cited briefs in English and Arabic, mastery
 tracking/practice, Arabic normalization, security scanner (dynamic code,
