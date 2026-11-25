@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-25T12:39:05.876442+00:00",
-  "commit": "6e0aa25660716a748d7d88a4198bafab24b32c42",
+  "generated_at": "2026-11-25T12:45:23.096879+00:00",
+  "commit": "cc111310b4428dac660687554bcdedaaa69ebe62",
   "root": "sovereign",
-  "duration_s": 0.373,
+  "duration_s": 0.458,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "b25353488bb22db0847c2be01cbb9a2d659692f72889f2a050cc945b036da33c",
-      "lines": 1094
+      "sha256": "9c5e36ae792b9bba61dbc0a4957b736b919843667d00151555fa4d78cdce8af5",
+      "lines": 1100
     },
     {
       "path": "sovereign/arabic.py",
@@ -142,8 +142,8 @@
     },
     {
       "path": "sovereign/guardians/sources.py",
-      "sha256": "d1342d1b4282c0f7347854cafe9656477e82e022bd95a6c10ee2fd0e8cc9fe04",
-      "lines": 893
+      "sha256": "905747db72ea5ed03917f73c0577ae45d205f73b69640961079f34af35a3cfb4",
+      "lines": 897
     },
     {
       "path": "sovereign/immunity.py",
@@ -239,6 +239,11 @@
       "path": "sovereign/report.py",
       "sha256": "2348029a70a70febb9f8216cec7c1703eb043900011c8dd39601ee1837809213",
       "lines": 162
+    },
+    {
+      "path": "sovereign/retrieval_benchmark.py",
+      "sha256": "6ff9ca5e9a1c5298c37f1effe5324f17a91ca01f4bba87a3a3400de613afef0d",
+      "lines": 121
     },
     {
       "path": "sovereign/security.py",
