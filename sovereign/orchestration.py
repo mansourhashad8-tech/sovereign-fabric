@@ -146,7 +146,12 @@ class GitHubActionsAdapter:
                 "evidence": {"dispatch_status": response.status_code},
                 "command": f"remote-task:{name}",
             }
-        run = self._find_run(dispatched_at)
+        run = None
+        for _ in range(15):
+            run = self._find_run(dispatched_at)
+            if run is not None:
+                break
+            time.sleep(2.0)
         if run is None:
             return {
                 "task_id": task.id,
