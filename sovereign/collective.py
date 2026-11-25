@@ -86,7 +86,7 @@ def lesson_from_event(event: dict[str, Any]) -> dict[str, Any] | None:
         speedup = float(payload.get("speedup", 0) or 0)
         return _lesson(
             "optimization",
-            str(payload.get("name", "capability"))[:48],
+            "capability",
             "optimize",
             score_bucket=_bucket(speedup),
             count=1,
@@ -102,7 +102,7 @@ def lesson_from_event(event: dict[str, Any]) -> dict[str, Any] | None:
         rating = int(payload.get("rating", 0) or 0)
         return _lesson(
             "feedback",
-            str(payload.get("capability", "capability"))[:48],
+            "capability",
             "positive" if rating > 0 else "negative" if rating < 0 else "neutral",
             count=1,
         )

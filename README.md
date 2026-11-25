@@ -326,6 +326,9 @@ curl -s localhost:12000/immunity/incidents
 curl -s -X POST localhost:12000/immunity/scan
 ```
 
+`POST /immunity/scan` returns an analysis with a recommendation and
+`automatic_code_patch: false`; it does not modify the OS or application code.
+
 `GET /collective/export` emits anonymized lessons with no client identifiers,
 IPs, queries, payloads, prompts, knowledge text, keys, or timestamps.
 `POST /collective/import` accepts only the strict lesson schema and rejects

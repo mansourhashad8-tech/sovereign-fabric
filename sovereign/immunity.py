@@ -242,9 +242,33 @@ class ImmuneSystem:
             return []
         return self.store.list_events("immune.incident", limit)
 
+    @staticmethod
+    def analyze(incident: dict[str, Any]) -> dict[str, Any]:
+        payload = incident.get("payload") or incident
+        category = payload.get("category", "anomaly")
+        if category == "scan":
+            recommendation = (
+                "keep the client quarantined, verify the route is not served, "
+                "and add the path hash to the learned set"
+            )
+        else:
+            recommendation = (
+                "review the route error rate and latency, keep the short "
+                "quarantine, and inspect the event log for a shared cause"
+            )
+        return {
+            "category": category,
+            "route_class": payload.get("route_class", ""),
+            "score": payload.get("score"),
+            "recommendation": recommendation,
+            "automatic_code_patch": False,
+        }
+
     def scan(self) -> dict[str, Any]:
         report = self.status()
-        report["incidents"] = self.incidents(20)
+        incidents = self.incidents(20)
+        report["incidents"] = incidents
+        report["analysis"] = [self.analyze(incident) for incident in incidents]
         return report
 
     def reset(self, clear_history: bool = False) -> dict[str, Any]:
