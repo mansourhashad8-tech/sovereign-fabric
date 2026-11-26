@@ -107,6 +107,27 @@ REQUIREMENTS: list[dict[str, Any]] = [
         "note": "no sensors, actuators, or physical bridge",
     },
     {
+        "id": "physical_materialization",
+        "need": "design, print, assemble, and install physical infrastructure",
+        "status": "partial",
+        "evidence": ["materialization.py", "/materialization/blueprint", "/materialization/readiness"],
+        "note": "BOM, assembly plan, energy/cost estimates, and digital twin; no verified printer, robot, or actuator",
+    },
+    {
+        "id": "self_manufacturing",
+        "need": "manufacture its own machines without purchase or rental",
+        "status": "false",
+        "evidence": ["materialization.py", "/materialization/readiness"],
+        "note": "no printer, robot, feedstock, facility, or funded bootstrap cell",
+    },
+    {
+        "id": "sovereign_economy",
+        "need": "fund itself without external capital or customers",
+        "status": "partial",
+        "evidence": ["materialization.py", "/materialization/economy"],
+        "note": "unit economics and break-even arithmetic; no capital, customer, or payment channel",
+    },
+    {
         "id": "cosmic_protocol",
         "need": "shape reality, predict futures, and use cosmic infrastructure",
         "status": "partial",
@@ -202,6 +223,20 @@ REQUIREMENTS: list[dict[str, Any]] = [
         "status": "met",
         "evidence": ["OPENNESS_MANIFEST.json", "SECURITY_DISCLOSURE.md", ".github/workflows/"],
         "note": "strict audit and CI",
+    },
+    {
+        "id": "weakness_closure",
+        "need": "turn every known weakness into a strength",
+        "status": "met",
+        "evidence": ["materialization.py", "/materialization/closure"],
+        "note": "every known gap has a mitigation and a next action; this is not zero weakness",
+    },
+    {
+        "id": "zero_weakness",
+        "need": "have no weakness at all",
+        "status": "false",
+        "evidence": ["materialization.py", "/materialization/closure"],
+        "note": "physical, economic, legal, and security dependencies remain; residual risk is measured",
     },
     {
         "id": "absolute_unbounded",

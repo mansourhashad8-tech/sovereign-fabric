@@ -216,7 +216,8 @@ class Selfhood:
             "physical_effect": False,
             "note": (
                 "The digital side is real and audited. The physical side is absent: "
-                "no hardware bridge, sensor, actuator, or credential is configured."
+                "materialization plans are design-only; no hardware bridge, sensor, "
+                "actuator, or verified facility is configured."
             ),
         }
 

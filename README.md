@@ -522,6 +522,27 @@ The quality gate implements `schema`, `reproducibility`, `ACID`,
 certifications. The ZKP gate requires a proof, public signals, and a passing
 cryptographic verifier result; a structurally plausible artifact does not pass.
 
+## Materialization and the weakness ledger
+
+`POST /materialization/blueprint` turns a physical intent into a deterministic
+bill of materials, assembly sequence, required tools, hazards, standards,
+quality gates, energy and cost estimates, and a digital twin. `POST
+/materialization/economy` computes unit margin, break-even units, capital
+required, and the capital gap.
+
+The output is explicitly `materialization_status=design_and_digital_twin_only`
+with `physical_built=false`, `physical_effect=false`,
+`requires_facility=true`, and `requires_human_oversight=true`. No printer,
+robot, feedstock, facility, actuator, or capital account is present unless its
+interface is configured; a configured endpoint is still `verified=false` until
+a real device probe succeeds.
+
+`GET /materialization/closure` maps every requirement in the contract to its
+nearest honest implementation, its blocker, and its next action. It reports
+`zero_weakness_claim=false` and `physical_sovereignty=false`. The weakness
+ledger converts each known gap into a mitigation and a testable next step; it
+does not claim that residual physical, economic, legal, or security risk is zero.
+
 ## Evidence, not entailment
 
 `POST /verify_claim` retrieves units and measures how much of the claim's
@@ -736,7 +757,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **69** source files hashed with SHA-256
+- **70** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -841,6 +862,7 @@ sovereign/
   contract.py      curated requirement ledger with live coverage
   providers.py     probed external provider discovery and selection
   orchestration.py DAG planning, bounded execution, reassignment, provisioning
+  materialization.py BOM, assembly, energy/cost, digital twin, closure ledger
   quality.py       schema, reproducibility, ACID, ISO subset, and ZKP gates
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
@@ -973,6 +995,11 @@ curl -s localhost:12000/redteam
 | POST | `/orchestration/plan` | dependency-ordered provider assignment |
 | POST | `/orchestration/run` | bounded external execution with quality gate and reassignment |
 | POST | `/orchestration/provision` | ephemeral resource status; no fake account creation |
+| GET | `/materialization/readiness` | physical interface status; configured is not verified |
+| GET | `/materialization/archetypes` | fabrication templates and standards |
+| GET | `/materialization/closure` | every requirement mapped to nearest implementation and blocker |
+| POST | `/materialization/blueprint` | BOM, assembly, energy/cost, and digital twin |
+| POST | `/materialization/economy` | unit economics and break-even; no revenue claim |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -1035,7 +1062,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 406 tests
+python -m pytest        # 412 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,

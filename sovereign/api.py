@@ -36,6 +36,7 @@ from .loop import EvolutionLoop
 from .mastery import Mastery
 from .metrics import Metrics
 from .optimizer import Optimizer
+from .materialization import Materialization
 from .orchestration import Orchestrator, Task
 from .pathfinder import operators_from
 from .protocol import BANNED_PHRASES, DeterministicProtocol, audit_language
@@ -294,6 +295,14 @@ class ProvisionRequest(BaseModel):
     ttl_s: int = Field(default=900, ge=60, le=3600)
 
 
+class MaterializationRequest(BaseModel):
+    intent: str = Field(min_length=1, max_length=500)
+    quantity: int = Field(default=1, ge=1, le=1000)
+    site: str = Field(default="unspecified", max_length=200)
+    budget_usd: float = Field(default=0.0, ge=0.0)
+    unit_price_usd: float | None = Field(default=None, ge=0.0)
+
+
 def _unit_dict(unit: KnowledgeUnit) -> dict[str, Any]:
     return {
         "id": unit.id,
@@ -325,6 +334,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     loop = EvolutionLoop(engine, interval_s=60.0, immune=immune)
     hyper = HyperKernel()
     orchestrator = Orchestrator(store)
+    materialization = Materialization(store)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -343,6 +353,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.loop = loop
     app.state.hyper = hyper
     app.state.orchestrator = orchestrator
+    app.state.materialization = materialization
     api_key = ApiKey()
     limiter = RateLimiter()
     metrics = Metrics()
@@ -490,6 +501,11 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /orchestration/plan",
                 "POST /orchestration/run",
                 "POST /orchestration/provision",
+                "GET /materialization/readiness",
+                "GET /materialization/archetypes",
+                "GET /materialization/closure",
+                "POST /materialization/blueprint",
+                "POST /materialization/economy",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1396,6 +1412,33 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.post("/orchestration/provision")
     def orchestration_provision(body: ProvisionRequest) -> dict[str, Any]:
         return orchestrator.provision(body.provider_id, body.resource, body.ttl_s)
+
+    @app.get("/materialization/readiness")
+    def materialization_readiness() -> dict[str, Any]:
+        return materialization.readiness()
+
+    @app.get("/materialization/archetypes")
+    def materialization_archetypes() -> dict[str, Any]:
+        return materialization.archetypes()
+
+    @app.get("/materialization/closure")
+    def materialization_closure() -> dict[str, Any]:
+        return materialization.closure()
+
+    @app.post("/materialization/blueprint")
+    def materialization_blueprint(body: MaterializationRequest) -> dict[str, Any]:
+        return materialization.blueprint(
+            body.intent, quantity=body.quantity, site=body.site, budget_usd=body.budget_usd
+        )
+
+    @app.post("/materialization/economy")
+    def materialization_economy(body: MaterializationRequest) -> dict[str, Any]:
+        return materialization.economy(
+            body.intent,
+            quantity=body.quantity,
+            budget_usd=body.budget_usd,
+            unit_price_usd=body.unit_price_usd,
+        )
 
     def _report(
         query: str,
