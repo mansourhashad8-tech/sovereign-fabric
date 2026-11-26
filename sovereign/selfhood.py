@@ -208,11 +208,20 @@ class Selfhood:
         return updated
 
     def reality(self) -> dict[str, Any]:
+        from .materialization import Materialization
+
+        readiness = Materialization(self.store).readiness()
         return {
             "digital_interfaces": ["http_api", "sqlite_store", "subprocess_execution"],
             "physical_interfaces": [],
             "sensors": [],
             "actuators": [],
+            "materialization": {
+                "design_ready": readiness["design_ready"],
+                "physical_sovereignty": readiness["physical_sovereignty"],
+                "self_manufacturing_ready": readiness["self_manufacturing_ready"],
+                "blocked_by": readiness["blocked_by"],
+            },
             "physical_effect": False,
             "note": (
                 "The digital side is real and audited. The physical side is absent: "

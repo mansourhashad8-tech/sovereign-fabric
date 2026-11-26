@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-26T10:33:18.165933+00:00",
-  "commit": "181c9dc88e7210bc7db3e069e8ff1ed73ff7e5b2",
+  "generated_at": "2026-11-26T10:35:38.040329+00:00",
+  "commit": "c81072d94743742be17b5a515f7e114b207d8f4e",
   "root": "sovereign",
-  "duration_s": 0.421,
+  "duration_s": 0.42,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -302,8 +302,8 @@
     },
     {
       "path": "sovereign/selfhood.py",
-      "sha256": "f3153e4872c7d2f2eb394aee3e2ad6b905e9684151636ea22b52d27e49840246",
-      "lines": 293
+      "sha256": "ccb40eb103ed79c62e2fd6920bbc7f28e1bff68d1d09ef01d8bb2f9dbdab583e",
+      "lines": 302
     },
     {
       "path": "sovereign/selfmodel.py",
