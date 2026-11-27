@@ -344,6 +344,12 @@ class Materialization:
             "physical_materialization": "BOM, assembly plan, energy/cost estimates, and digital twin",
             "self_manufacturing": "bootstrap plan exists; no printer, robot, feedstock, facility, or verified interface",
             "sovereign_economy": "unit economics and break-even model; no capital or revenue",
+            "capability_fusion": "ten domains share one registry and store; functional composition only",
+            "absolute_sovereignty": "hardware, energy, suppliers, capital, and law remain dependencies",
+            "dynamic_perfection": "one bounded measured improvement step, not an endless unbounded loop",
+            "cosmic_determinism": "deterministic graph search; reachability and validation can fail",
+            "ontological_perfection": "no perfect or final state is claimed",
+            "no_failure_no_delay": "failures and delays are recorded and drive reassignment",
             "weakness_closure": "known gaps are mapped to a mitigation and a next action",
             "zero_weakness": "no zero-weakness guarantee; residual physical and economic dependencies remain",
         }

@@ -543,6 +543,25 @@ nearest honest implementation, its blocker, and its next action. It reports
 ledger converts each known gap into a mitigation and a testable next step; it
 does not claim that residual physical, economic, legal, or security risk is zero.
 
+## Functional fusion and explicit non-claims
+
+`GET /sovereignty/fusion` joins ten capability domains over one registry and
+one store, reports shared modules and single entrypoints, and sets
+`metaphysical_unity=false`. `GET /sovereignty/audit` keeps the literal demands
+false: `absolute_sovereignty=false`, `cosmic_determinism=false`, and
+`ontological_perfection=false`.
+
+`POST /sovereignty/plan` returns a deterministic search over the current
+capability graph with a commitment hash, but `guaranteed_success=false` and a
+list of failure modes. `POST /sovereignty/perfection` offers one bounded,
+measured improvement step with `perfection_claim=false` and
+`unbounded_loop=false`.
+
+The contract now has 38 items: 19 met, 8 partial, 11 false. Fusion is
+functional composition, not a metaphysical claim. Physical embodiment, self-
+replication, a self-funded economy, and guaranteed cosmic success remain
+false or partial.
+
 ## Evidence, not entailment
 
 `POST /verify_claim` retrieves units and measures how much of the claim's
@@ -757,7 +776,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **70** source files hashed with SHA-256
+- **71** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -863,6 +882,7 @@ sovereign/
   providers.py     probed external provider discovery and selection
   orchestration.py DAG planning, bounded execution, reassignment, provisioning
   materialization.py BOM, assembly, energy/cost, digital twin, closure ledger
+  sovereignty.py ten-domain fusion, sovereignty audit, deterministic plan, bounded perfection
   quality.py       schema, reproducibility, ACID, ISO subset, and ZKP gates
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
@@ -1000,6 +1020,11 @@ curl -s localhost:12000/redteam
 | GET | `/materialization/closure` | every requirement mapped to nearest implementation and blocker |
 | POST | `/materialization/blueprint` | BOM, assembly, energy/cost, and digital twin |
 | POST | `/materialization/economy` | unit economics and break-even; no revenue claim |
+| GET | `/sovereignty/fusion` | ten-domain functional composition; no metaphysical unity |
+| GET | `/sovereignty/audit` | absolute claims kept false; functional checks reported |
+| GET | `/sovereignty/status` | fusion, audit, and contract coverage |
+| POST | `/sovereignty/plan` | deterministic graph plan; no guaranteed success |
+| POST | `/sovereignty/perfection` | one bounded measured improvement step |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -1062,7 +1087,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 412 tests
+python -m pytest        # 418 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,

@@ -60,7 +60,8 @@ flowchart LR
    (versioned definition, bounded initiative, honest reality bridge), a cosmic
    protocol layer (protocol generation, seeded Monte Carlo, backward closure),
    a self-directed meta-curriculum, a requirement-contract ledger, a probed external-media orchestration layer, a materialization
-   planner with an explicit physical boundary, and an in-process hyper kernel
+   planner with an explicit physical boundary, a ten-domain sovereignty
+   fusion audit, and an in-process hyper kernel
    (HRR memory, direct state bus, observer, monotonic clock)
    evaluation, a fixed retrieval benchmark,
    and a result-first protocol with up to five bounded

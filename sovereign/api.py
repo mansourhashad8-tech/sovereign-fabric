@@ -37,6 +37,7 @@ from .mastery import Mastery
 from .metrics import Metrics
 from .optimizer import Optimizer
 from .materialization import Materialization
+from .sovereignty import SovereigntyProtocol
 from .orchestration import Orchestrator, Task
 from .pathfinder import operators_from
 from .protocol import BANNED_PHRASES, DeterministicProtocol, audit_language
@@ -303,6 +304,16 @@ class MaterializationRequest(BaseModel):
     unit_price_usd: float | None = Field(default=None, ge=0.0)
 
 
+class SovereigntyPlanRequest(BaseModel):
+    goal: str = Field(min_length=1, max_length=300)
+    initial: list[str] = Field(default_factory=lambda: ["text"], max_length=20)
+
+
+class PerfectionRequest(BaseModel):
+    execute: bool = False
+    budget_s: float = Field(default=8.0, ge=1.0, le=30.0)
+
+
 def _unit_dict(unit: KnowledgeUnit) -> dict[str, Any]:
     return {
         "id": unit.id,
@@ -335,6 +346,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     hyper = HyperKernel()
     orchestrator = Orchestrator(store)
     materialization = Materialization(store)
+    sovereignty = SovereigntyProtocol(engine)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -354,6 +366,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.hyper = hyper
     app.state.orchestrator = orchestrator
     app.state.materialization = materialization
+    app.state.sovereignty = sovereignty
     api_key = ApiKey()
     limiter = RateLimiter()
     metrics = Metrics()
@@ -506,6 +519,11 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /materialization/closure",
                 "POST /materialization/blueprint",
                 "POST /materialization/economy",
+                "GET /sovereignty/fusion",
+                "GET /sovereignty/audit",
+                "GET /sovereignty/status",
+                "POST /sovereignty/plan",
+                "POST /sovereignty/perfection",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1439,6 +1457,29 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
             budget_usd=body.budget_usd,
             unit_price_usd=body.unit_price_usd,
         )
+
+    @app.get("/sovereignty/fusion")
+    def sovereignty_fusion() -> dict[str, Any]:
+        return sovereignty.fusion.fuse()
+
+    @app.get("/sovereignty/audit")
+    def sovereignty_audit() -> dict[str, Any]:
+        return sovereignty.audit()
+
+    @app.get("/sovereignty/status")
+    def sovereignty_status() -> dict[str, Any]:
+        return sovereignty.status()
+
+    @app.post("/sovereignty/plan")
+    def sovereignty_plan(body: SovereigntyPlanRequest) -> dict[str, Any]:
+        try:
+            return sovereignty.plan(body.goal, tuple(body.initial))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/sovereignty/perfection")
+    def sovereignty_perfection(body: PerfectionRequest) -> dict[str, Any]:
+        return sovereignty.perfection(body.execute, body.budget_s)
 
     def _report(
         query: str,

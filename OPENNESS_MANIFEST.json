@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-26T10:35:38.040329+00:00",
-  "commit": "c81072d94743742be17b5a515f7e114b207d8f4e",
+  "generated_at": "2026-11-27T10:49:32.273472+00:00",
+  "commit": "ea75d0d9476ad674ce6d6fb22afc4069fb54a7f8",
   "root": "sovereign",
-  "duration_s": 0.42,
+  "duration_s": 0.485,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "3c16727e98e961dc914d32351b0669300bb2d80ca75a10d97c0c4a672d31a5ee",
-      "lines": 1521
+      "sha256": "e5225d82e36de170dbbeb33d78cb1755c0a23d07bab2372f47e0daddc7951ca0",
+      "lines": 1562
     },
     {
       "path": "sovereign/arabic.py",
@@ -72,8 +72,8 @@
     },
     {
       "path": "sovereign/contract.py",
-      "sha256": "fb7f6a4a2696ac2a0faed36ec2bbd9d657abe0b4e070135e992d64e4c35d0021",
-      "lines": 289
+      "sha256": "39cd38e0eeebc560b3d1543f8008fd72a3b20c2e0509c196f2ca94c3f03cd822",
+      "lines": 331
     },
     {
       "path": "sovereign/cosmic.py",
@@ -192,8 +192,8 @@
     },
     {
       "path": "sovereign/materialization.py",
-      "sha256": "fbbdb65c594aab9c1970dec63312259a3c1dac1bc84f43da9699da190f05fe50",
-      "lines": 412
+      "sha256": "bc7390328a6a8236bf92c91a752b833f9788226d23bb14adeaa97f6afe52f267",
+      "lines": 418
     },
     {
       "path": "sovereign/media.py",
@@ -321,6 +321,11 @@
       "lines": 205
     },
     {
+      "path": "sovereign/sovereignty.py",
+      "sha256": "6c304df5d87e3ef8e7282b1f8db6adb666af9510e5c08fdd349106201116ddff",
+      "lines": 276
+    },
+    {
       "path": "sovereign/stats.py",
       "sha256": "ca3bf1163aeeb06b33d337c54dae6787e2c771cd2068866cf219020786909c12",
       "lines": 54
@@ -422,7 +427,7 @@
     },
     {
       "name": "httpx",
-      "version": "0.28.1",
+      "version": "0.29.0",
       "license": "BSD-3-Clause",
       "open_source": true,
       "direct": true
