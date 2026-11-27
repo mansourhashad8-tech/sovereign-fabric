@@ -211,6 +211,17 @@ _PRIOR = [
         "next_action": "keep the audit explicit and add evidence per domain",
     },
     {
+        "id": "prior_unified_transformation",
+        "source": "prior_build",
+        "request": "make one request drive the whole system end to end",
+        "literal_claim": False,
+        "status": "met",
+        "closest": "one trace across intent, plan, digital/remote/material execution, validation, and ledger",
+        "evidence": ["transformation.py", "/transform"],
+        "blocker": None,
+        "next_action": "keep the trace and the explicit non-claims",
+    },
+    {
         "id": "prior_legacy_commerce",
         "source": "legacy_external",
         "request": "earn real value and settle it without gas",

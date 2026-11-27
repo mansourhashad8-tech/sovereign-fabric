@@ -551,7 +551,7 @@ from the external-guardianship protocol, 5 from the materialization protocol,
 this workspace or in the archived commerce-engine note. Each entry carries the
 literal ask, the closest real implementation, the blocker, and the next action.
 
-The current summary is 26 met, 13 partial, 11 false, and 1 external across 51
+The current summary is 27 met, 13 partial, 11 false, and 1 external across 52
 entries. Twelve entries are literal absolute claims; zero of those twelve are
 met. `all_literal_claims_met=false`. The ledger does not hide a false item by
 renaming it.
@@ -789,7 +789,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **72** source files hashed with SHA-256
+- **73** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -897,6 +897,7 @@ sovereign/
   materialization.py BOM, assembly, energy/cost, digital twin, closure ledger
   sovereignty.py ten-domain fusion, sovereignty audit, deterministic plan, bounded perfection
   demands.py explicit ledger of every visible request, closest implementation, and blocker
+  transformation.py one trace across intent, plan, execution, materialization, validation, and ledger
   quality.py       schema, reproducibility, ACID, ISO subset, and ZKP gates
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
@@ -1041,6 +1042,9 @@ curl -s localhost:12000/redteam
 | POST | `/sovereignty/perfection` | one bounded measured improvement step |
 | GET | `/demands` | every visible request mapped to closest implementation and blocker |
 | GET | `/demands/{id}` | one demand entry with status, blocker, and next action |
+| POST | `/transform` | one composed digital, remote, or material trace |
+| POST | `/transform/self` | one bounded measured self-improvement step |
+| GET | `/transform/status` | composed runtime, demand, and sovereignty status |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -1103,7 +1107,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 422 tests
+python -m pytest        # 427 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,

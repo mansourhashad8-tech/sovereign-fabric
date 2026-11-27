@@ -61,7 +61,7 @@ flowchart LR
    protocol layer (protocol generation, seeded Monte Carlo, backward closure),
    a self-directed meta-curriculum, a requirement-contract ledger, a probed external-media orchestration layer, a materialization
    planner with an explicit physical boundary, a ten-domain sovereignty
-   fusion audit, an explicit demand ledger, and an in-process hyper kernel
+   fusion audit, an explicit demand ledger, a unified transformation trace, and an in-process hyper kernel
    (HRR memory, direct state bus, observer, monotonic clock)
    evaluation, a fixed retrieval benchmark,
    and a result-first protocol with up to five bounded

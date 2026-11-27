@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-27T11:27:00.106180+00:00",
-  "commit": "2a96916bce354b0870d05612c3d9806b96ef649c",
+  "generated_at": "2026-11-27T11:32:29.468775+00:00",
+  "commit": "82e21081e27af50b05801c3894a6be9c0fdaafd0",
   "root": "sovereign",
-  "duration_s": 0.443,
+  "duration_s": 0.461,
   "license_file": "LICENSE",
   "source_files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "sovereign/api.py",
-      "sha256": "e758af3115e5fc2afe475a67648fd656da7d2f432b917e2698f3db320ca26f71",
-      "lines": 1581
+      "sha256": "cdfdc06779e0392767521ac9c36696e6860e2e5d9df8f774a82ca58023008696",
+      "lines": 1623
     },
     {
       "path": "sovereign/arabic.py",
@@ -97,8 +97,8 @@
     },
     {
       "path": "sovereign/demands.py",
-      "sha256": "09ba42b1ec636f159411d1ef011813be1b95736a883df2b63c06d8e9028f806e",
-      "lines": 296
+      "sha256": "edc974079934ac28b79b860ed110b113c5c2a1bfcb108467cad5782825d9f3af",
+      "lines": 307
     },
     {
       "path": "sovereign/diagnostics.py",
@@ -354,6 +354,11 @@
       "path": "sovereign/toolbox_ext.py",
       "sha256": "b4c89d895f38e8f3c59c88c50230ade5c28fc21e4fedc1c53c619583ed105599",
       "lines": 704
+    },
+    {
+      "path": "sovereign/transformation.py",
+      "sha256": "0f5ead750de604b7a451f3a4d045e331e3eb7b1ff98ba8c6d9a629014c3b6c81",
+      "lines": 255
     },
     {
       "path": "sovereign/validator.py",

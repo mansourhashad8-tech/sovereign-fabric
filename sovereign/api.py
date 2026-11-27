@@ -39,6 +39,7 @@ from .optimizer import Optimizer
 from .materialization import Materialization
 from .sovereignty import SovereigntyProtocol
 from .demands import DemandLedger
+from .transformation import TransformationEngine
 from .orchestration import Orchestrator, Task
 from .pathfinder import operators_from
 from .protocol import BANNED_PHRASES, DeterministicProtocol, audit_language
@@ -315,6 +316,20 @@ class PerfectionRequest(BaseModel):
     budget_s: float = Field(default=8.0, ge=1.0, le=30.0)
 
 
+class TransformRequest(BaseModel):
+    intent: str = Field(min_length=1, max_length=500)
+    mode: str = Field(default="auto", pattern="^(auto|digital|material|remote)$")
+    budget_s: float = Field(default=8.0, ge=1.0, le=30.0)
+    quantity: int = Field(default=1, ge=1, le=1000)
+    budget_usd: float = Field(default=0.0, ge=0.0)
+    execute_remote: bool = False
+
+
+class SelfTransformRequest(BaseModel):
+    execute: bool = False
+    budget_s: float = Field(default=8.0, ge=1.0, le=30.0)
+
+
 def _unit_dict(unit: KnowledgeUnit) -> dict[str, Any]:
     return {
         "id": unit.id,
@@ -349,6 +364,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     materialization = Materialization(store)
     sovereignty = SovereigntyProtocol(engine)
     demands = DemandLedger(store)
+    transformation = TransformationEngine(engine)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -370,6 +386,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.materialization = materialization
     app.state.sovereignty = sovereignty
     app.state.demands = demands
+    app.state.transformation = transformation
     api_key = ApiKey()
     limiter = RateLimiter()
     metrics = Metrics()
@@ -529,6 +546,9 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "POST /sovereignty/perfection",
                 "GET /demands",
                 "GET /demands/{id}",
+                "POST /transform",
+                "POST /transform/self",
+                "GET /transform/status",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1499,6 +1519,28 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
         if item is None:
             raise HTTPException(status_code=404, detail="unknown demand")
         return item
+
+    @app.post("/transform")
+    def transform(body: TransformRequest) -> dict[str, Any]:
+        try:
+            return transformation.execute(
+                body.intent,
+                mode=body.mode,
+                budget_s=body.budget_s,
+                quantity=body.quantity,
+                budget_usd=body.budget_usd,
+                execute_remote=body.execute_remote,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/transform/self")
+    def transform_self(body: SelfTransformRequest) -> dict[str, Any]:
+        return transformation.self_transform(body.execute, body.budget_s)
+
+    @app.get("/transform/status")
+    def transform_status() -> dict[str, Any]:
+        return transformation.status()
 
     def _report(
         query: str,
