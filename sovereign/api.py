@@ -38,6 +38,7 @@ from .metrics import Metrics
 from .optimizer import Optimizer
 from .materialization import Materialization
 from .sovereignty import SovereigntyProtocol
+from .demands import DemandLedger
 from .orchestration import Orchestrator, Task
 from .pathfinder import operators_from
 from .protocol import BANNED_PHRASES, DeterministicProtocol, audit_language
@@ -347,6 +348,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     orchestrator = Orchestrator(store)
     materialization = Materialization(store)
     sovereignty = SovereigntyProtocol(engine)
+    demands = DemandLedger(store)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -367,6 +369,7 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     app.state.orchestrator = orchestrator
     app.state.materialization = materialization
     app.state.sovereignty = sovereignty
+    app.state.demands = demands
     api_key = ApiKey()
     limiter = RateLimiter()
     metrics = Metrics()
@@ -524,6 +527,8 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
                 "GET /sovereignty/status",
                 "POST /sovereignty/plan",
                 "POST /sovereignty/perfection",
+                "GET /demands",
+                "GET /demands/{id}",
                 "GET /properties",
                 "GET /security/audit",
                 "GET /security/sbom",
@@ -1480,6 +1485,20 @@ def create_app(store_path: str = ":memory:") -> FastAPI:
     @app.post("/sovereignty/perfection")
     def sovereignty_perfection(body: PerfectionRequest) -> dict[str, Any]:
         return sovereignty.perfection(body.execute, body.budget_s)
+
+    @app.get("/demands")
+    def demand_ledger(
+        source: str | None = Query(default=None, max_length=40),
+        status: str | None = Query(default=None, max_length=20),
+    ) -> dict[str, Any]:
+        return demands.report(source=source, status=status)
+
+    @app.get("/demands/{demand_id}")
+    def demand_item(demand_id: str) -> dict[str, Any]:
+        item = demands.find(demand_id)
+        if item is None:
+            raise HTTPException(status_code=404, detail="unknown demand")
+        return item
 
     def _report(
         query: str,

@@ -543,6 +543,19 @@ nearest honest implementation, its blocker, and its next action. It reports
 ledger converts each known gap into a mitigation and a testable next step; it
 does not claim that residual physical, economic, legal, or security risk is zero.
 
+## Demand ledger
+
+`GET /demands` is the explicit matrix of the visible conversation: 27 demands
+from the external-guardianship protocol, 5 from the materialization protocol,
+6 from the sovereignty protocol, and 13 earlier build commitments preserved in
+this workspace or in the archived commerce-engine note. Each entry carries the
+literal ask, the closest real implementation, the blocker, and the next action.
+
+The current summary is 26 met, 13 partial, 11 false, and 1 external across 51
+entries. Twelve entries are literal absolute claims; zero of those twelve are
+met. `all_literal_claims_met=false`. The ledger does not hide a false item by
+renaming it.
+
 ## Functional fusion and explicit non-claims
 
 `GET /sovereignty/fusion` joins ten capability domains over one registry and
@@ -776,7 +789,7 @@ Live audit on this tree:
 - **0** findings from the static rules (critical, high, medium, low)
 - **23** resolved dependencies, all with recognised open licences
 - **0** OSV vulnerabilities for the resolved versions
-- **71** source files hashed with SHA-256
+- **72** source files hashed with SHA-256
 - `LICENSE` present (MIT); `OPENNESS_MANIFEST.json` records the hashes
 - **CycloneDX 1.5 SBOM** at `sbom.cdx.json` (`GET /security/sbom`)
 
@@ -883,6 +896,7 @@ sovereign/
   orchestration.py DAG planning, bounded execution, reassignment, provisioning
   materialization.py BOM, assembly, energy/cost, digital twin, closure ledger
   sovereignty.py ten-domain fusion, sovereignty audit, deterministic plan, bounded perfection
+  demands.py explicit ledger of every visible request, closest implementation, and blocker
   quality.py       schema, reproducibility, ACID, ISO subset, and ZKP gates
   repair.py        quarantine broken built-ins and restore known names
   metrics.py       in-process Prometheus counters
@@ -1025,6 +1039,8 @@ curl -s localhost:12000/redteam
 | GET | `/sovereignty/status` | fusion, audit, and contract coverage |
 | POST | `/sovereignty/plan` | deterministic graph plan; no guaranteed success |
 | POST | `/sovereignty/perfection` | one bounded measured improvement step |
+| GET | `/demands` | every visible request mapped to closest implementation and blocker |
+| GET | `/demands/{id}` | one demand entry with status, blocker, and next action |
 | POST | `/verify_claim` | lexical support for a claim (`entails: false`) |
 | GET | `/properties` | randomized invariant checks over native capabilities |
 | POST | `/brief` | cited, extractive brief for any topic (`lang=en|ar`) |
@@ -1087,7 +1103,7 @@ meeting every criterion.
 ## Tests
 
 ```bash
-python -m pytest        # 418 tests
+python -m pytest        # 422 tests
 ```
 
 Coverage includes: embedding determinism, hybrid retrieval and graph traversal,
